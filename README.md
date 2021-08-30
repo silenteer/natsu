@@ -1,27 +1,3 @@
-#!/bin/bash
-
-set -e
-
-(cd nats.port && yarn && yarn build &)
-(cd nats.port.server && yarn &)
-(cd poc && yarn &)
-
-wait
-
-(cd nats.port.server && yarn ts-node src &)
-SERVER=$!
-
-(cd poc && yarn ts-node reply &)
-CLIENT=$!
-
-(cd poc && yarn next dev &)
-NEXT=$!
-
-echo $SERVER $CLIENT $NEXT
-
-trap "{ kill $SERVER $CLIENT $NEXT }" EXIT
-
-
 ### Step by step
 
 - Yarn everything
