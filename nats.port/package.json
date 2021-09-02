@@ -1,5 +1,5 @@
 {
-  "name": "nats.port",
+  "name": "@natsu/port",
   "version": "1.0.0",
   "description": "",
   "main": "dist/index.js",
@@ -17,6 +17,7 @@
     "nats.ws": "^1.3.0"
   },
   "dependencies": {
+    "@natsu/types": "link:../types",
     "typescript": "^4.4.2"
   },
   "devDependencies": {

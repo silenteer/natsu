@@ -4,14 +4,16 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "reply": "ts-node reply",
+    "next": "next dev"
   },
   "keywords": [],
   "author": "Duke",
   "license": "ISC",
   "dependencies": {
+    "@natsu/port": "link:../nats.port",
+    "@natsu/types": "link:../types",
     "nats": "^2.2.0",
-    "nats.port": "link:../nats.port",
     "next": "^11.1.0",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",

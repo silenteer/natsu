@@ -1,8 +1,10 @@
-import fastify from "fastify";
+import fastify, { FastifyReply } from "fastify";
 import fastifyCors from "fastify-cors";
 import config from "./configuration";
 import { request as natsRequest } from "./nats";
-import { JSONCodec, MsgHdrs } from "nats";
+import { StringCodec, headers as h } from "nats";
+
+import type { NatsPortReq } from "@natsu/types";
 
 const server = fastify();
 server.register(fastifyCors, {
@@ -10,41 +12,32 @@ server.register(fastifyCors, {
   methods: ["POST"],
 });
 
-const natsJsonContentType = "application/json+nats";
+const nastBinaryContentType = "application/json";
+const codec = StringCodec();
 
-const codec = JSONCodec();
+function return400(reply: FastifyReply) {
+  reply.statusCode = 400;
+  reply.send();
+}
 
 server.post(config.path, async (request, reply) => {
   const contentType = request.headers["content-type"];
   const subject = request.headers["nats-subject"];
 
   if (subject === undefined || Array.isArray(subject)) {
-    reply.statusCode = 400;
-    reply.send();
+    return400(reply);
     return;
   }
 
-  if (contentType === natsJsonContentType) {
-    const body = request.body;
-    const result = await natsRequest(subject, codec.encode(body as string));
-
-    if (result) {
-      reply.send(
-        JSON.stringify({
-          headers: result.headers,
-          data: codec.decode(result.data),
-        })
-      );
-    } else {
-      reply.send();
-    }
-
-    return;
-  } else {
-    reply.statusCode = 400;
-    reply.send();
+  if (contentType !== nastBinaryContentType) {
+    return400(reply);
     return;
   }
+
+  const data = request.body as NatsPortReq<any>;
+  const result = await natsRequest(subject, codec.encode(JSON.stringify(data)));
+
+  reply.send(codec.decode(result.data));
 });
 
 server.listen(config.port, (err, address) => {

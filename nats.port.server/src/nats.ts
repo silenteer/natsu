@@ -25,6 +25,13 @@ export type RequestResponse<T> = {
   body: T;
 };
 
-export async function request(subject: string, data?: Uint8Array) {
-  return (await getConnection()).request(subject, data, defaultRequestOptions);
+export async function request(
+  subject: string,
+  data?: Uint8Array,
+  options?: Partial<RequestOptions>
+) {
+  return (await getConnection()).request(subject, data, {
+    ...defaultRequestOptions,
+    ...options,
+  });
 }

@@ -1,0 +1,10 @@
+{
+  "name": "@natsu/types",
+  "version": "1.0.0",
+  "description": "",
+  "types": "natsu.d.ts",
+  "scripts": {},
+  "keywords": [],
+  "author": "Duke",
+  "license": "ISC"
+}

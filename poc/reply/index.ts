@@ -1,4 +1,5 @@
-import { connect, JSONCodec, Subscription } from "nats";
+import { connect, StringCodec, Subscription } from "nats";
+import type { NatsPortReq } from "@natsu/types";
 
 (async function main() {
   const nc = await connect();
@@ -8,7 +9,7 @@ import { connect, JSONCodec, Subscription } from "nats";
   handle(sub);
 })();
 
-const codec = JSONCodec();
+const codec = StringCodec();
 
 type Hello = {
   msg: string;
@@ -18,10 +19,10 @@ async function handle(s: Subscription) {
   console.log("Listening for ", s.getSubject());
   for await (const m of s) {
     try {
-      const body = codec.decode(m.data) as Hello;
-      console.log("Receiving", JSON.stringify(body));
-      const msg = body.msg.split("").reverse().join("");
-      m.respond(codec.encode({ msg }));
+      const msg = JSON.parse(codec.decode(m.data)) as NatsPortReq<Hello>;
+
+      const newmsg = msg.body.msg.split("").reverse().join("");
+      m.respond(codec.encode(JSON.stringify({ msg: newmsg })));
     } catch (e) {
       console.error(e);
     }
