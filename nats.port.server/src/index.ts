@@ -34,10 +34,18 @@ server.post(config.path, async (request, reply) => {
     return;
   }
 
-  const data = request.body as NatsPortReq<any>;
-  const result = await natsRequest(subject, codec.encode(JSON.stringify(data)));
+  const _natsRequest: NatsPortReq<any> = {
+    headers: request.headers,
+    body: request.body,
+  };
 
-  reply.send(codec.decode(result.data));
+  const result = await natsRequest(
+    subject,
+    codec.encode(JSON.stringify(_natsRequest))
+  );
+  const natsResponse: NatsPortReq<any> = JSON.parse(codec.decode(result.data));
+
+  reply.send(natsResponse.body);
 });
 
 server.listen(config.port, (err, address) => {

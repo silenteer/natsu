@@ -1,4 +1,4 @@
-import type { NatsPortReq } from "@natsu/types";
+import type { NatsInfo } from "@natsu/types";
 
 export type ConnectionOptions = {
   serverURL: URL;
@@ -12,7 +12,10 @@ const defaultOptions = {
 };
 
 const connect = (options: ConnectionOptions) => {
-  const request = async <T>(subject: string, data?: any) => {
+  const request = async <T extends NatsInfo>(
+    subject: T["subject"],
+    body: T["request"]
+  ): Promise<T["response"]> => {
     const response = await fetch(options.serverURL.toString(), {
       method: "POST",
       mode: "cors",
@@ -20,12 +23,10 @@ const connect = (options: ConnectionOptions) => {
         "nats-subject": subject,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        body: data,
-      }),
+      body: JSON.stringify(body),
     });
 
-    return (await response.json()) as NatsPortReq<T>;
+    return (await response.json()) as T["response"];
   };
 
   return request;

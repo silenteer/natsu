@@ -1,11 +1,11 @@
 import { connect, StringCodec, Subscription } from "nats";
-import type { NatsPortReq } from "@natsu/types";
+import type { NatsPortReq, IGetCareProviders } from "@natsu/types";
 
 (async function main() {
   const nc = await connect();
   console.log("Connected to NATS");
 
-  const sub = nc.subscribe("api.test.hello");
+  const sub = nc.subscribe("api.v2.mobile.patient.getCareProviders");
   handle(sub);
 })();
 
@@ -19,10 +19,19 @@ async function handle(s: Subscription) {
   console.log("Listening for ", s.getSubject());
   for await (const m of s) {
     try {
-      const msg = JSON.parse(codec.decode(m.data)) as NatsPortReq<Hello>;
+      const msg = JSON.parse(codec.decode(m.data)) as NatsPortReq<
+        IGetCareProviders["request"]
+      >;
+      const result: IGetCareProviders["response"] = msg.body.ids.map((id) => ({
+        id,
+        name: `${id}`,
+      }));
 
-      const newmsg = msg.body.msg.split("").reverse().join("");
-      m.respond(codec.encode(JSON.stringify({ msg: newmsg })));
+      const natsResponse: NatsPortReq<any> = {
+        headers: m.headers,
+        body: result,
+      };
+      m.respond(codec.encode(JSON.stringify(natsResponse)));
     } catch (e) {
       console.error(e);
     }
