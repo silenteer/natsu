@@ -3,14 +3,32 @@ export type NatsPortReq<T> = {
   body: T;
 };
 
-export interface NatsInfo {
-  subject: string;
-  request: unknown;
-  response: unknown;
-}
+export type NatsService<Subject extends string, Req, Res> = {
+  subject: Subject;
+  request: Req;
+  response: Res;
+};
 
-export interface IGetCareProviders extends NatsInfo {
-  subject: "api.v2.mobile.patient.getCareProviders";
-  request: { ids: string[] };
-  response: Array<{ id: string; name: string }>;
-}
+export type NatsResponse<T = unknown> = {
+  code: 200;
+  body?: T;
+};
+
+export type ErrorResponse = {
+  code: 400 | 401 | 403 | 500;
+  messsage?: string;
+  body?: unknown;
+};
+
+// Shared types, will move later
+export type GetCareProvidersRequest = {
+  ids: string[];
+};
+
+export type GetCareProvidersResponse = Array<{ id: string; name: string }>;
+
+export type GetCareProviders = NatsService<
+  "api.v2.mobile.patient.getCareProviders",
+  GetCareProvidersRequest,
+  GetCareProvidersResponse
+>;

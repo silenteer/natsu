@@ -2,7 +2,7 @@ import fastify, { FastifyReply } from "fastify";
 import fastifyCors from "fastify-cors";
 import config from "./configuration";
 import { request as natsRequest } from "./nats";
-import { StringCodec, headers as h } from "nats";
+import { JSONCodec, headers as h } from "nats";
 
 import type { NatsPortReq } from "@natsu/types";
 
@@ -13,7 +13,7 @@ server.register(fastifyCors, {
 });
 
 const nastBinaryContentType = "application/json";
-const codec = StringCodec();
+const codec = JSONCodec<any>();
 
 function return400(reply: FastifyReply) {
   reply.statusCode = 400;
@@ -36,14 +36,11 @@ server.post(config.path, async (request, reply) => {
 
   const _natsRequest: NatsPortReq<any> = {
     headers: request.headers,
-    body: request.body,
+    body: (request.body as never)?.["data"],
   };
 
-  const result = await natsRequest(
-    subject,
-    codec.encode(JSON.stringify(_natsRequest))
-  );
-  const natsResponse: NatsPortReq<any> = JSON.parse(codec.decode(result.data));
+  const result = await natsRequest(subject, codec.encode(_natsRequest));
+  const natsResponse: NatsPortReq<any> = codec.decode(result.data);
 
   reply.send(natsResponse.body);
 });
