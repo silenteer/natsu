@@ -1,0 +1,25 @@
+{
+  "name": "cli",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "next dev"
+  },
+  "keywords": [],
+  "author": "Duke",
+  "license": "ISC",
+  "dependencies": {
+    "service-types": "1.0.0",
+    "@natsu/port": "link:../../../nats.port",
+    "next": "^11.1.0",
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2",
+    "react-use-promise": "^0.4.1",
+    "ts-node": "^10.2.1",
+    "typescript": "^4.4.2"
+  },
+  "devDependencies": {
+    "@types/react": "^17.0.19"
+  }
+}

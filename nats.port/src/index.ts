@@ -4,7 +4,7 @@ export type ConnectionOptions = {
   serverURL: URL;
 } & RequestInit;
 
-const connect = (options: ConnectionOptions) => {
+export const connect = (options: ConnectionOptions) => {
   const request = async <T extends NatsService<string, unknown, unknown>>(
     subject: T["subject"],
     body: T["request"]
@@ -51,5 +51,3 @@ const connect = (options: ConnectionOptions) => {
 };
 
 export const request = connect({ serverURL: new URL("http://localhost:8080") });
-
-export default connect;
