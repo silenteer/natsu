@@ -1,0 +1,17 @@
+.app {
+  font-family: sans-serif;
+  min-width: 300px;
+  max-width: 600px;
+  margin: 50px auto;
+}
+
+.app header {
+  background-color: #143055;
+  color: white;
+  padding: 5px;
+  border-radius: 3px;
+}
+
+.app main {
+  padding: 0 36px;
+}

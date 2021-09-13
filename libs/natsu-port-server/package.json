@@ -1,0 +1,10 @@
+{
+  "name": "@silenteer/natsu-port-server",
+  "version": "0.0.1",
+  "dependencies": {
+    "fastify": "3.21.0",
+    "fastify-cors": "6.0.2",
+    "nats": "2.2.0",
+    "yup": "0.32.9"
+  }
+}

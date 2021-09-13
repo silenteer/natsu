@@ -1,19 +1,46 @@
-### Step by step
+**Setup husky**
 
-- Yarn everything
-- Use `yarn build` in `nats.port` to build the lib
-- Start nats.port.server by `yarn ts-node src` in `nats.port.server`
-- Start replier by `yarn ts-node reply` in `poc`
-- Run `yarn next dev` in `poc`
-
-Visit `http://localhost:3000`, the result should be `hello world` reversed
-
-Can also use curl
+At root, run this command
 ```
-curl -X POST \
-  'http://localhost:8080/' \
-  -H 'Content-Type: application/json+nats' \
-  -H 'nats-subject: api.test.hello' \
-  -H 'Content-Type: application/json' \
-  -d '{"msg": "Hello world"}'
+yarn setup-husky
 ```
+It should be done once when the first time clone this repo
+
+
+**Install all node modules**
+
+Apps/Libs can have dependencies with different version which declared in their package.json
+
+But they also share dependencies with same version which declared in package.json at root
+
+To install all these dependencies, run this command at root
+```
+yarn install-all
+```
+
+
+**Build App/Lib**
+
+At root, run this command
+```
+yarn build [app/lib name]
+```
+`[app/lib name]` is name of app/lib which declared in `nx.json`. Normally, it same project folder name.
+
+
+**Test App/Lib**
+
+At root, run this command
+```
+yarn test [app/lib name]
+```
+`[app/lib name]` is name of app/lib which declared in `nx.json`. Normally, it same project folder name.
+
+
+**Start App**
+
+At root, run this command
+```
+yarn start [app name]
+```
+`[app name]` is name of app which declared in `nx.json`. Normally, it same project folder name.

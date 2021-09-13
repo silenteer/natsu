@@ -1,0 +1,37 @@
+{
+  "compileOnSave": false,
+  "compilerOptions": {
+    "sourceMap": true,
+    "declaration": false,
+    "moduleResolution": "node",
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "importHelpers": true,
+    "skipLibCheck": true,
+    "skipDefaultLibCheck": true,
+    "noEmitHelpers": true,
+    "downlevelIteration": true,
+    "strictPropertyInitialization": false,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
+    "importsNotUsedAsValues": "remove",
+    "preserveConstEnums": true,
+    "allowJs": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "target": "es2015",
+    "module": "esnext",
+    "lib": ["es2017", "dom", "webworker", "ES2020.Promise"],
+    "rootDir": ".",
+    "baseUrl": ".",
+    "paths": {
+      "@silenteer/example-type": ["libs/example-type/src/index.ts"],
+      "@silenteer/natsu": ["libs/natsu/src/index.ts"],
+      "@silenteer/natsu-port": ["libs/natsu-port/src/index.ts"],
+      "@silenteer/natsu-port-server": ["libs/natsu-port-server/src/index.ts"],
+      "@silenteer/natsu-type": ["libs/natsu-type/src/index.ts"]
+    }
+  },
+  "exclude": ["node_modules", "**/dist"]
+}

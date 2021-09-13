@@ -1,0 +1,7 @@
+{
+  "name": "@silenteer/natsu",
+  "version": "0.0.1",
+  "dependencies": {
+    "nats": "2.2.0"
+  }
+}

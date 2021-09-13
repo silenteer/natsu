@@ -1,0 +1,328 @@
+{
+  "version": 2,
+  "projects": {
+    "example-client": {
+      "root": "apps/example-client",
+      "sourceRoot": "apps/example-client",
+      "projectType": "application",
+      "targets": {
+        "build": {
+          "executor": "@nrwl/next:build",
+          "outputs": ["{options.outputPath}"],
+          "options": {
+            "root": "apps/example-client",
+            "outputPath": "dist/apps/example-client"
+          },
+          "configurations": {
+            "production": {}
+          }
+        },
+        "serve": {
+          "executor": "@nrwl/next:server",
+          "options": {
+            "buildTarget": "example-client:build",
+            "dev": true
+          },
+          "configurations": {
+            "production": {
+              "buildTarget": "example-client:build:production",
+              "dev": false
+            }
+          }
+        },
+        "export": {
+          "executor": "@nrwl/next:export",
+          "options": {
+            "buildTarget": "example-client:build:production"
+          }
+        },
+        "test": {
+          "executor": "@nrwl/jest:jest",
+          "outputs": ["coverage/apps/example-client"],
+          "options": {
+            "jestConfig": "apps/example-client/jest.config.js",
+            "passWithNoTests": true
+          }
+        },
+        "lint": {
+          "executor": "@nrwl/linter:eslint",
+          "outputs": ["{options.outputFile}"],
+          "options": {
+            "lintFilePatterns": ["apps/example-client/**/*.{ts,tsx,js,jsx}"]
+          }
+        }
+      }
+    },
+    "example-natsu": {
+      "root": "apps/example-natsu",
+      "sourceRoot": "apps/example-natsu/src",
+      "projectType": "application",
+      "targets": {
+        "build": {
+          "executor": "@nrwl/node:build",
+          "outputs": ["{options.outputPath}"],
+          "options": {
+            "outputPath": "dist/apps/example-natsu",
+            "main": "apps/example-natsu/src/main.ts",
+            "tsConfig": "apps/example-natsu/tsconfig.app.json"
+          },
+          "configurations": {
+            "production": {
+              "optimization": true,
+              "extractLicenses": true,
+              "inspect": false,
+              "fileReplacements": [
+                {
+                  "replace": "apps/example-natsu/src/environments/environment.ts",
+                  "with": "apps/example-natsu/src/environments/environment.prod.ts"
+                }
+              ]
+            }
+          }
+        },
+        "serve": {
+          "executor": "@nrwl/node:execute",
+          "options": {
+            "buildTarget": "example-natsu:build"
+          }
+        },
+        "lint": {
+          "executor": "@nrwl/linter:eslint",
+          "options": {
+            "lintFilePatterns": ["apps/example-natsu/**/*.ts"]
+          }
+        },
+        "test": {
+          "executor": "@nrwl/jest:jest",
+          "outputs": ["coverage/apps/example-natsu"],
+          "options": {
+            "jestConfig": "apps/example-natsu/jest.config.js",
+            "passWithNoTests": true
+          }
+        }
+      }
+    },
+    "example-server": {
+      "root": "apps/example-server",
+      "sourceRoot": "apps/example-server/src",
+      "projectType": "application",
+      "targets": {
+        "build": {
+          "executor": "@nrwl/node:build",
+          "outputs": ["{options.outputPath}"],
+          "options": {
+            "outputPath": "dist/apps/example-server",
+            "main": "apps/example-server/src/main.ts",
+            "tsConfig": "apps/example-server/tsconfig.app.json"
+          },
+          "configurations": {
+            "production": {
+              "optimization": true,
+              "extractLicenses": true,
+              "inspect": false,
+              "fileReplacements": [
+                {
+                  "replace": "apps/example-server/src/environments/environment.ts",
+                  "with": "apps/example-server/src/environments/environment.prod.ts"
+                }
+              ]
+            }
+          }
+        },
+        "serve": {
+          "executor": "@nrwl/node:execute",
+          "options": {
+            "buildTarget": "example-server:build"
+          }
+        },
+        "lint": {
+          "executor": "@nrwl/linter:eslint",
+          "options": {
+            "lintFilePatterns": ["apps/example-server/**/*.ts"]
+          }
+        },
+        "test": {
+          "executor": "@nrwl/jest:jest",
+          "outputs": ["coverage/apps/example-server"],
+          "options": {
+            "jestConfig": "apps/example-server/jest.config.js",
+            "passWithNoTests": true
+          }
+        }
+      }
+    },
+    "example-type": {
+      "root": "libs/example-type",
+      "sourceRoot": "libs/example-type/src",
+      "projectType": "library",
+      "targets": {
+        "build": {
+          "executor": "@nrwl/node:package",
+          "outputs": ["{options.outputPath}"],
+          "options": {
+            "outputPath": "dist/libs/example-type",
+            "tsConfig": "libs/example-type/tsconfig.lib.json",
+            "packageJson": "libs/example-type/package.json",
+            "main": "libs/example-type/src/index.ts",
+            "assets": ["libs/example-type/*.md"]
+          }
+        },
+        "lint": {
+          "executor": "@nrwl/linter:eslint",
+          "options": {
+            "lintFilePatterns": ["libs/example-type/**/*.ts"]
+          }
+        },
+        "test": {
+          "executor": "@nrwl/jest:jest",
+          "outputs": ["coverage/libs/example-type"],
+          "options": {
+            "jestConfig": "libs/example-type/jest.config.js",
+            "passWithNoTests": true
+          }
+        }
+      }
+    },
+    "natsu": {
+      "root": "libs/natsu",
+      "sourceRoot": "libs/natsu/src",
+      "projectType": "library",
+      "targets": {
+        "build": {
+          "executor": "@nrwl/node:package",
+          "outputs": ["{options.outputPath}"],
+          "options": {
+            "outputPath": "dist/libs/natsu",
+            "tsConfig": "libs/natsu/tsconfig.lib.json",
+            "packageJson": "libs/natsu/package.json",
+            "main": "libs/natsu/src/index.ts"
+          }
+        },
+        "lint": {
+          "executor": "@nrwl/linter:eslint",
+          "options": {
+            "lintFilePatterns": ["libs/natsu/**/*.ts"]
+          }
+        },
+        "test": {
+          "executor": "@nrwl/jest:jest",
+          "outputs": ["coverage/libs/natsu"],
+          "options": {
+            "jestConfig": "libs/natsu/jest.config.js",
+            "passWithNoTests": true
+          }
+        }
+      }
+    },
+    "natsu-port": {
+      "root": "libs/natsu-port",
+      "sourceRoot": "libs/natsu-port/src",
+      "projectType": "library",
+      "targets": {
+        "build": {
+          "executor": "@nrwl/node:package",
+          "outputs": ["{options.outputPath}"],
+          "options": {
+            "outputPath": "dist/libs/natsu-port",
+            "tsConfig": "libs/natsu-port/tsconfig.lib.json",
+            "packageJson": "libs/natsu-port/package.json",
+            "main": "libs/natsu-port/src/index.ts"
+          }
+        },
+        "lint": {
+          "executor": "@nrwl/linter:eslint",
+          "options": {
+            "lintFilePatterns": ["libs/natsu-port/**/*.ts"]
+          }
+        },
+        "test": {
+          "executor": "@nrwl/jest:jest",
+          "outputs": ["coverage/libs/natsu-port"],
+          "options": {
+            "jestConfig": "libs/natsu-port/jest.config.js",
+            "passWithNoTests": true
+          }
+        }
+      }
+    },
+    "natsu-port-server": {
+      "root": "libs/natsu-port-server",
+      "sourceRoot": "libs/natsu-port-server/src",
+      "projectType": "library",
+      "targets": {
+        "build": {
+          "executor": "@nrwl/node:package",
+          "outputs": ["{options.outputPath}"],
+          "options": {
+            "outputPath": "dist/libs/natsu-port-server",
+            "tsConfig": "libs/natsu-port-server/tsconfig.lib.json",
+            "packageJson": "libs/natsu-port-server/package.json",
+            "main": "libs/natsu-port-server/src/index.ts"
+          }
+        },
+        "lint": {
+          "executor": "@nrwl/linter:eslint",
+          "options": {
+            "lintFilePatterns": ["libs/natsu-port-server/**/*.ts"]
+          }
+        },
+        "test": {
+          "executor": "@nrwl/jest:jest",
+          "outputs": ["coverage/libs/natsu-port-server"],
+          "options": {
+            "jestConfig": "libs/natsu-port-server/jest.config.js",
+            "passWithNoTests": true
+          }
+        }
+      }
+    },
+    "natsu-type": {
+      "root": "libs/natsu-type",
+      "sourceRoot": "libs/natsu-type/src",
+      "projectType": "library",
+      "targets": {
+        "build": {
+          "executor": "@nrwl/node:package",
+          "outputs": ["{options.outputPath}"],
+          "options": {
+            "outputPath": "dist/libs/natsu-type",
+            "tsConfig": "libs/natsu-type/tsconfig.lib.json",
+            "packageJson": "libs/natsu-type/package.json",
+            "main": "libs/natsu-type/src/index.ts"
+          }
+        },
+        "lint": {
+          "executor": "@nrwl/linter:eslint",
+          "options": {
+            "lintFilePatterns": ["libs/natsu-type/**/*.ts"]
+          }
+        },
+        "test": {
+          "executor": "@nrwl/jest:jest",
+          "outputs": ["coverage/libs/natsu-type"],
+          "options": {
+            "jestConfig": "libs/natsu-type/jest.config.js",
+            "passWithNoTests": true
+          }
+        }
+      }
+    }
+  },
+  "cli": {
+    "defaultCollection": "@nrwl/node"
+  },
+  "defaultProject": "example-server",
+  "generators": {
+    "@nrwl/react": {
+      "application": {
+        "babel": true
+      }
+    },
+    "@nrwl/next": {
+      "application": {
+        "style": "css",
+        "linter": "eslint"
+      }
+    }
+  }
+}
