@@ -1,0 +1,55 @@
+{
+  "npmScope": "natsu",
+  "affected": {
+    "defaultBase": "main"
+  },
+  "implicitDependencies": {
+    "package.json": {
+      "dependencies": "*",
+      "devDependencies": "*"
+    },
+    ".eslintrc.json": "*"
+  },
+  "tasksRunnerOptions": {
+    "default": {
+      "runner": "@nrwl/workspace/tasks-runners/default",
+      "options": {
+        "cacheableOperations": ["build", "lint", "test"]
+      }
+    }
+  },
+  "targetDependencies": {
+    "build": [
+      {
+        "target": "build",
+        "projects": "dependencies"
+      }
+    ]
+  },
+  "projects": {
+    "example-client": {
+      "tags": ["example-client"]
+    },
+    "example-natsu": {
+      "tags": ["example-natsu"]
+    },
+    "example-server": {
+      "tags": ["example-server"]
+    },
+    "example-type": {
+      "tags": ["example-type"]
+    },
+    "natsu": {
+      "tags": ["natsu"]
+    },
+    "natsu-port": {
+      "tags": ["natsu-port"]
+    },
+    "natsu-port-server": {
+      "tags": ["natsu-port-server"]
+    },
+    "natsu-type": {
+      "tags": ["natsu-type"]
+    }
+  }
+}
