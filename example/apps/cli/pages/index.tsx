@@ -1,6 +1,6 @@
-import { request } from "@natsu/port";
-import { GetCareProviders } from "@natsu/types";
+import { GetCareProviders } from "service-types";
 import usePromise from "react-use-promise";
+import { request } from "../services";
 
 export default function Home() {
   const [result] = usePromise(() => {

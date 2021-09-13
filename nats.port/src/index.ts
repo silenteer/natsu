@@ -1,31 +1,50 @@
-import type { NatsPortReq } from "@natsu/types";
+import type { NatsService, NatsResponse, ErrorResponse } from "@natsu/types";
 
 export type ConnectionOptions = {
   serverURL: URL;
-  method?: "POST";
-  contentType?: string;
-};
+} & RequestInit;
 
-const defaultOptions = {
-  method: "POST",
-  contentType: "application/nats",
-};
+export const connect = (options: ConnectionOptions) => {
+  const request = async <T extends NatsService<string, unknown, unknown>>(
+    subject: T["subject"],
+    body: T["request"]
+  ): Promise<T["response"]> => {
+    try {
+      const result = await fetch(options.serverURL.toString(), {
+        ...options,
+        method: "POST",
+        mode: "cors",
+        headers: {
+          "nats-subject": subject,
+          "Content-Type": "application/json",
+          ...options.headers,
+        },
+        ...(body !== undefined && body !== null
+          ? {
+              body: JSON.stringify({
+                data: body,
+              }),
+            }
+          : {}),
+      });
 
-const connect = (options: ConnectionOptions) => {
-  const request = async <T>(subject: string, data?: any) => {
-    const response = await fetch(options.serverURL.toString(), {
-      method: "POST",
-      mode: "cors",
-      headers: {
-        "nats-subject": subject,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        body: data,
-      }),
-    });
+      let response: NatsResponse<T["response"]> | ErrorResponse;
+      try {
+        response = await result.json();
+      } catch (e) {
+        throw new Error("Response is not JSON");
+      }
 
-    return (await response.json()) as NatsPortReq<T>;
+      if (response.code === 200) {
+        return response.body;
+      } else if ([400, 401, 403, 500].includes(response.code)) {
+        throw response;
+      } else {
+        throw new Error("Unknown response.");
+      }
+    } catch (e) {
+      throw e;
+    }
   };
 
   return request;

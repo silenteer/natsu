@@ -1,11 +1,6 @@
 import { connect, JSONCodec, Subscription } from "nats";
-import type {
-  NatsPortReq,
-  GetCareProviders,
-  NatsResponse,
-  GetCareProvidersResponse,
-  ErrorResponse,
-} from "@natsu/types";
+import type { NatsPortReq, NatsResponse, ErrorResponse } from "@natsu/types";
+import type { GetCareProviders, GetCareProvidersResponse } from "service-types";
 import GetCareProvidersHandler from "./handler";
 
 (async function main() {
