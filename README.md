@@ -35,3 +35,12 @@ At root, run this command
 yarn start [app name]
 ```
 `[app name]` is name of app which declared in `nx.json`. Normally, it same project folder name.
+
+
+**Release Lib**
+
+At root, run this command
+```
+yarn release [lib name]
+```
+`[lib name]` is name of app/lib which declared in `nx.json`. Normally, it same project folder name.
