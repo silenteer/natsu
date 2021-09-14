@@ -17,7 +17,8 @@
     "affected:lint": "nx affected:lint",
     "affected:dep-graph": "nx affected:dep-graph",
     "affected": "nx affected",
-    "dep-graph": "nx dep-graph"
+    "dep-graph": "nx dep-graph",
+    "release": "nx release"
   },
   "devDependencies": {
     "@nrwl/cli": "12.7.2",

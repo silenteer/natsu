@@ -210,6 +210,16 @@
             "jestConfig": "libs/natsu/jest.config.js",
             "passWithNoTests": true
           }
+        },
+        "release": {
+          "executor": "@nrwl/workspace:run-commands",
+          "options": {
+            "commands": [
+              "yarn nx run natsu:build",
+              "npm publish ./dist/libs/natsu --access public"
+            ],
+            "parallel": false
+          }
         }
       }
     },
@@ -240,6 +250,16 @@
           "options": {
             "jestConfig": "libs/natsu-port/jest.config.js",
             "passWithNoTests": true
+          }
+        },
+        "release": {
+          "executor": "@nrwl/workspace:run-commands",
+          "options": {
+            "commands": [
+              "yarn nx run natsu-port:build",
+              "npm publish ./dist/libs/natsu-port --access public"
+            ],
+            "parallel": false
           }
         }
       }
@@ -272,6 +292,16 @@
             "jestConfig": "libs/natsu-port-server/jest.config.js",
             "passWithNoTests": true
           }
+        },
+        "release": {
+          "executor": "@nrwl/workspace:run-commands",
+          "options": {
+            "commands": [
+              "yarn nx run natsu-port-server:build",
+              "npm publish ./dist/libs/natsu-port-server --access public"
+            ],
+            "parallel": false
+          }
         }
       }
     },
@@ -302,6 +332,16 @@
           "options": {
             "jestConfig": "libs/natsu-type/jest.config.js",
             "passWithNoTests": true
+          }
+        },
+        "release": {
+          "executor": "@nrwl/workspace:run-commands",
+          "options": {
+            "commands": [
+              "yarn nx run natsu-type:build",
+              "npm publish ./dist/libs/natsu-type --access public"
+            ],
+            "parallel": false
           }
         }
       }
