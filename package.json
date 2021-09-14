@@ -4,6 +4,7 @@
   "license": "MIT",
   "private": true,
   "scripts": {
+    "postinstall": "echo \"NPM_CONFIG_TOKEN=911fe80f-6abc-4248-9c49-b72cc290dcea\" >| .env",
     "install-all": "yarn && concurrently \"(cd ./libs/natsu && yarn)\" \"(cd ./libs/natsu-port && yarn)\" \"(cd ./libs/natsu-port-server && yarn)\" \"(cd ./examples/example-client && yarn)\" \"(cd ./examples/example-server && yarn)\" \"(cd ./examples/example-natsu && yarn)\"",
     "nx": "nx",
     "start": "nx serve",
