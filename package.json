@@ -4,7 +4,7 @@
   "license": "MIT",
   "private": true,
   "scripts": {
-    "install-all": "yarn && concurrently \"(cd ./libs/natsu && yarn)\" \"(cd ./libs/natsu-port && yarn)\" \"(cd ./libs/natsu-port-server && yarn)\"",
+    "install-all": "yarn && concurrently \"(cd ./libs/natsu && yarn)\" \"(cd ./libs/natsu-port && yarn)\" \"(cd ./libs/natsu-port-server && yarn)\" \"(cd ./examples/example-client && yarn)\" \"(cd ./examples/example-server && yarn)\" \"(cd ./examples/example-natsu && yarn)\"",
     "nx": "nx",
     "start": "nx serve",
     "build": "nx build",
@@ -18,13 +18,6 @@
     "affected:dep-graph": "nx affected:dep-graph",
     "affected": "nx affected",
     "dep-graph": "nx dep-graph"
-  },
-  "dependencies": {
-    "next": "11.1.0",
-    "react": "17.0.2",
-    "react-dom": "17.0.2",
-    "react-use-promise": "0.4.1",
-    "yup": "0.32.9"
   },
   "devDependencies": {
     "@nrwl/cli": "12.7.2",

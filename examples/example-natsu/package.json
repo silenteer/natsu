@@ -1,0 +1,7 @@
+{
+  "name": "example-natsu",
+  "version": "0.0.1",
+  "dependencies": {
+    "yup": "0.32.9"
+  }
+}

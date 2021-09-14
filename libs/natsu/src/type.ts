@@ -1,5 +1,9 @@
 import type { Msg, NatsConnection } from 'nats';
-import type { NatsRequest, NatsResponse } from '@silenteer/natsu-type';
+import type {
+  NatsService,
+  NatsRequest,
+  NatsResponse,
+} from '@silenteer/natsu-type';
 
 type NatsInjection = {
   message: Msg;
@@ -22,43 +26,42 @@ type NatsValidationResult = {
   errors?: unknown;
 };
 
-type NatsValidate<TBody, TInjection extends Record<string, unknown>> = (
-  data: NatsRequest<TBody>,
-  injection: TInjection extends Record<string, unknown>
-    ? TInjection & NatsInjection
-    : NatsInjection
+type NatsValidate<
+  TService extends NatsService<string, unknown, unknown>,
+  TInjection extends Record<string, unknown> = Record<string, unknown>
+> = (
+  data: NatsRequest<TService['request']>,
+  injection: TInjection & NatsInjection
 ) => Promise<NatsValidationResult>;
 
-type NatsAuthorize<TBody, TInjection extends Record<string, unknown>> = (
-  data: NatsRequest<TBody>,
-  injection: TInjection extends Record<string, unknown>
-    ? TInjection & NatsInjection
-    : NatsInjection
+type NatsAuthorize<
+  TService extends NatsService<string, unknown, unknown>,
+  TInjection extends Record<string, unknown> = Record<string, unknown>
+> = (
+  data: NatsRequest<TService['request']>,
+  injection: TInjection & NatsInjection
 ) => Promise<NatsAuthorizationResult>;
 
 type NatsHandle<
-  TBody,
-  TResponse,
-  TInjection extends Record<string, unknown>
+  TService extends NatsService<string, unknown, unknown>,
+  TInjection extends Record<string, unknown> = Record<string, unknown>
 > = (
-  data: NatsRequest<TBody>,
-  injection: TInjection extends Record<string, unknown>
-    ? TInjection & NatsInjection
-    : NatsInjection
-) => Promise<NatsHandleResult<TResponse>>;
+  data: NatsRequest<TService['request']>,
+  injection: TInjection & NatsInjection
+) => Promise<NatsHandleResult<TService['response']>>;
 
 type NatsHandler<
-  TBody,
-  TResponse,
-  TInjection extends Record<string, unknown>
+  TService extends NatsService<string, unknown, unknown>,
+  TInjection extends Record<string, unknown> = Record<string, unknown>
 > = {
   subject: string;
-  validate: NatsValidate<TBody, TInjection>;
-  authorize: NatsAuthorize<TBody, TInjection>;
-  handle: NatsHandle<TBody, TResponse, TInjection>;
+  validate: NatsValidate<TService, TInjection>;
+  authorize: NatsAuthorize<TService, TInjection>;
+  handle: NatsHandle<TService, TInjection>;
 };
 
 export type {
+  NatsService,
   NatsRequest,
   NatsResponse,
   NatsInjection,

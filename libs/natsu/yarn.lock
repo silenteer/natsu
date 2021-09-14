@@ -7,7 +7,7 @@
   resolved "https://registry.yarnpkg.com/@types/node/-/node-14.17.15.tgz#d5ebfb62a69074ebb85cbe0529ad917bb8f2bae8"
   integrity sha512-D1sdW0EcSCmNdLKBGMYb38YsHUS6JcM7yQ6sLQ9KuZ35ck7LYCKE7kYFHOO59ayFOY3zobWVZxf4KXhYHcHYFA==
 
-nats@2.2.0:
+nats@^2.2.0:
   version "2.2.0"
   resolved "https://registry.yarnpkg.com/nats/-/nats-2.2.0.tgz#41c3a5f0d1c7dbc313756fb9ebaabe7e0bae19a4"
   integrity sha512-XdXiMjLxoPo8ubK8noi9lWU1fHV5/hf0OjprhBPxxX6inwYUF3GskmoVEzOliJRh09IG5DZkDJntZ0bpKcpEXg==

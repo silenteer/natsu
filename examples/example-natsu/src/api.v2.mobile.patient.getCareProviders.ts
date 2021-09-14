@@ -9,10 +9,7 @@ import {
 
 const schema = yup.array(yup.string().trim()).required().min(1).required();
 
-const validate: NatsValidate<
-  NatsGetCareProviders['request'],
-  Record<string, unknown>
-> = async (data) => {
+const validate: NatsValidate<NatsGetCareProviders> = async (data) => {
   try {
     schema.validateSync(data.body.ids);
     return NatsValidationResultUtil.ok();
@@ -21,18 +18,11 @@ const validate: NatsValidate<
   }
 };
 
-const authorize: NatsAuthorize<
-  NatsGetCareProviders['request'],
-  Record<string, unknown>
-> = async () => {
+const authorize: NatsAuthorize<NatsGetCareProviders> = async () => {
   return NatsAuthorizationResultUtil.ok();
 };
 
-const handle: NatsHandle<
-  NatsGetCareProviders['request'],
-  NatsGetCareProviders['response'],
-  Record<string, unknown>
-> = async (data) => {
+const handle: NatsHandle<NatsGetCareProviders> = async (data) => {
   return NatsHandleResultUtil.ok(
     data.body.ids.map((id) => ({ id, name: `Care provider ${id}` }))
   );

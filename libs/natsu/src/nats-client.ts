@@ -2,6 +2,7 @@
 import type { NatsConnection, Msg } from 'nats';
 import { connect, JSONCodec } from 'nats';
 import type {
+  NatsService,
   NatsRequest,
   NatsResponse,
   NatsInjection,
@@ -12,7 +13,10 @@ const clients: {
   [urls: string]: {
     client: NatsConnection;
     handlers: {
-      [subject: string]: NatsHandler<unknown, unknown, Record<string, unknown>>;
+      [subject: string]: NatsHandler<
+        NatsService<string, unknown, unknown>,
+        Record<string, unknown>
+      >;
     };
   };
 } = {};
@@ -136,7 +140,9 @@ async function stop(urls: string[]) {
 
 function register<TInjection extends Record<string, unknown>>(params: {
   urls: string[];
-  handlers: Array<NatsHandler<unknown, unknown, TInjection>>;
+  handlers: Array<
+    NatsHandler<NatsService<string, unknown, unknown>, TInjection>
+  >;
 }) {
   const { urls, handlers } = params;
   const key = getClientKey(urls);
@@ -182,8 +188,11 @@ export default {
     const client = {
       start: () => start({ urls, injections, verbose }),
       stop: () => stop(urls),
-      register: (handlers: Array<NatsHandler<unknown, unknown, TInjection>>) =>
-        register({ urls, handlers }),
+      register: (
+        handlers: Array<
+          NatsHandler<NatsService<string, unknown, unknown>, TInjection>
+        >
+      ) => register({ urls, handlers }),
     };
 
     return client;
