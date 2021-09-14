@@ -7,7 +7,6 @@
     "node": "15.14.0 || 16.8.0"
   },
   "scripts": {
-    "setup-husky": "(husky install && npx husky add .husky/pre-push \"(yarn lint-all && yarn test-all)\")",
     "install-all": "yarn && concurrently \"(cd ./libs/natsu && yarn)\" \"(cd ./libs/natsu-port && yarn)\" \"(cd ./libs/natsu-port-server && yarn)\"",
     "nx": "nx",
     "start": "nx serve",

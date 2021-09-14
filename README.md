@@ -1,12 +1,3 @@
-**Setup husky**
-
-At root, run this command
-```
-yarn setup-husky
-```
-It should be done once when the first time clone this repo
-
-
 **Install all node modules**
 
 Apps/Libs can have dependencies with different version which declared in their package.json
