@@ -3,9 +3,6 @@
   "version": "0.0.0",
   "license": "MIT",
   "private": true,
-  "engines": {
-    "node": "15.14.0 || 16.8.0"
-  },
   "scripts": {
     "install-all": "yarn && concurrently \"(cd ./libs/natsu && yarn)\" \"(cd ./libs/natsu-port && yarn)\" \"(cd ./libs/natsu-port-server && yarn)\"",
     "nx": "nx",
