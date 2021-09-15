@@ -6,7 +6,7 @@
   "scripts": {
     "preinstall": "node .config-npm-token.js",
     "prepublish": "node .config-npm-token.js",
-    "install-all": "yarn && concurrently \"(cd ./libs/natsu && yarn)\" \"(cd ./libs/natsu-port && yarn)\" \"(cd ./libs/natsu-port-server && yarn)\" \"(cd ./examples/example-client && yarn)\" \"(cd ./examples/example-server && yarn)\" \"(cd ./examples/example-natsu && yarn)\"",
+    "install-all": "concurrently \"yarn\" \"(cd ./libs/natsu && yarn)\" \"(cd ./libs/natsu-port && yarn)\" \"(cd ./libs/natsu-port-server && yarn)\" \"(cd ./examples/example-client && yarn)\" \"(cd ./examples/example-server && yarn)\" \"(cd ./examples/example-natsu && yarn)\"",
     "nx": "nx",
     "start": "nx serve",
     "build": "nx build",
