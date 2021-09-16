@@ -10,7 +10,7 @@
   "files": ["dist/**"],
   "scripts": {
     "build": "tsc && cp package.json ./dist/package.json",
-    "release": "np --branch=main --no-cleanup --no-tests --no-yarn --no-release-draft --preview"
+    "release": "np --branch=main --no-cleanup --no-tests --no-release-draft --preview"
   },
   "dependencies": {
     "@silenteer/natsu-type": "0.0.1",
