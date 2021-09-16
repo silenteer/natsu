@@ -4,8 +4,8 @@
   "license": "MIT",
   "private": true,
   "scripts": {
-    "preinstall": "node .config-npm-token.js",
-    "prepublish": "node .config-npm-token.js",
+    "preinstall": "node config-npm-token.js",
+    "prepublish": "node config-npm-token.js",
     "link:all": "node ./link-all.js",
     "unlink:all": "rm -rf ~/.config/yarn/link/@silenteer/*",
     "install:all": "node ./install-all.js",
