@@ -9,6 +9,7 @@
     "link:all": "node ./link-all.js",
     "unlink:all": "rm -rf ~/.config/yarn/link/@silenteer/*",
     "install:all": "node ./install-all.js",
+    "uninstall:all": "del **/node_modules **/yarn.lock",
     "test:all": "node ./test-all.js",
     "lint": "eslint --fix --ext .ts,.tsx,.json -c .eslintrc.js ."
   },
@@ -16,6 +17,7 @@
     "@typescript-eslint/eslint-plugin": "4.28.3",
     "@typescript-eslint/parser": "4.28.3",
     "concurrently": "6.2.1",
+    "del-cli": "4.0.1",
     "eslint": "7.22.0",
     "eslint-config-prettier": "8.1.0",
     "eslint-plugin-jest": "24.4.0",

@@ -7,7 +7,7 @@ tmp
 
 # dependencies
 **/node_modules
-
+**/natsu/.npmrc
 # IDEs and editors
 /.idea
 .project
