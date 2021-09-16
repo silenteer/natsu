@@ -1,13 +1,15 @@
 {
   "name": "@silenteer/natsu",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "main": "index.js",
   "types": "index.d.ts",
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org/"
   },
-  "files": ["dist/**"],
+  "files": [
+    "dist/**"
+  ],
   "scripts": {
     "build": "tsc && cp package.json ./dist/package.json",
     "release": "np --branch=main --yolo --no-release-draft --no-publish"
