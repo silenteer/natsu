@@ -1,10 +1,22 @@
 {
   "name": "@silenteer/natsu-port-server",
   "version": "0.0.1",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "scripts": {
+    "build": "tsc && cp package.json ./dist/package.json"
+  },
   "dependencies": {
+    "@silenteer/natsu-type": "0.0.1",
     "fastify": "3.21.0",
     "fastify-cors": "6.0.2",
     "nats": "2.2.0",
     "yup": "0.32.9"
+  },
+  "devDependencies": {
+    "@types/node": "16.9.1",
+    "ts-node": "10.2.1",
+    "tslib": "2.3.1",
+    "typescript": "4.4.3"
   }
 }

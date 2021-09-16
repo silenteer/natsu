@@ -18,7 +18,7 @@ const defaultRequestOptions: RequestOptions = {
   timeout: 60 * 1000,
 };
 
-export async function request(
+async function request(
   subject: string,
   data?: Uint8Array,
   options?: Partial<RequestOptions>
@@ -28,3 +28,7 @@ export async function request(
     ...options,
   });
 }
+
+export default {
+  request,
+};

@@ -1,6 +1,7 @@
 module.exports = {
-  displayName: 'natsu-port',
-  preset: '../../jest.preset.js',
+  rootDir: '.',
+  roots: ['<rootDir>'],
+  preset: 'ts-jest/presets/js-with-babel',
   globals: {
     'ts-jest': {
       tsconfig: '<rootDir>/tsconfig.spec.json',
@@ -8,8 +9,8 @@ module.exports = {
   },
   testEnvironment: 'jsdom',
   transform: {
-    '^.+\\.[tj]sx?$': 'ts-jest',
+    '^.+\\.ts?$': 'ts-jest',
   },
-  moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx'],
-  coverageDirectory: '../../coverage/libs/natsu-port',
+  moduleFileExtensions: ['js', 'ts'],
+  coverageDirectory: './coverage',
 };

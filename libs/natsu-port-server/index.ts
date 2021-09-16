@@ -11,7 +11,7 @@ import type {
   NatsResponse,
 } from '@silenteer/natsu-type';
 import config from './configuration';
-import { request as sendRequest } from './nats';
+import NatsService from './service-nats';
 
 const schema = yup.object({
   subject: yup.string().trim().required(),
@@ -45,7 +45,7 @@ function start() {
           body: (request.body as NatsPortRequest)?.data,
         };
 
-        const message = await sendRequest(
+        const message = await NatsService.request(
           subject,
           requestCodec.encode(natsRequest)
         );

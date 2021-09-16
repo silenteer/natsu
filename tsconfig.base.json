@@ -25,13 +25,7 @@
     "lib": ["es2017", "dom", "webworker", "ES2020.Promise"],
     "rootDir": ".",
     "baseUrl": ".",
-    "paths": {
-      "@silenteer/example-type": ["examples/example-type/src/index.ts"],
-      "@silenteer/natsu": ["libs/natsu/src/index.ts"],
-      "@silenteer/natsu-port": ["libs/natsu-port/src/index.ts"],
-      "@silenteer/natsu-port-server": ["libs/natsu-port-server/src/index.ts"],
-      "@silenteer/natsu-type": ["libs/natsu-type/src/index.ts"]
-    }
+    "paths": {}
   },
   "exclude": ["node_modules", "**/dist"]
 }

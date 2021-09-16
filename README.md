@@ -1,46 +1,16 @@
-**Install all node modules**
-
-Apps/Libs can have dependencies with different version which declared in their package.json
-
-But they also share dependencies with same version which declared in package.json at root
-
-To install all these dependencies, run this command at root
+To install all packages for root & examples & libs
 ```
-yarn install-all
+yarn install:all
 ```
 
-
-**Build App/Lib**
-
-At root, run this command
+To clear all registered symlinks for @silenteer
 ```
-yarn build [app/lib name]
+yarn unlink:all
 ```
-`[app/lib name]` is name of app/lib which declared in `nx.json`. Normally, it same project folder name.
 
-
-**Test App/Lib**
-
-At root, run this command
+To build & link local packages
+- If local packages has been built, this command only does link, not rebuild the package
+ - This command will remove npm packages in `node_modules/@silenteer` then use symlink instead of them
 ```
-yarn test [app/lib name]
+yarn link:all
 ```
-`[app/lib name]` is name of app/lib which declared in `nx.json`. Normally, it same project folder name.
-
-
-**Start App**
-
-At root, run this command
-```
-yarn start [app name]
-```
-`[app name]` is name of app which declared in `nx.json`. Normally, it same project folder name.
-
-
-**Release Lib**
-
-At root, run this command
-```
-yarn release [lib name]
-```
-`[lib name]` is name of app/lib which declared in `nx.json`. Normally, it same project folder name.
