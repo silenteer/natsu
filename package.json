@@ -11,6 +11,7 @@
     "install:all": "node ./install-all.js",
     "uninstall:all": "del **/node_modules **/yarn.lock",
     "test:all": "node ./test-all.js",
+    "release": "node ./prepare-release.js && (cd $PROJECT && npx np --branch=main --yolo --no-release-draft --preview) && (cd $PROJECT && rm -rf .npmrc)",
     "lint": "eslint --fix --ext .ts,.tsx,.json -c .eslintrc.js ."
   },
   "devDependencies": {
@@ -18,6 +19,7 @@
     "@typescript-eslint/parser": "4.28.3",
     "concurrently": "6.2.1",
     "del-cli": "4.0.1",
+    "dotenv": "10.0.0",
     "eslint": "7.22.0",
     "eslint-config-prettier": "8.1.0",
     "eslint-plugin-jest": "24.4.0",
