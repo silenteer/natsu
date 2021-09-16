@@ -3,8 +3,15 @@
   "version": "0.0.1",
   "main": "index.js",
   "types": "index.d.ts",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "files": [
+    "dist/**"
+  ],
   "scripts": {
-    "build": "tsc && cp package.json ./dist/package.json"
+    "build": "rm -rf dist && tsc && cp package.json ./dist/package.json"
   },
   "devDependencies": {
     "@types/node": "16.9.1",

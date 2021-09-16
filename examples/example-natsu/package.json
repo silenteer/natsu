@@ -5,11 +5,11 @@
     "dev": "nodemon main.ts --ext ts,json --ignore dist"
   },
   "dependencies": {
-    "@silenteer/natsu": "0.0.1",
+    "@silenteer/natsu": "^0.0.1",
     "yup": "0.32.9"
   },
   "peerDependencies": {
-    "@silenteer/example-type": "0.0.1"
+    "@silenteer/example-type": "^0.0.1"
   },
   "devDependencies": {
     "@types/node": "16.9.1",

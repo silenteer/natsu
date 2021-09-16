@@ -11,10 +11,10 @@
     "dist/**"
   ],
   "scripts": {
-    "build": "rm -rf dist && tsc"
+    "build": "rm -rf dist && tsc && cp package.json ./dist/package.json"
   },
   "dependencies": {
-    "@silenteer/natsu-type": "0.0.1",
+    "@silenteer/natsu-type": "0.0.2",
     "nats": "^2.2.0"
   },
   "devDependencies": {

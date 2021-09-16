@@ -5,14 +5,14 @@
     "dev": "next dev"
   },
   "dependencies": {
-    "@silenteer/natsu-port": "0.0.1",
+    "@silenteer/natsu-port": "^0.0.1",
     "next": "11.1.0",
     "react": "17.0.2",
     "react-dom": "17.0.2",
     "react-use-promise": "0.4.1"
   },
   "peerDependencies": {
-    "@silenteer/example-type": "0.0.1"
+    "@silenteer/example-type": "^0.0.1"
   },
   "devDependencies": {
     "@types/react": "17.0.21",
