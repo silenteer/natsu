@@ -12,17 +12,7 @@ if (!packageJson) {
   throw new Error(`Not found package.json at ${project}`);
 }
 
-const { publishConfig, files, scripts } = packageJson;
-if (!publishConfig?.access) {
-  throw new Error(
-    `Missing 'publishConfig.access' in package.json at ${project}`
-  );
-}
-if (!publishConfig?.registry) {
-  throw new Error(
-    `Missing 'publishConfig.registry' in package.json at ${project}`
-  );
-}
+const { files, scripts } = packageJson;
 if (!files || files.length === 0) {
   throw new Error(`Missing 'files' in package.json at ${project}`);
 }
@@ -42,16 +32,16 @@ if (!process.env.NPM_CONFIG_TOKEN) {
   throw new Error(`'process.env.NPM_CONFIG_TOKEN' is required`);
 }
 
-// const npmrcPath = path.join(__dirname, project, '.npmrc');
-// execSync(`cd ${project} && rm -rf .npmrc`);
-// fs.appendFileSync(npmrcPath, `strict-ssl=false\n`);
-// fs.appendFileSync(
-//   npmrcPath,
-//   `@silenteer:registry=https://registry.npmjs.org/\n`
-// );
-// fs.appendFileSync(
-//   npmrcPath,
-//   `//registry.npmjs.org/:_authToken=${process.env.NPM_CONFIG_TOKEN}\n`
-// );
+const npmrcPath = path.join(__dirname, project, '.npmrc');
+execSync(`cd ${project} && rm -rf .npmrc`);
+fs.appendFileSync(npmrcPath, `strict-ssl=false\n`);
+fs.appendFileSync(
+  npmrcPath,
+  `@silenteer:registry=https://registry.npmjs.org/\n`
+);
+fs.appendFileSync(
+  npmrcPath,
+  `//registry.npmjs.org/:_authToken=${process.env.NPM_CONFIG_TOKEN}\n`
+);
 
 execSync(`(cd ${project} && yarn build)`);
