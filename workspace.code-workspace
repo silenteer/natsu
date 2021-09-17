@@ -1,21 +1,18 @@
 {
-	"folders": [
-		{
-			"path": "./examples/"
-		},
-		{
-			"path": "./libs/"
-		},
-		{
-			"path": "./README.md"
-		},
-		{
-			"path": "./package.json"
-		}
-	],
-	"settings": {
-		"breadcrumbs.enabled": true,
-		"typescript.tsdk": "node_modules/typescript/lib",
-		"javascript.format.enable": false
-	}
+  "folders": [
+    {
+      "path": "./examples/"
+    },
+    {
+      "path": "./libs/"
+    },
+    {
+      "path": "."
+    }
+  ],
+  "settings": {
+    "breadcrumbs.enabled": true,
+    "typescript.tsdk": "node_modules/typescript/lib",
+    "javascript.format.enable": false
+  }
 }

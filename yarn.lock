@@ -884,7 +884,7 @@ argparse@^1.0.7:
   dependencies:
     sprintf-js "~1.0.2"
 
-array-includes@^3.1.2, array-includes@^3.1.3:
+array-includes@^3.1.3:
   version "3.1.3"
   resolved "https://registry.yarnpkg.com/array-includes/-/array-includes-3.1.3.tgz#c7f619b382ad2afaf5326cddfdc0afc61af7690a"
   integrity sha512-gcem1KlBU7c9rB+Rq8/3PPKsK2kjqeEBa3bD5kkQo4nYlOHQCJqIJFqBXDEfwaRuYTT4E+FxA9xez7Gf/e3Q7A==
@@ -2670,11 +2670,11 @@ json5@^2.1.2:
     minimist "^1.2.5"
 
 "jsx-ast-utils@^2.4.1 || ^3.0.0":
-  version "3.2.0"
-  resolved "https://registry.yarnpkg.com/jsx-ast-utils/-/jsx-ast-utils-3.2.0.tgz#41108d2cec408c3453c1bbe8a4aae9e1e2bd8f82"
-  integrity sha512-EIsmt3O3ljsU6sot/J4E1zDRxfBNrhjyf/OKjlydwgEimQuznlM4Wv7U+ueONJMyEn1WRE0K8dhi3dVAXYT24Q==
+  version "3.2.1"
+  resolved "https://registry.yarnpkg.com/jsx-ast-utils/-/jsx-ast-utils-3.2.1.tgz#720b97bfe7d901b927d87c3773637ae8ea48781b"
+  integrity sha512-uP5vu8xfy2F9A6LGC22KO7e2/vGTS1MhP+18f++ZNlf0Ohaxbc9nIEwHAsejlJKyzfZzU5UIhe5ItYkitcZnZA==
   dependencies:
-    array-includes "^3.1.2"
+    array-includes "^3.1.3"
     object.assign "^4.1.2"
 
 kind-of@^6.0.3:
