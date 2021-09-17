@@ -12,7 +12,12 @@ if (!packageJson) {
   throw new Error(`Not found package.json at ${project}`);
 }
 
-const { files, scripts } = packageJson;
+const { publishConfig, files, scripts } = packageJson;
+if (!publishConfig?.registry) {
+  throw new Error(
+    `Missing 'publishConfig.registry' in package.json at ${project}`
+  );
+}
 if (!files || files.length === 0) {
   throw new Error(`Missing 'files' in package.json at ${project}`);
 }
