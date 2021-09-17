@@ -12,7 +12,7 @@
     "dist/**"
   ],
   "scripts": {
-    "build": "rm -rf dist && tsc -p tsconfig.lib.json && cp package.json ./dist/package.json",
+    "build": "rm -rf dist && tsc -p tsconfig.lib.json",
     "test": "jest"
   },
   "dependencies": {
