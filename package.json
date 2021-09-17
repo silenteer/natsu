@@ -7,7 +7,7 @@
     "preinstall": "node config-npm-token.js",
     "prepublish": "node config-npm-token.js",
     "dev:enter": "node ./enter-dev-mode.js",
-    "dev:exit": "del **/node_modules/@silenteer && yarn install:all",
+    "dev:exit": "del **/node_modules/@silenteer **/dist && yarn install:all",
     "install:all": "node ./install-all.js",
     "uninstall:all": "del **/node_modules **/yarn.lock",
     "test:all": "node ./test-all.js",
