@@ -4,9 +4,6 @@
   "license": "MIT",
   "main": "index.js",
   "types": "index.d.ts",
-  "scripts": {
-    "build": "tsc && cp package.json ./dist/package.json"
-  },
   "dependencies": {
     "@silenteer/natsu-type": "^0.0.1"
   },

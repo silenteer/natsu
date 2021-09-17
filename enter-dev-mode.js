@@ -9,7 +9,6 @@ const packagesNeedToLink = [
   'libs/natsu',
   'libs/natsu-port-server',
   'libs/natsu-port',
-  'examples/example-type',
 ];
 const packagesUseLink = [
   'libs/natsu',

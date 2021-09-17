@@ -49,4 +49,6 @@ fs.appendFileSync(
   `//registry.npmjs.org/:_authToken=${process.env.NPM_CONFIG_TOKEN}\n`
 );
 
-execSync(`(cd ${project} && yarn build)`);
+execSync(
+  `(cd ${project} && rm -rf node_modules yarn.lock && yarn && yarn build)`
+);

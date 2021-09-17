@@ -9,10 +9,8 @@
     "@silenteer/natsu": "^0.0.1",
     "yup": "0.32.9"
   },
-  "peerDependencies": {
-    "@silenteer/example-type": "^0.0.1"
-  },
   "devDependencies": {
+    "@silenteer/example-type": "../example-type",
     "@types/node": "16.9.1",
     "nodemon": "2.0.12",
     "ts-node": "10.2.1",
