@@ -14,7 +14,7 @@
     "build": "rm -rf dist && tsc && cp package.json ./dist/package.json"
   },
   "dependencies": {
-    "@silenteer/natsu-type": "0.0.2",
+    "@silenteer/natsu-type": "0.0.3",
     "fastify": "3.21.0",
     "fastify-cors": "6.0.2",
     "nats": "2.2.0",
