@@ -42,16 +42,16 @@ if (!process.env.NPM_CONFIG_TOKEN) {
   throw new Error(`'process.env.NPM_CONFIG_TOKEN' is required`);
 }
 
-const npmrcPath = path.join(__dirname, project, '.npmrc');
-execSync(`cd ${project} && rm -rf .npmrc`);
-fs.appendFileSync(npmrcPath, `strict-ssl=false\n`);
-fs.appendFileSync(
-  npmrcPath,
-  `@silenteer:registry=https://registry.npmjs.org/\n`
-);
-fs.appendFileSync(
-  npmrcPath,
-  `//registry.npmjs.org/:_authToken=${process.env.NPM_CONFIG_TOKEN}\n`
-);
+// const npmrcPath = path.join(__dirname, project, '.npmrc');
+// execSync(`cd ${project} && rm -rf .npmrc`);
+// fs.appendFileSync(npmrcPath, `strict-ssl=false\n`);
+// fs.appendFileSync(
+//   npmrcPath,
+//   `@silenteer:registry=https://registry.npmjs.org/\n`
+// );
+// fs.appendFileSync(
+//   npmrcPath,
+//   `//registry.npmjs.org/:_authToken=${process.env.NPM_CONFIG_TOKEN}\n`
+// );
 
 execSync(`(cd ${project} && yarn build)`);
