@@ -1,6 +1,7 @@
 /* eslint-disable no-useless-escape */
 /* eslint-disable @typescript-eslint/no-var-requires */
 const { execSync } = require('child_process');
+const isCheckFile = !!process.env.CHECK_FILE;
 
 const projects = [
   'libs/natsu',
@@ -14,6 +15,16 @@ const projects = [
 ];
 
 const commands = projects
-  .map((projectPath) => `\"(cd ${projectPath} && yarn)\"`)
+  .map((projectPath) => {
+    if (isCheckFile) {
+      return `\"(cd ${projectPath} && yarn install --check-files)\"`;
+    }
+    return `\"(cd ${projectPath} && yarn)\"`;
+  })
   .join(' ');
-execSync(`yarn && concurrently ${commands}`);
+
+if (isCheckFile) {
+  execSync(`yarn install --check-files && concurrently ${commands}`);
+} else {
+  execSync(`yarn && concurrently ${commands}`);
+}

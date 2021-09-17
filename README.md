@@ -25,7 +25,16 @@ Ex: `PROJECT=libs/natsu yarn release`
 
 
 **Tips**
-Use Npm script explorer in vscode to run command from nested packages by one click
-http://www.matthiassommer.it/programming/testing/run-npm-scripts-in-visual-studio-code-with-a-click-of-a-button/
+
+Use Npm script explorer in vscode to run command from nested packages by one click.
 
 It won't work with command which need environment variable
+
+http://www.matthiassommer.it/programming/testing/run-npm-scripts-in-visual-studio-code-with-a-click-of-a-button/
+
+
+
+To clear all @silenteer symlink in local
+```
+rm -rf ~/.config/yarn/link/@silenteer/*
+```
