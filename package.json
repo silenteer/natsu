@@ -11,7 +11,7 @@
     "install:all": "node ./install-all.js",
     "uninstall:all": "del **/node_modules **/yarn.lock",
     "test:all": "node ./test-all.js",
-    "release": "node ./prepare-release.js && (cd $PROJECT && npx np --branch=main --no-cleanup --no-release-draft) && (cd $PROJECT && rm -rf .npmrc)",
+    "release": "node ./prepare-release.js && (cd $PROJECT && npx np --branch=main --no-cleanup --no-release-draft && rm -rf .npmrc)",
     "lint": "eslint --fix --ext .ts,.tsx,.json -c .eslintrc.js ."
   },
   "devDependencies": {
