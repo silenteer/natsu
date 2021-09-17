@@ -1,6 +1,7 @@
 {
   "name": "@silenteer/natsu-type",
   "version": "0.0.2",
+  "license": "MIT",
   "main": "index.js",
   "types": "index.d.ts",
   "publishConfig": {
