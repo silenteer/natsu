@@ -57,9 +57,9 @@ function connect(options: NatsPortOptions) {
     if (response.code === 200) {
       return response.body;
     } else if (
-      ([400, 401, 403, 500] as Array<NatsPortErrorResponse['code']>).includes(
-        response.code
-      )
+      (
+        [400, 401, 403, 404, 500] as Array<NatsPortErrorResponse['code']>
+      ).includes(response.code)
     ) {
       throw new NatsPortError(response);
     } else {

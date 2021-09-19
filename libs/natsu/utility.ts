@@ -7,6 +7,7 @@ import type {
 const NatsValidationResultUtil = {
   ok: (): NatsValidationResult => ({ code: 'OK' }),
   error: (errors?: unknown): NatsValidationResult => ({ code: 400, errors }),
+  notFound: (errors?: unknown): NatsValidationResult => ({ code: 404, errors }),
 };
 
 const NatsAuthorizationResultUtil = {

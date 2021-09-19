@@ -15,7 +15,7 @@
     "build": "rm -rf dist && tsc"
   },
   "dependencies": {
-    "@silenteer/natsu-type": "0.0.3",
+    "@silenteer/natsu-type": "0.0.4",
     "fastify": "3.21.0",
     "fastify-cors": "6.0.2",
     "nats": "2.2.0",

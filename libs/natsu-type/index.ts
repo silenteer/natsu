@@ -25,6 +25,6 @@ export type NatsPortResponse<TBody = unknown> = {
 };
 
 export type NatsPortErrorResponse = {
-  code: 400 | 401 | 403 | 500;
+  code: 400 | 401 | 403 | 404 | 500;
   body?: unknown;
 };

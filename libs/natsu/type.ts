@@ -22,7 +22,7 @@ type NatsAuthorizationResult = {
 };
 
 type NatsValidationResult = {
-  code: 'OK' | 400;
+  code: 'OK' | 400 | 404;
   errors?: unknown;
 };
 
