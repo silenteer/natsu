@@ -8,9 +8,11 @@ module.exports = {
     },
   },
   testEnvironment: 'jsdom',
+  setupFilesAfterEnv: ['./jest.setup.ts'],
   transform: {
     '^.+\\.ts?$': 'ts-jest',
   },
   moduleFileExtensions: ['js', 'ts'],
+  testMatch: ['**/__tests__/**/*.spec.ts'],
   coverageDirectory: './coverage',
 };

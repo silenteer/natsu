@@ -23,7 +23,7 @@
     "isolatedModules": true,
     "target": "ES2015",
     "module": "CommonJS",
-    "lib": ["ES2017", "ES2020.Promise"],
+    "lib": ["ES2017", "DOM", "ES2020.Promise"],
     "rootDir": ".",
     "baseUrl": ".",
     "outDir": "dist",

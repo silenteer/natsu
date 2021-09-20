@@ -2,8 +2,7 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "composite": true,
-    "types": ["jest", "node"],
-    "declaration": false
+    "types": ["jest", "node"]
   },
-  "include": ["./__tests__/"]
+  "include": ["**/*.ts", "./jest.setup.ts"]
 }

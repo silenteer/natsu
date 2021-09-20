@@ -70,4 +70,3 @@ function connect(options: NatsPortOptions) {
 
 export type { NatsPortOptions, NatsPortError };
 export { connect };
-export const request = connect({ serverURL: new URL('http://localhost:8080') });
