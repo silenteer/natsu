@@ -16,7 +16,7 @@
     "test": "jest"
   },
   "dependencies": {
-    "@silenteer/natsu-type": "0.0.4"
+    "@silenteer/natsu-type": "0.0.5"
   },
   "devDependencies": {
     "@types/jest": "27.0.1",
