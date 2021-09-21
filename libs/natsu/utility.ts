@@ -25,6 +25,10 @@ const NatsHandleResultUtil = {
       [key: string]: unknown;
     }
   ): NatsHandleResult<T> => ({ code: 200, headers, body }),
+  error: (params: {
+    code: number;
+    errors?: unknown;
+  }): NatsHandleResult<unknown> => params,
 };
 
 export {

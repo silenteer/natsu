@@ -27,8 +27,8 @@ const config = {
   natsNonAuthorizedSubjects: process.env.NATS_NON_AUTHORIZED_SUBJECTS?.split(
     ','
   ).filter((item) => !!item),
-  port: process.env.NATS_PORT_PORT || '8080',
-  path: process.env.NATS_PORT_PATH || '/',
+  port: parseInt(process.env.SERVER_PORT) || 8080,
+  path: process.env.SERVER_PATH || '/',
 };
 
 try {

@@ -111,19 +111,30 @@ async function start<TInjection extends Record<string, unknown>>(params: {
               continue;
             }
 
-            const result = await handler.handle(data, injection);
+            const handleResult = await handler.handle(data, injection);
+            if (handleResult.code !== 200) {
+              respond({
+                message,
+                data: responseCodec.encode({
+                  ...data,
+                  code: handleResult.code,
+                  body: encodeBody(handleResult.errors),
+                }),
+              });
+              continue;
+            }
             respond({
               message,
               data: responseCodec.encode({
                 ...data,
-                headers: result.headers
+                headers: handleResult.headers
                   ? {
                       ...data.headers,
-                      ...result.headers,
+                      ...handleResult.headers,
                     }
                   : data.headers,
-                code: result.code,
-                body: encodeBody(result.body),
+                code: handleResult.code,
+                body: encodeBody(handleResult.body),
               }),
             });
           } catch (error) {

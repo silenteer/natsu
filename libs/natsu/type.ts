@@ -11,9 +11,10 @@ type NatsInjection = {
 };
 
 type NatsHandleResult<TBody> = {
-  code: 200;
+  code: number;
   headers?: { [key: string]: unknown };
   body?: TBody;
+  errors?: unknown;
 };
 
 type NatsAuthorizationResult = {
