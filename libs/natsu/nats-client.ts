@@ -46,14 +46,14 @@ async function start<TInjection extends Record<string, unknown>>(params: {
       client,
     };
 
-    const requestCodec = JSONCodec<NatsRequest<unknown>>();
-    const responseCodec = JSONCodec<NatsResponse<unknown>>();
+    const requestCodec = JSONCodec<NatsRequest>();
+    const responseCodec = JSONCodec<NatsResponse>();
 
     Object.entries(clients[key].handlers).forEach(([subject, handler]) => {
       const subcription = client.subscribe(subject);
       (async () => {
         for await (const message of subcription) {
-          const data = message.data
+          let data = message.data
             ? requestCodec.decode(message.data)
             : undefined;
 
@@ -61,9 +61,19 @@ async function start<TInjection extends Record<string, unknown>>(params: {
             if (!data) {
               respond({
                 message,
-                data: responseCodec.encode({ ...data, code: 400 }),
+                data: responseCodec.encode({
+                  ...data,
+                  body: undefined,
+                  code: 400,
+                }),
               });
               continue;
+            }
+            if (data.body) {
+              data = {
+                ...data,
+                body: decodeBody(data.body as string),
+              };
             }
 
             const injection: TInjection & NatsInjection = {
@@ -79,7 +89,7 @@ async function start<TInjection extends Record<string, unknown>>(params: {
                 data: responseCodec.encode({
                   ...data,
                   code: validationResult.code as number,
-                  body: validationResult.errors,
+                  body: encodeBody(validationResult.errors),
                 }),
               });
               continue;
@@ -95,7 +105,7 @@ async function start<TInjection extends Record<string, unknown>>(params: {
                 data: responseCodec.encode({
                   ...data,
                   code: authorizationResult.code as number,
-                  body: authorizationResult.message,
+                  body: encodeBody(authorizationResult.message),
                 }),
               });
               continue;
@@ -113,15 +123,19 @@ async function start<TInjection extends Record<string, unknown>>(params: {
                     }
                   : data.headers,
                 code: result.code,
-                body: result.body,
+                body: encodeBody(result.body),
               }),
             });
           } catch (error) {
+            console.error(error);
             respond({
               message,
-              data: responseCodec.encode({ ...data, code: 500 }),
+              data: responseCodec.encode({
+                ...data,
+                body: data?.body as string,
+                code: 500,
+              }),
             });
-            console.error(error);
           }
         }
       })();
@@ -175,6 +189,16 @@ function respond(params: { message: Msg; data?: Uint8Array }) {
   if (message.reply) {
     message.respond(data);
   }
+}
+
+function encodeBody(body: unknown) {
+  return body
+    ? Buffer.from(JSONCodec().encode(body)).toString('base64')
+    : undefined;
+}
+
+function decodeBody(body: string) {
+  return body ? JSONCodec().decode(Buffer.from(body, 'base64')) : undefined;
 }
 
 export default {

@@ -1,19 +1,32 @@
 import * as yup from 'yup';
 
 type Config = {
-  path: string;
   natsURI: string;
+  natsAuthSubjects: string[];
+  natsNonAuthorizedSubjects: string[];
+  path: string;
   port: number;
 };
 
 const schema = yup.object({
   natsURI: yup.string().trim().required(),
+  natsAuthSubjects: yup.array(yup.string().trim()).min(1).notRequired(),
+  natsNonAuthorizedSubjects: yup
+    .array(yup.string().trim())
+    .min(1)
+    .notRequired(),
   path: yup.string(),
   port: yup.number().lessThan(65000).moreThan(0),
 });
 
 const config = {
   natsURI: process.env.NATS_URI || 'localhost:4222',
+  natsAuthSubjects: process.env.NATS_AUTH_SUBJECTS?.split(',').filter(
+    (item) => !!item
+  ),
+  natsNonAuthorizedSubjects: process.env.NATS_NON_AUTHORIZED_SUBJECTS?.split(
+    ','
+  ).filter((item) => !!item),
   port: process.env.NATS_PORT_PORT || '8080',
   path: process.env.NATS_PORT_PATH || '/',
 };
