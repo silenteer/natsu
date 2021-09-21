@@ -9,9 +9,9 @@ export type NatsRequest<TBody = unknown> = {
   body?: TBody;
 };
 
-export type NatsResponse<TBody = unknown> = {
+export type NatsResponse = {
   headers: { [key: string]: unknown };
-  body?: TBody;
+  body?: string;
   code: number;
 };
 

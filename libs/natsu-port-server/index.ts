@@ -1,6 +1,8 @@
+import type { IncomingMessage, Server } from 'http';
 import * as yup from 'yup';
 import { JSONCodec } from 'nats';
-import type { FastifyReply } from 'fastify';
+import type { RouteGenericInterface } from 'fastify/types/route';
+import type { FastifyReply, FastifyRequest } from 'fastify';
 import fastify from 'fastify';
 import fastifyCors from 'fastify-cors';
 import type {
@@ -21,7 +23,7 @@ const schema = yup.object({
     .test((value) => value === 'application/json'),
 });
 
-const requestCodec = JSONCodec<NatsRequest>();
+const requestCodec = JSONCodec<NatsRequest<string>>();
 const responseCodec = JSONCodec<NatsResponse>();
 
 function start() {
@@ -40,26 +42,36 @@ function start() {
           return;
         }
 
-        const natsRequest: NatsRequest = {
-          headers: request.headers,
-          body: (request.body as NatsPortRequest)?.data,
-        };
+        let natsAuthResponse: NatsResponse;
+        const shouldAuthenticate =
+          config.natsAuthSubjects?.length > 0 &&
+          !config.natsNonAuthorizedSubjects?.includes(subject);
+        if (shouldAuthenticate) {
+          natsAuthResponse = await sendNatsAuthRequest(request);
 
-        const message = await NatsService.request(
-          subject,
-          requestCodec.encode(natsRequest)
-        );
-        const natsResponse = responseCodec.decode(message.data);
-        const portResponse: NatsPortResponse | NatsPortErrorResponse = {
-          code: natsResponse.code as
-            | NatsPortResponse['code']
-            | NatsPortErrorResponse['code'],
-          body: natsResponse.body,
-        };
-        reply.send(portResponse);
+          if (natsAuthResponse.code !== 200) {
+            const response: NatsPortResponse | NatsPortErrorResponse = {
+              code: natsAuthResponse.code as
+                | NatsPortResponse['code']
+                | NatsPortErrorResponse['code'],
+            };
+            reply.send(response);
+            return;
+          }
+        }
+
+        const response = await sendNatsRequest({
+          httpRequest: request,
+          natsAuthResponse,
+        });
+        reply.send(response);
       } catch (error) {
         console.error(error);
-        return500(reply);
+        if (error.code) {
+          reply.send(error);
+        } else {
+          return500(reply);
+        }
       }
     })
     .listen(config.port, (error, address) => {
@@ -69,6 +81,63 @@ function start() {
       }
       console.log(`Server listening at ${address}`);
     });
+}
+
+async function sendNatsAuthRequest(
+  request: FastifyRequest<RouteGenericInterface, Server, IncomingMessage>
+) {
+  let natsResponse: NatsResponse;
+  for (const subject of config.natsAuthSubjects) {
+    const natsRequest: NatsRequest<string> = {
+      headers: natsResponse ? natsResponse.headers : request.headers,
+    };
+
+    const message = await NatsService.request(
+      subject,
+      requestCodec.encode(natsRequest)
+    );
+    natsResponse = responseCodec.decode(message.data);
+    if (natsResponse.code !== 200) {
+      break;
+    }
+  }
+
+  return natsResponse;
+}
+
+async function sendNatsRequest(params: {
+  httpRequest: FastifyRequest<RouteGenericInterface, Server, IncomingMessage>;
+  natsAuthResponse: NatsResponse;
+}) {
+  const { httpRequest, natsAuthResponse } = params;
+  const natsRequest: NatsRequest<string> = {
+    headers: natsAuthResponse ? natsAuthResponse.headers : httpRequest.headers,
+    body: encodeBody((httpRequest.body as NatsPortRequest)?.data),
+  };
+
+  const message = await NatsService.request(
+    httpRequest.headers['nats-subject'] as string,
+    requestCodec.encode(natsRequest)
+  );
+  const natsResponse = responseCodec.decode(message.data);
+  const portResponse: NatsPortResponse | NatsPortErrorResponse = {
+    code: natsResponse.code as
+      | NatsPortResponse['code']
+      | NatsPortErrorResponse['code'],
+    body: decodeBody(natsResponse.body),
+  };
+
+  return portResponse;
+}
+
+function encodeBody(body: unknown) {
+  return body
+    ? Buffer.from(JSONCodec().encode(body)).toString('base64')
+    : undefined;
+}
+
+function decodeBody(body: string) {
+  return body ? JSONCodec().decode(Buffer.from(body, 'base64')) : undefined;
 }
 
 function return400(reply: FastifyReply) {
