@@ -1,7 +1,10 @@
 import React from 'react';
 import usePromise from 'react-use-promise';
 import { connect } from '@silenteer/natsu-port';
-import type { NatsGetCareProviders } from '@silenteer/example-type';
+import type {
+  NatsGetCareProviders,
+  HelloService,
+} from '@silenteer/example-type';
 
 const request = connect({
   serverURL: new URL('http://localhost:8080'),
@@ -17,7 +20,16 @@ export function Index() {
     );
   }, []);
 
-  return <div>{result && JSON.stringify(result)}</div>;
+  const [result2] = usePromise(() =>
+    request<HelloService>('hello.world', 'hello')
+  );
+
+  return (
+    <div>
+      {result && JSON.stringify(result)}
+      {result2 && JSON.stringify(result2)}
+    </div>
+  );
 }
 
 export default Index;

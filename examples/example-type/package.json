@@ -2,8 +2,8 @@
   "name": "@silenteer/example-type",
   "version": "0.0.1",
   "license": "MIT",
-  "main": "index.js",
-  "types": "index.d.ts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "dependencies": {
     "@silenteer/natsu-type": "^0.0.1"
   },

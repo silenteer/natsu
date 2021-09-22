@@ -8,3 +8,5 @@ export type NatsGetCareProviders = NatsService<
     name: string;
   }>
 >;
+
+export type HelloService = NatsService<'hello.world', string, string>;
