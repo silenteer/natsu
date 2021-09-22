@@ -6,8 +6,8 @@ const args = require('arg')({
   '--nats-uri': String,
   '--nats-auth-subjects': String,
   '--nats-non-auth-subjects': String,
-  '--port': Number,
-  '--path': String,
+  '--server-port': Number,
+  '--server-path': String,
   '--help': Boolean,
 });
 
@@ -36,9 +36,9 @@ if (args['--help']) {
       'undefined',
       `It can be a string with many urls which delimited by ','.\nServer won't authenticate them even authentication enabled.`,
     ],
-    ['--port', false, 8080, `It's port which server run at.`],
+    ['--server-port', false, 8080, `It's port which server run at.`],
     [
-      '--path',
+      '--server-path',
       false,
       '/',
       `It's an endpoint which server will listen to convert http request to nats request then send back http response to client`,
@@ -64,12 +64,22 @@ if (args['--config']) {
     process.env[key] = value;
   });
 } else {
-  process.env['NATS_URI'] = args['--nats-uri'];
-  process.env['NATS_AUTH_SUBJECTS'] = args['--nats-auth-subjects'];
-  process.env['NATS_NON_AUTHORIZED_SUBJECTS'] =
-    args['--nats-non-auth-subjects'];
-  process.env['SERVER_PORT'] = args['--port'];
-  process.env['SERVER_PATH'] = args['--path'];
+  if (args['--nats-uri']) {
+    process.env['NATS_URI'] = args['--nats-uri'];
+  }
+  if (args['--nats-auth-subjects']) {
+    process.env['NATS_AUTH_SUBJECTS'] = args['--nats-auth-subjects'];
+  }
+  if (args['--nats-non-auth-subjects']) {
+    process.env['NATS_NON_AUTHORIZED_SUBJECTS'] =
+      args['--nats-non-auth-subjects'];
+  }
+  if (args['--server-port']) {
+    process.env['SERVER_PORT'] = args['--server-port'];
+  }
+  if (args['--server-path']) {
+    process.env['SERVER_PATH'] = args['--server-path'];
+  }
 }
 
 const serverPath = path.join(

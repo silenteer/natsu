@@ -4,7 +4,7 @@ There're ways to start natsu-port-server
 
 This's simplest way to start the server, just run command with arguments for configuration
 ```
-natsu-port-server --nats-uri localhost:2222 --nats-auth-subjects=abc,xyz --nats-non-auth-subjects=nmc,xpoi --port=4848 --path=/addc
+natsu-port-server --nats-uri localhost:2222 --nats-auth-subjects=abc,xyz --nats-non-auth-subjects=nmc,xpoi --server-port=4848 --server-path=/addc
 ```
 
 Or write configuration in a js file then run command
