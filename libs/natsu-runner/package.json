@@ -1,0 +1,19 @@
+{
+  "name": "@silenteer/natsu-runner",
+  "version": "1.0.0",
+  "description": "Nats Unit runner",
+  "main": "index.js",
+  "author": "Silenteer",
+  "license": "MIT",
+  "private": false,
+  "bin": {
+    "natsu-runner": "./index.js"
+  },
+  "dependencies": {
+    "esbuild": "^0.12.29",
+    "matched": "^5.0.1"
+  },
+  "peerDependencies": {
+    "@silenteer/natsu": "^1.0.5"
+  }
+}
