@@ -6,13 +6,14 @@
     "dev": "nodemon main.ts --ext ts,json --ignore dist"
   },
   "dependencies": {
+    "@silenteer/example-type": "file:///home/lagz0ne/natsu/examples/example-natsu/../example-type",
     "@silenteer/natsu": "^1.0.5",
     "esbuild": "^0.12.29",
+    "example-type": "link://../example-type",
     "matched": "^5.0.1",
     "yup": "0.32.9"
   },
   "devDependencies": {
-    "@silenteer/example-type": "../example-type",
     "@types/node": "16.9.6",
     "nodemon": "2.0.12",
     "ts-node": "10.2.1",

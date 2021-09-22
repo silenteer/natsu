@@ -13,7 +13,7 @@
     "react-use-promise": "0.4.1"
   },
   "devDependencies": {
-    "@silenteer/example-type": "../example-type",
+    "@silenteer/example-type": "file:///home/lagz0ne/natsu/examples/example-client/../example-type",
     "@types/react": "17.0.21",
     "@types/react-dom": "17.0.9"
   }

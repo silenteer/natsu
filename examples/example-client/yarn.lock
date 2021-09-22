@@ -114,7 +114,7 @@
   dependencies:
     "@napi-rs/triples" "^1.0.3"
 
-"@silenteer/example-type@../example-type":
+"@silenteer/example-type@file:../example-type":
   version "0.0.1"
   dependencies:
     "@silenteer/natsu-type" "^0.0.1"
