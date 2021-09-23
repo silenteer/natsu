@@ -3,7 +3,7 @@ import type { NatsHandle } from '@silenteer/natsu';
 import { NatsHandleResultUtil } from '@silenteer/natsu';
 
 const handler: NatsHandle<HelloService> = async (data) => {
-  return NatsHandleResultUtil.ok(data.body);
+  return NatsHandleResultUtil.ok({ msg: 'hello' + data.body.msg });
 };
 
-export default { handler };
+export default { subject: 'hello.world', handler };

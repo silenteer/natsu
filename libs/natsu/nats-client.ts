@@ -82,61 +82,71 @@ async function start<TInjection extends Record<string, unknown>>(params: {
               natsService: client,
             };
 
-            const validationResult = await handler.validate(data, injection);
-            if (validationResult.code !== 'OK') {
-              respond({
-                message,
-                data: responseCodec.encode({
-                  ...data,
-                  code: validationResult.code as number,
-                  body: encodeBody(validationResult.errors),
-                }),
-              });
-              continue;
+            if (handler.validate) {
+              const validationResult = await handler.validate(data, injection);
+              if (validationResult.code !== 'OK') {
+                respond({
+                  message,
+                  data: responseCodec.encode({
+                    ...data,
+                    code: validationResult.code as number,
+                    body: encodeBody(validationResult.errors),
+                  }),
+                });
+                continue;
+              }
             }
 
-            const authorizationResult = await handler.authorize(
-              data,
-              injection
-            );
-            if (authorizationResult.code !== 'OK') {
-              respond({
-                message,
-                data: responseCodec.encode({
-                  ...data,
-                  code: authorizationResult.code as number,
-                  body: encodeBody(authorizationResult.message),
-                }),
-              });
-              continue;
+            if (handler.authorize) {
+              const authorizationResult = await handler.authorize(
+                data,
+                injection
+              );
+
+              if (authorizationResult.code !== 'OK') {
+                respond({
+                  message,
+                  data: responseCodec.encode({
+                    ...data,
+                    code: authorizationResult.code as number,
+                    body: encodeBody(authorizationResult.message),
+                  }),
+                });
+                continue;
+              }
             }
 
-            const handleResult = await handler.handle(data, injection);
-            if (handleResult.code !== 200) {
+            if (handler.handle) {
+              const handleResult = await handler.handle(data, injection);
+              if (handleResult.code !== 200) {
+                respond({
+                  message,
+                  data: responseCodec.encode({
+                    ...data,
+                    code: handleResult.code,
+                    body: encodeBody(handleResult.errors),
+                  }),
+                });
+                continue;
+              }
               respond({
                 message,
                 data: responseCodec.encode({
                   ...data,
+                  headers: handleResult.headers
+                    ? {
+                        ...data.headers,
+                        ...handleResult.headers,
+                      }
+                    : data.headers,
                   code: handleResult.code,
-                  body: encodeBody(handleResult.errors),
+                  body: encodeBody(handleResult.body),
                 }),
               });
               continue;
             }
-            respond({
-              message,
-              data: responseCodec.encode({
-                ...data,
-                headers: handleResult.headers
-                  ? {
-                      ...data.headers,
-                      ...handleResult.headers,
-                    }
-                  : data.headers,
-                code: handleResult.code,
-                body: encodeBody(handleResult.body),
-              }),
-            });
+
+            respond({ message });
           } catch (error) {
             console.error(error);
             respond({

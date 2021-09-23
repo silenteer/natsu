@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 
 const esbuild = require('esbuild');
-
+const options = require('./command');
 const path = require('path');
 const fs = require('fs');
 
@@ -24,8 +24,8 @@ esbuild.buildSync({
 
 const NatsClient = require('@silenteer/natsu');
 const natsClient = NatsClient.default.setup({
-  urls: ['localhost:4222'],
-  verbose: true,
+  urls: [options.nats],
+  verbose: options.verbose,
 });
 
 files.forEach((file) => {
@@ -33,6 +33,7 @@ files.forEach((file) => {
   const module = require(jsFile);
 
   natsClient.register([module.default]);
+  console.log('Registered', module.default.subject);
 });
 
 async function start() {
