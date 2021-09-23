@@ -9,7 +9,8 @@
     "registry": "https://registry.npmjs.org/"
   },
   "files": [
-    "dist/**"
+    "dist/**",
+    "cli.js"
   ],
   "scripts": {
     "build": "rm -rf dist && tsc"
