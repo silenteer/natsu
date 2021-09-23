@@ -7,6 +7,7 @@
   },
   "dependencies": {
     "@silenteer/natsu": "^1.0.5",
+    "@silenteer/natsu-runner": "^1.0.1",
     "esbuild": "^0.12.29",
     "example-type": "link:../example-type",
     "matched": "^5.0.1",
