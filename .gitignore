@@ -37,6 +37,7 @@ typings
 /.env
 **/.npmrc
 !/.npmrc
+config-npm-token.js
 
 # System Files
 .DS_Store
