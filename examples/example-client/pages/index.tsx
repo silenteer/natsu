@@ -18,7 +18,7 @@ export function Index() {
   }, []);
 
   const [result2] = usePromise(() =>
-    request<HelloService>('hello.world', 'hello')
+    request<HelloService>('hello.world', { msg: 'hello' })
   );
 
   return (

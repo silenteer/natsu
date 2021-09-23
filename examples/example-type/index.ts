@@ -9,4 +9,8 @@ export type NatsGetCareProviders = NatsService<
   }>
 >;
 
-export type HelloService = NatsService<'hello.world', string, string>;
+export type HelloService = NatsService<
+  'hello.world',
+  { msg: string },
+  { msg: string }
+>;
