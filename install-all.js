@@ -7,6 +7,7 @@ const projects = [
   'libs/natsu',
   'libs/natsu-port',
   'libs/natsu-port-server',
+  'libs/natsu-runner',
   'libs/natsu-type',
   'examples/example-client',
   'examples/example-server',

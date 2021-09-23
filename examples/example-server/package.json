@@ -6,7 +6,7 @@
     "dev": "nodemon main.ts --ext ts,json --ignore dist"
   },
   "dependencies": {
-    "@silenteer/natsu": "file:.yalc/@silenteer/natsu",
+    "@silenteer/natsu": "^1.0.5",
     "@silenteer/natsu-port-server": "^0.0.4",
     "yup": "0.32.9"
   },

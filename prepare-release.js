@@ -28,10 +28,6 @@ if (!scripts?.build) {
 const fs = require('fs');
 const { execSync } = require('child_process');
 
-execSync('node ./config-npm-token.js');
-if (!fs.existsSync('.env')) {
-  throw new Error(`file '.env' for NPM_CONFIG_TOKEN is required`);
-}
 require('dotenv').config();
 if (!process.env.NPM_CONFIG_TOKEN) {
   throw new Error(`'process.env.NPM_CONFIG_TOKEN' is required`);

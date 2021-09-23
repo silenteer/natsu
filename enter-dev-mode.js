@@ -9,11 +9,13 @@ const packagesNeedToLink = [
   'libs/natsu',
   'libs/natsu-port-server',
   'libs/natsu-port',
+  'libs/natsu-runner',
 ];
 const packagesUseLink = [
   'libs/natsu',
   'libs/natsu-port-server',
   'libs/natsu-port',
+  'libs/natsu-runner',
   'examples/example-type',
   'examples/example-natsu',
   'examples/example-server',
