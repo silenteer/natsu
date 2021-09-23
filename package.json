@@ -4,8 +4,6 @@
   "license": "MIT",
   "private": true,
   "scripts": {
-    "preinstall": "node config-npm-token.js",
-    "prepublish": "node config-npm-token.js",
     "dev:enter": "node ./enter-dev-mode.js",
     "dev:exit": "del **/node_modules/@silenteer examples/*/dist libs/*/dist && CHECK_FILE=true yarn install:all",
     "install:all": "node ./install-all.js",
