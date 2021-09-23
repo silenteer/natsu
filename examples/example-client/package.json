@@ -10,10 +10,10 @@
     "next": "11.1.0",
     "react": "17.0.2",
     "react-dom": "17.0.2",
-    "react-use-promise": "0.4.1"
+    "react-use-promise": "0.4.1",
+    "example-type": "link:../example-type"
   },
   "devDependencies": {
-    "@silenteer/example-type": "file:///home/lagz0ne/natsu/examples/example-client/../example-type",
     "@types/react": "17.0.21",
     "@types/react-dom": "17.0.9"
   }

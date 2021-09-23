@@ -1,10 +1,7 @@
 import React from 'react';
 import usePromise from 'react-use-promise';
 import { connect } from '@silenteer/natsu-port';
-import type {
-  NatsGetCareProviders,
-  HelloService,
-} from '@silenteer/example-type';
+import type { NatsGetCareProviders, HelloService } from 'example-type';
 
 const request = connect({
   serverURL: new URL('http://localhost:8080'),

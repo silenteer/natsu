@@ -1,4 +1,4 @@
-import type { HelloService } from '@silenteer/example-type';
+import type { HelloService } from 'example-type';
 import type { NatsHandle } from '@silenteer/natsu';
 import { NatsHandleResultUtil } from '@silenteer/natsu';
 

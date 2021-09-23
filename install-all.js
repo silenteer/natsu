@@ -14,17 +14,9 @@ const projects = [
   'examples/example-type',
 ];
 
-const commands = projects
-  .map((projectPath) => {
-    if (isCheckFile) {
-      return `\"(cd ${projectPath} && yarn install --check-files)\"`;
-    }
-    return `\"(cd ${projectPath} && yarn)\"`;
-  })
-  .join(' ');
-
-if (isCheckFile) {
-  execSync(`yarn install --check-files && concurrently ${commands}`);
-} else {
-  execSync(`yarn && concurrently ${commands}`);
-}
+projects.forEach((projectPath) => {
+  if (isCheckFile) {
+    execSync(`(cd ${projectPath} && yarn install --check-files)`);
+  }
+  execSync(`(cd ${projectPath} && yarn)`);
+});
