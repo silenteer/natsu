@@ -2,6 +2,13 @@
   "name": "example-natsu",
   "version": "0.0.1",
   "license": "MIT",
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/"
+  },
+  "files": [
+    "command.js",
+    "index.js"
+  ],
   "scripts": {
     "dev": "nodemon main.ts --ext ts,json --ignore dist"
   },

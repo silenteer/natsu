@@ -13,6 +13,7 @@ if (!packageJson) {
 }
 
 const { publishConfig, files, scripts } = packageJson;
+const shouldBuild = !!scripts?.build;
 if (!publishConfig?.registry) {
   throw new Error(
     `Missing 'publishConfig.registry' in package.json at ${project}`
@@ -20,9 +21,6 @@ if (!publishConfig?.registry) {
 }
 if (!files || files.length === 0) {
   throw new Error(`Missing 'files' in package.json at ${project}`);
-}
-if (!scripts?.build) {
-  throw new Error(`Missing 'scripts.build' in package.json at ${project}`);
 }
 
 const fs = require('fs');
@@ -45,6 +43,12 @@ fs.appendFileSync(
   `//registry.npmjs.org/:_authToken=${process.env.NPM_CONFIG_TOKEN}\n`
 );
 
-execSync(
-  `(cd ${project} && rm -rf node_modules yarn.lock && yarn && yarn build)`
-);
+if (shouldBuild) {
+  execSync(
+    `(cd ${project} && rm -rf node_modules yarn.lock && yarn`
+  );
+} else {
+  execSync(
+    `(cd ${project} && rm -rf node_modules yarn.lock && yarn && yarn build)`
+  );
+}
