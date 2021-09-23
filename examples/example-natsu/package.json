@@ -6,10 +6,10 @@
     "dev": "nodemon main.ts --ext ts,json --ignore dist"
   },
   "dependencies": {
-    "@silenteer/example-type": "file:///home/lagz0ne/natsu/examples/example-natsu/../example-type",
     "@silenteer/natsu": "^1.0.5",
+    "@silenteer/natsu-runner": "file:.yalc/@silenteer/natsu-runner",
     "esbuild": "^0.12.29",
-    "example-type": "link://../example-type",
+    "example-type": "link:../example-type",
     "matched": "^5.0.1",
     "yup": "0.32.9"
   },

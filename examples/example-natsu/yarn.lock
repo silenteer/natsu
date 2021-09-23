@@ -21,10 +21,12 @@
   dependencies:
     "@cspotcode/source-map-consumer" "0.8.0"
 
-"@silenteer/example-type@file:///home/lagz0ne/natsu/examples/example-natsu/../example-type":
-  version "0.0.1"
+"@silenteer/natsu-runner@file:.yalc/@silenteer/natsu-runner":
+  version "1.0.0"
   dependencies:
-    "@silenteer/natsu-type" "^0.0.1"
+    commander "^8.2.0"
+    esbuild "^0.12.29"
+    matched "^5.0.1"
 
 "@silenteer/natsu-type@0.0.5":
   version "0.0.5"
@@ -37,9 +39,9 @@
   integrity sha512-63vlPCKWu29z+leGZ+rwJQlssUgzoxsODJ1L2L9JWAW4WB6MuFaKl8ZeMuKtsuXWMfPdZXDRuMgZqiGWtar9SA==
 
 "@silenteer/natsu@^1.0.5":
-  version "1.0.5"
-  resolved "https://registry.yarnpkg.com/@silenteer/natsu/-/natsu-1.0.5.tgz#63291467fe72ff649c7c4c62ad7828cf0a74d51f"
-  integrity sha512-EiHMcJ0K+D9DEgj02fc9VdpsAjzFCWutebJRCk1KSGwZG/uK9oHi5D62Xmzh1L8wxzwUJ3edVWAoRkBILXOBZg==
+  version "1.0.6"
+  resolved "https://registry.yarnpkg.com/@silenteer/natsu/-/natsu-1.0.6.tgz#95f34fdfda4c0b87bc8272305ca2a0c36d792240"
+  integrity sha512-f/Bq2JD8YJqv2Udc2jbEL2GfVLV7xv0RHl25OBbHoJ6QyoAq+j1L7dk9mTxFm/zANjQ6g2HEncpgRStGLJDCyg==
   dependencies:
     "@silenteer/natsu-type" "0.0.5"
     nats "^2.2.0"
@@ -87,9 +89,9 @@
   integrity sha512-YHUZhBOMTM3mjFkXVcK+WwAcYmyhe1wL4lfqNtzI0b3qAy7yuSetnM7QJazgE5PFmgVTNGiLOgRFfJMqW7XpSQ==
 
 "@types/node@^14.0.26":
-  version "14.17.17"
-  resolved "https://registry.yarnpkg.com/@types/node/-/node-14.17.17.tgz#4ec7b71bbcb01a4e55455b60b18b1b6a783fe31d"
-  integrity sha512-niAjcewgEYvSPCZm3OaM9y6YQrL2SEPH9PymtE6fuZAvFiP6ereCcvApGl2jKTq7copTIguX3PBvfP08LN4LvQ==
+  version "14.17.18"
+  resolved "https://registry.yarnpkg.com/@types/node/-/node-14.17.18.tgz#0198489a751005f71217744aa966cd1f29447c81"
+  integrity sha512-haYyibw4pbteEhkSg0xdDLAI3679L75EJ799ymVrPxOA922bPx3ML59SoDsQ//rHlvqpu+e36kcbR3XRQtFblA==
 
 abbrev@1:
   version "1.1.1"
@@ -252,6 +254,11 @@ color-name@~1.1.4:
   resolved "https://registry.yarnpkg.com/color-name/-/color-name-1.1.4.tgz#c2a09a87acbde69543de6f63fa3995c826c536a2"
   integrity sha512-dOy+3AuW3a2wNbZHIuMZpTcgjGuLU/uBL/ubcZF9OXbDo8ff4O8yVp5Bf0efS8uEoYo5q4Fx7dY9OgQGXgAsQA==
 
+commander@^8.2.0:
+  version "8.2.0"
+  resolved "https://registry.yarnpkg.com/commander/-/commander-8.2.0.tgz#37fe2bde301d87d47a53adeff8b5915db1381ca8"
+  integrity sha512-LLKxDvHeL91/8MIyTAD5BFMNtoIwztGPMiM/7Bl8rIPmHCZXRxmSWr91h57dpOpnQ6jIUqEWdXE/uBYMfiVZDA==
+
 concat-map@0.0.1:
   version "0.0.1"
   resolved "https://registry.yarnpkg.com/concat-map/-/concat-map-0.0.1.tgz#d8a96bd77fd68df7793a73036a3ba0d5405d477b"
@@ -354,7 +361,7 @@ escape-goat@^2.0.0:
   resolved "https://registry.yarnpkg.com/escape-goat/-/escape-goat-2.1.1.tgz#1b2dc77003676c457ec760b2dc68edb648188675"
   integrity sha512-8/uIhbG12Csjy2JEW7D9pHbreaVaS/OpN3ycnyvElTdwM5n6GY6W6e2IPemfvGZeUMqZ9A/3GqIZMgKnBhAw/Q==
 
-"example-type@link:../../../../../example-type":
+"example-type@link:../example-type":
   version "0.0.0"
   uid ""
 
@@ -397,9 +404,9 @@ glob-parent@~5.1.2:
     is-glob "^4.0.1"
 
 glob@^7.1.6:
-  version "7.1.7"
-  resolved "https://registry.yarnpkg.com/glob/-/glob-7.1.7.tgz#3b193e9233f01d42d0b3f78294bbeeb418f94a90"
-  integrity sha512-OvD9ENzPLbegENnYP5UUfJIirTg4+XwMWGaQfQTY0JenxNvvIKP3U3/tAQSPIu/lHxXYSZmpXlUHeqAIdKzBLQ==
+  version "7.2.0"
+  resolved "https://registry.yarnpkg.com/glob/-/glob-7.2.0.tgz#d15535af7732e02e948f4c41628bd910293f6023"
+  integrity sha512-lmLf6gtyrPq8tTjSmrO94wBeQbFR3HbLHbuyD69wuyQkImp2hWqMGB47OX65FBkPffO641IP9jWa1z4ivqG26Q==
   dependencies:
     fs.realpath "^1.0.0"
     inflight "^1.0.4"
