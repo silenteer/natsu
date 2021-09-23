@@ -6,6 +6,13 @@
   "author": "Silenteer",
   "license": "MIT",
   "private": false,
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/"
+  },
+  "files": [
+    "command.js",
+    "index.js"
+  ],
   "bin": {
     "natsu-runner": "./index.js"
   },
