@@ -44,9 +44,7 @@ fs.appendFileSync(
 );
 
 if (shouldBuild) {
-  execSync(
-    `(cd ${project} && rm -rf node_modules yarn.lock && yarn`
-  );
+  execSync(`(cd ${project} && rm -rf node_modules yarn.lock && yarn`);
 } else {
   execSync(
     `(cd ${project} && rm -rf node_modules yarn.lock && yarn && yarn build)`

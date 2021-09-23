@@ -5,7 +5,7 @@
   "private": true,
   "scripts": {
     "dev:enter": "node ./enter-dev-mode.js",
-    "dev:exit": "del **/node_modules/@silenteer examples/*/dist libs/*/dist && CHECK_FILE=true yarn install:all",
+    "dev:exit": "del **/node_modules/@silenteer examples/*/dist libs/*/dist && yarn install:all",
     "install:all": "node ./install-all.js",
     "uninstall:all": "del **/node_modules **/yarn.lock",
     "test:all": "node ./test-all.js",
