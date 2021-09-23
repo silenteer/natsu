@@ -74,7 +74,7 @@ function start() {
         }
       }
     })
-    .listen(config.port, (error, address) => {
+    .listen(config.port, '0.0.0.0', (error, address) => {
       if (error) {
         console.error(error);
         process.exit(1);
