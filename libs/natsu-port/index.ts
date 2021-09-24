@@ -68,5 +68,5 @@ function connect(options: NatsPortOptions) {
   };
 }
 
-export type { NatsPortOptions, NatsPortError };
-export { connect };
+export type { NatsPortOptions };
+export { connect, NatsPortError };
