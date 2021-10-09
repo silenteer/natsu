@@ -24,9 +24,11 @@ const clients: {
 async function start<TInjection extends Record<string, unknown>>(params: {
   urls: string[];
   injections?: TInjection;
+  user?: string;
+  pass?: string;
   verbose?: boolean;
 }) {
-  const { urls, verbose } = params;
+  const { urls, user, pass, verbose } = params;
   const key = getClientKey(urls);
 
   if (!clients[key]) {
@@ -36,6 +38,8 @@ async function start<TInjection extends Record<string, unknown>>(params: {
   if (!clients[key].client) {
     const client = await connect({
       servers: urls,
+      user,
+      pass,
       pingInterval: 30 * 1000,
       maxPingOut: 10,
       verbose,
@@ -226,12 +230,14 @@ export default {
   setup: <TInjection extends Record<string, unknown>>(params: {
     urls: string[];
     injections?: TInjection;
+    user?: string;
+    pass?: string;
     verbose?: boolean;
   }) => {
-    const { urls, injections, verbose } = params;
+    const { urls, injections, user, pass, verbose } = params;
 
     const client = {
-      start: () => start({ urls, injections, verbose }),
+      start: () => start({ urls, injections, user, pass, verbose }),
       stop: () => stop(urls),
       register: (
         handlers: Array<

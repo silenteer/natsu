@@ -4,6 +4,8 @@ type Config = {
   natsURI: string;
   natsAuthSubjects: string[];
   natsNonAuthorizedSubjects: string[];
+  natsUser: string;
+  natsPass: string;
   path: string;
   port: number;
 };
@@ -15,6 +17,8 @@ const schema = yup.object({
     .array(yup.string().trim())
     .min(1)
     .notRequired(),
+  natsUser: yup.string().trim().notRequired(),
+  natsPass: yup.string().trim().notRequired(),
   path: yup.string(),
   port: yup.number().lessThan(65000).moreThan(0),
 });
@@ -27,6 +31,8 @@ const config = {
   natsNonAuthorizedSubjects: process.env.NATS_NON_AUTHORIZED_SUBJECTS?.split(
     ','
   ).filter((item) => !!item),
+  natsUser: process.env.NATS_USER,
+  natsPass: process.env.NATS_PASS,
   port: parseInt(process.env.SERVER_PORT) || 8080,
   path: process.env.SERVER_PATH || '/',
 };

@@ -6,6 +6,8 @@ const args = require('arg')({
   '--nats-uri': String,
   '--nats-auth-subjects': String,
   '--nats-non-auth-subjects': String,
+  '--nats-user': String,
+  '--nats-pass': String,
   '--server-port': Number,
   '--server-path': String,
   '--help': Boolean,
@@ -35,6 +37,18 @@ if (args['--help']) {
       false,
       'undefined',
       `It can be a string with many urls which delimited by ','.\nServer won't authenticate them even authentication enabled.`,
+    ],
+    [
+      '--nats-user',
+      false,
+      'undefined',
+      `It's nats user which is used to authenticate nats connection`,
+    ],
+    [
+      '--nats-pass',
+      false,
+      'undefined',
+      `It's nats pass which is used to authenticate nats connection`,
     ],
     ['--server-port', false, 8080, `It's port which server run at.`],
     [
@@ -73,6 +87,12 @@ if (args['--config']) {
   if (args['--nats-non-auth-subjects']) {
     process.env['NATS_NON_AUTHORIZED_SUBJECTS'] =
       args['--nats-non-auth-subjects'];
+  }
+  if (args['--nats-user']) {
+    process.env['NATS_USER'] = args['--nats-user'];
+  }
+  if (args['--nats-pass']) {
+    process.env['NATS_PASS'] = args['--nats-pass'];
   }
   if (args['--server-port']) {
     process.env['SERVER_PORT'] = args['--server-port'];
