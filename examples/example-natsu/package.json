@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "license": "MIT",
   "scripts": {
-    "dev": "nodemon main.ts --ext ts,json --ignore dist"
+    "dev": "nodemon -e ts,js -i node_modules --exec npx natsu-runner"
   },
   "dependencies": {
     "@silenteer/natsu": "^1.0.5",
