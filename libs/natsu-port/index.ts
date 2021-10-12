@@ -6,7 +6,7 @@ import type {
   NatsPortWSResponse,
   NatsPortWSErrorResponse,
 } from '@silenteer/natsu-type';
-import { WebsocketClient } from 'websocket-client';
+import { WebsocketClient } from './websocket-client';
 
 type NatsPortOptions = {
   serverURL: URL;
