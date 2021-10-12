@@ -9,7 +9,8 @@ const args = require('arg')({
   '--nats-user': String,
   '--nats-pass': String,
   '--server-port': Number,
-  '--server-path': String,
+  '--server-http-path': String,
+  '--server-ws-path': String,
   '--help': Boolean,
 });
 
@@ -52,10 +53,16 @@ if (args['--help']) {
     ],
     ['--server-port', false, 8080, `It's port which server run at.`],
     [
-      '--server-path',
+      '--server-http-path',
       false,
       '/',
       `It's an endpoint which server will listen to convert http request to nats request then send back http response to client`,
+    ],
+    [
+      '--server-ws-path',
+      false,
+      '/',
+      `It's an endpoint which server will listen to handle websocket request.\nThe request can ask server to subscribe or unsubscribe to a nats subject`,
     ],
     [
       '--config',
@@ -97,8 +104,11 @@ if (args['--config']) {
   if (args['--server-port']) {
     process.env['SERVER_PORT'] = args['--server-port'];
   }
-  if (args['--server-path']) {
-    process.env['SERVER_PATH'] = args['--server-path'];
+  if (args['--server-http-path']) {
+    process.env['SERVER_HTTP_PATH'] = args['--server-http-path'];
+  }
+  if (args['--server-ws-path']) {
+    process.env['SERVER_WS_PATH'] = args['--server-ws-path'];
   }
 }
 

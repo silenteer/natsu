@@ -3,7 +3,10 @@ import type {
   NatsPortRequest,
   NatsPortResponse,
   NatsPortErrorResponse,
+  NatsPortWSResponse,
+  NatsPortWSErrorResponse,
 } from '@silenteer/natsu-type';
+import { WebsocketClient } from 'websocket-client';
 
 type NatsPortOptions = {
   serverURL: URL;
@@ -68,5 +71,54 @@ function connect(options: NatsPortOptions) {
   };
 }
 
+function connectWS(options: NatsPortOptions) {
+  const subscriptions: {
+    [subject: string]: (
+      response: NatsPortWSResponse<string> | NatsPortWSErrorResponse<string>
+    ) => void;
+  } = {};
+
+  const websocketClient = new WebsocketClient(options.serverURL.toString());
+  websocketClient.onerror = (event) => console.error(event);
+  websocketClient.onmessage = (event) => {
+    try {
+      const data = JSON.parse(event.data) as
+        | NatsPortWSResponse<string>
+        | NatsPortWSErrorResponse<string>;
+      const handleFunc = subscriptions[data.subject];
+      handleFunc && handleFunc(data);
+    } catch (error) {
+      websocketClient.onerror(error);
+    }
+  };
+
+  const subscribe = <TService extends NatsService<string, unknown, unknown>>(
+    subject: TService['subject'],
+    onHandle: (
+      response: NatsPortWSResponse<TService['subject'], TService['response']>
+    ) => void
+  ) => {
+    if (subscriptions[subject]) {
+      return;
+    }
+    subscriptions[subject] = onHandle;
+    websocketClient.send({ subject, action: 'subscribe' });
+  };
+
+  const unsubscribe = <TService extends NatsService<string, unknown, unknown>>(
+    subject: TService['subject']
+  ) => {
+    if (subscriptions[subject]) {
+      delete subscriptions[subject];
+      websocketClient.send({ subject, action: 'unsubscribe' });
+    }
+  };
+
+  return {
+    subscribe,
+    unsubscribe,
+  };
+}
+
 export type { NatsPortOptions };
-export { connect, NatsPortError };
+export { connect, connectWS, NatsPortError };

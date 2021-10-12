@@ -27,7 +27,14 @@ const packageNames = packagesNeedToLink.map((packagePath) => {
 
 packagesNeedToLink.forEach((packagePath) => {
   if (!fs.existsSync(`${packagePath}/dist`)) {
-    execSync(`(cd ${packagePath} && yarn build && yarn link)`);
+    const packageJson = getPackageJson(packagePath);
+    const shouldBuild = !!packageJson.scripts?.build;
+
+    if (shouldBuild) {
+      execSync(`(cd ${packagePath} && yarn build && yarn link)`);
+    } else {
+      execSync(`(cd ${packagePath} && yarn link)`);
+    }
   } else {
     execSync(`(cd ${packagePath} && yarn link)`);
   }

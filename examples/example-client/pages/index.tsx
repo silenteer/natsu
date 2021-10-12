@@ -1,10 +1,14 @@
 import React from 'react';
 import usePromise from 'react-use-promise';
-import { connect } from '@silenteer/natsu-port';
+import { connect, connectWS } from '@silenteer/natsu-port';
 import type { NatsGetCareProviders, HelloService } from 'example-type';
 
 const request = connect({
   serverURL: new URL('http://localhost:8080'),
+});
+
+const { subscribe, unsubscribe } = connectWS({
+  serverURL: new URL('ws://localhost:8080'),
 });
 
 export function Index() {

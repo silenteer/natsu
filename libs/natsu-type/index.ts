@@ -28,3 +28,21 @@ export type NatsPortErrorResponse = {
   code: 400 | 401 | 403 | 404 | 500;
   body?: unknown;
 };
+
+export type NatsPortWSRequest<TSubject = string, TBody = unknown> = {
+  subject: TSubject;
+  action: 'subscribe' | 'unsubscribe';
+  data?: TBody;
+};
+
+export type NatsPortWSResponse<TSubject = string, TBody = unknown> = {
+  subject: TSubject;
+  code: 200;
+  body?: TBody;
+};
+
+export type NatsPortWSErrorResponse<TSubject = string> = {
+  subject: TSubject;
+  code: 400 | 401 | 403 | 404 | 500;
+  body?: unknown;
+};
