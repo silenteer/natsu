@@ -20,7 +20,7 @@
     "natsu-port-server": "./cli.js"
   },
   "dependencies": {
-    "@silenteer/natsu-type": "0.0.5",
+    "@silenteer/natsu-type": "0.0.7",
     "arg": "5.0.1",
     "cli-table3": "0.6.0",
     "fastify": "3.21.0",
