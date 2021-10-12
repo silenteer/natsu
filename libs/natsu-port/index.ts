@@ -5,6 +5,7 @@ import type {
   NatsPortErrorResponse,
   NatsPortWSResponse,
   NatsPortWSErrorResponse,
+  NatsChannel,
 } from '@silenteer/natsu-type';
 import { WebsocketClient } from './websocket-client';
 
@@ -92,7 +93,7 @@ function connectWS(options: NatsPortOptions) {
     }
   };
 
-  const subscribe = <TService extends NatsService<string, unknown, unknown>>(
+  const subscribe = async <TService extends NatsChannel<string, {}>>(
     subject: TService['subject'],
     onHandle: (
       response: NatsPortWSResponse<TService['subject'], TService['response']>
@@ -102,7 +103,7 @@ function connectWS(options: NatsPortOptions) {
       return;
     }
     subscriptions[subject] = onHandle;
-    websocketClient.send({ subject, action: 'subscribe' });
+    await websocketClient.send({ subject, action: 'subscribe' });
   };
 
   const unsubscribe = <TService extends NatsService<string, unknown, unknown>>(

@@ -19,6 +19,7 @@ import type {
 } from '@silenteer/natsu-type';
 import config from './configuration';
 import NatsService from './service-nats';
+import { randomUUID } from 'crypto';
 
 const httpRequestSchema = yup.object({
   subject: yup.string().trim().required(),
@@ -75,25 +76,28 @@ function start() {
       }
     })
     .get(config.wsPath, { websocket: true }, async (connection, request) => {
-      try {
-        const authenticationResult = await authenticate(request);
-        if (authenticationResult.code !== 'OK') {
-          connection.destroy(
-            new Error(JSON.stringify({ code: authenticationResult.code }))
-          );
-          return;
-        }
-      } catch (error) {
-        console.error(error);
-        if (error.code) {
-          connection.socket.send(error);
-        } else {
-          connection.socket.send({ code: 500 });
-        }
-        return;
-      }
+      // try {
+      //   const authenticationResult = await authenticate(request);
+      //   if (authenticationResult.code !== 'OK') {
+      //     connection.destroy(
+      //       new Error(JSON.stringify({ code: authenticationResult.code }))
+      //     );
+      //     return;
+      //   }
+      // } catch (error) {
+      //   console.error(error);
+      //   if (error.code) {
+      //     connection.socket.send(error);
+      //   } else {
+      //     connection.socket.send({ code: 500 });
+      //   }
+      //   return;
+      // }
+      const id = randomUUID();
+      console.log('Connection openened', id);
 
       connection.socket.on('message', (message) => {
+        console.log(id, JSON.stringify(message));
         let wsRequest: NatsPortWSRequest;
 
         try {
@@ -115,11 +119,14 @@ function start() {
             });
           } else if (wsRequest.action === 'unsubscribe') {
             NatsService.unsubscribe(wsRequest.subject);
+          } else {
+            connection.destroy(new Error('Unsupported operation'));
           }
         } catch (error) {
           const response: NatsPortWSErrorResponse = {
             subject: wsRequest?.subject,
             code: 500,
+            body: JSON.stringify(error),
           };
           sendWSResponse({ connection, response });
         }
@@ -257,6 +264,7 @@ function sendWSResponse(params: {
   response: NatsPortWSResponse<string> | NatsPortWSErrorResponse<string>;
 }) {
   const { connection, response } = params;
+  console.log('Sending ', response);
   if (response?.subject) {
     connection.socket.send(JSON.stringify(response));
   }

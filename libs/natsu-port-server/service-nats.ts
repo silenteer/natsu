@@ -84,7 +84,17 @@ function encodeBody(body: unknown) {
 }
 
 function decodeBody(body: string) {
-  return body ? JSONCodec().decode(Buffer.from(body, 'base64')) : undefined;
+  if (!body) {
+    return body;
+  }
+
+  try {
+    return JSONCodec().decode(Buffer.from(body, 'base64'));
+  } catch (e) {
+    // This is base64 thing
+  }
+
+  return body;
 }
 
 export default {

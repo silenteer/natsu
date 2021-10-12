@@ -1,35 +1,39 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import usePromise from 'react-use-promise';
 import { connect, connectWS } from '@silenteer/natsu-port';
-import type { NatsGetCareProviders, HelloService } from 'example-type';
+import type { HelloWorldChannel, NatsGetCareProviders } from 'example-type';
 
 const request = connect({
   serverURL: new URL('http://localhost:8080'),
 });
 
-const { subscribe, unsubscribe } = connectWS({
-  serverURL: new URL('ws://localhost:8080'),
-});
-
 export function Index() {
-  const [result] = usePromise(() => {
-    return request<NatsGetCareProviders>(
-      'api.v2.mobile.patient.getCareProviders',
-      {
-        ids: ['1', '2', '3'],
-      }
-    );
+  const [state, setState] = useState<any>();
+  // const [result] = usePromise(() => {
+  //   return request<NatsGetCareProviders>(
+  //     'api.v2.mobile.patient.getCareProviders',
+  //     {
+  //       ids: ['1', '2', '3'],
+  //     }
+  //   );
+  // }, []);
+
+  useEffect(() => {
+    const { subscribe, unsubscribe } = connectWS({
+      serverURL: new URL('ws://localhost:8080'),
+    });
+
+    subscribe<HelloWorldChannel>('hello.world', (msg) => {
+      setState(JSON.stringify(msg));
+      return () => unsubscribe('hello.world');
+    });
   }, []);
 
-  const [result2] = usePromise(() =>
-    request<HelloService>('hello.world', { msg: 'hello' })
-  );
-
   return (
-    <div>
-      {result && JSON.stringify(result)}
-      {result2 && JSON.stringify(result2)}
-    </div>
+    <>
+      {/* <div>{result && JSON.stringify(result)}</div> */}
+      <div>Websocket {state}</div>
+    </>
   );
 }
 

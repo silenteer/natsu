@@ -17,7 +17,8 @@
     "test": "jest"
   },
   "dependencies": {
-    "@silenteer/natsu-type": "0.0.7"
+    "@silenteer/natsu-type": "0.0.7",
+    "reconnecting-websocket": "^4.4.0"
   },
   "devDependencies": {
     "@types/jest": "27.0.1",

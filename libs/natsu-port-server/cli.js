@@ -112,10 +112,7 @@ if (args['--config']) {
   }
 }
 
-const serverPath = path.join(
-  process.cwd(),
-  'node_modules/@silenteer/natsu-port-server/dist/index.js'
-);
+const serverPath = path.join(__dirname, 'dist/index.js');
 if (!serverPath) {
   throw new Error(`Not found entry file at ${serverPath}`);
 }

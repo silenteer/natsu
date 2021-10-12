@@ -1,4 +1,4 @@
-import type { NatsService } from '@silenteer/natsu-type';
+import type { NatsService, NatsChannel } from '@silenteer/natsu-type';
 
 export type NatsGetCareProviders = NatsService<
   'api.v2.mobile.patient.getCareProviders',
@@ -14,3 +14,5 @@ export type HelloService = NatsService<
   { msg: string },
   { msg: string }
 >;
+
+export type HelloWorldChannel = NatsChannel<'hello.world', { msg: string }>;

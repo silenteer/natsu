@@ -7,6 +7,25 @@ import type {
 const MAX_RETRY_TIMES = 3;
 const RETRY_INTERVAL = 5 * 1000;
 
+const waitForOpenConnection = (socket) => {
+  return new Promise((resolve, reject) => {
+    const maxNumberOfAttempts = 10;
+    const intervalTime = 200; //ms
+
+    let currentAttempt = 0;
+    const interval = setInterval(() => {
+      if (currentAttempt > maxNumberOfAttempts - 1) {
+        clearInterval(interval);
+        reject(new Error('Maximum number of attempts exceeded'));
+      } else if (socket.readyState === socket.OPEN) {
+        clearInterval(interval);
+        resolve(WebSocket.OPEN);
+      }
+      currentAttempt++;
+    }, intervalTime);
+  });
+};
+
 class WebsocketClient {
   private _url: string;
   private _webSocket: WebSocket;
@@ -47,7 +66,9 @@ class WebsocketClient {
     return this._webSocket ? this._webSocket.readyState : undefined;
   }
 
-  send(data: NatsPortWSRequest<string>) {
+  async send(data: NatsPortWSRequest<string>) {
+    await waitForOpenConnection(this._webSocket);
+
     try {
       this._webSocket.send(JSON.stringify(data));
     } catch (error) {
