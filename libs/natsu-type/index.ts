@@ -4,12 +4,11 @@ export type NatsService<TSubject extends string, TRequest, TResponse> = {
   response: TResponse;
 };
 
-export type NatsChannel<
-  TSubject extends string,
-  TResponse extends object
-> = NatsService<TSubject, never, TResponse>;
-
-// export type NatsPublisher<C extends NatsChannel<any, any> = NatsService<C['subject'], C['response'], never>;
+export type NatsChannel<TSubject extends string, TRequest, TResponse> = {
+  subject: TSubject;
+  request: TRequest;
+  response: TResponse;
+};
 
 export type NatsRequest<TBody = unknown> = {
   headers: { [key: string]: unknown };

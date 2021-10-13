@@ -15,4 +15,8 @@ export type HelloService = NatsService<
   { msg: string }
 >;
 
-export type HelloWorldChannel = NatsChannel<'hello.world', { msg: string }>;
+export type HelloWorldChannel = NatsChannel<
+  'hello.world',
+  undefined,
+  { msg: string }
+>;
