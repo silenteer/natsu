@@ -28,10 +28,10 @@
   dependencies:
     ajv "^6.12.6"
 
-"@silenteer/natsu-type@0.0.7":
-  version "0.0.7"
-  resolved "https://registry.yarnpkg.com/@silenteer/natsu-type/-/natsu-type-0.0.7.tgz#768c02953fdac86483886f1e80c4c81e60cfd1ce"
-  integrity sha512-OmYqTqRr6t8L7shYLymf0lWHESXq27gOUdpqU1NhOOgK6V5NaDYyfu10K3C4jlR7f+0Y9pBoaf2qmztD/kXqqA==
+"@silenteer/natsu-type@0.0.8":
+  version "0.0.8"
+  resolved "https://registry.yarnpkg.com/@silenteer/natsu-type/-/natsu-type-0.0.8.tgz#081499d5fbe2ca82b49bf796981482333a7adcc2"
+  integrity sha512-0eZeHi6K+l5Fk/VtrYvaKR2n9SaY+0Yiw1eYbK3xnlfuBNIGvWA5BePiL5LjYiSVMUuQnoNdVkujPyqLvwm6cw==
 
 "@tsconfig/node10@^1.0.7":
   version "1.0.8"

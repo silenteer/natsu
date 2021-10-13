@@ -1,3 +1,4 @@
+import { randomUUID } from 'crypto';
 import type { IncomingMessage, Server } from 'http';
 import * as yup from 'yup';
 import { JSONCodec } from 'nats';
@@ -19,7 +20,6 @@ import type {
 } from '@silenteer/natsu-type';
 import config from './configuration';
 import NatsService from './service-nats';
-import { randomUUID } from 'crypto';
 
 const httpRequestSchema = yup.object({
   subject: yup.string().trim().required(),
@@ -76,32 +76,18 @@ function start() {
       }
     })
     .get(config.wsPath, { websocket: true }, async (connection, request) => {
-      // try {
-      //   const authenticationResult = await authenticate(request);
-      //   if (authenticationResult.code !== 'OK') {
-      //     connection.destroy(
-      //       new Error(JSON.stringify({ code: authenticationResult.code }))
-      //     );
-      //     return;
-      //   }
-      // } catch (error) {
-      //   console.error(error);
-      //   if (error.code) {
-      //     connection.socket.send(error);
-      //   } else {
-      //     connection.socket.send({ code: 500 });
-      //   }
-      //   return;
-      // }
-      const id = randomUUID();
-      console.log('Connection openened', id);
+      const connectionId = randomUUID();
 
-      connection.socket.on('message', (message) => {
-        console.log(id, JSON.stringify(message));
+      connection.socket.on('close', () =>
+        NatsService.unsubscribeAllSubjects(connectionId)
+      );
+
+      connection.socket.on('message', async (message) => {
         let wsRequest: NatsPortWSRequest;
 
         try {
-          wsRequest = JSON.parse(message) as NatsPortWSRequest;
+          wsRequest = JSON.parse(message.toString()) as NatsPortWSRequest;
+          request.headers['nats-subject'] = wsRequest.subject;
 
           const validationResult = validateWSRequest(wsRequest);
           if (validationResult.code === 400) {
@@ -113,12 +99,31 @@ function start() {
             return;
           }
 
+          const authenticationResult = await authenticate(request);
+          if (authenticationResult.code !== 'OK') {
+            NatsService.unsubscribe({
+              connectionId,
+              subject: wsRequest.subject,
+            });
+            connection.destroy(
+              new Error(JSON.stringify({ code: authenticationResult.code }))
+            );
+            return;
+          }
+
           if (wsRequest.action === 'subscribe') {
-            NatsService.subscribe(wsRequest.subject, (response) => {
-              sendWSResponse({ connection, response });
+            NatsService.subscribe({
+              connectionId,
+              subject: wsRequest.subject,
+              onHandle: (response) => {
+                sendWSResponse({ connection, response });
+              },
             });
           } else if (wsRequest.action === 'unsubscribe') {
-            NatsService.unsubscribe(wsRequest.subject);
+            NatsService.unsubscribe({
+              connectionId,
+              subject: wsRequest.subject,
+            });
           } else {
             connection.destroy(new Error('Unsupported operation'));
           }
@@ -180,8 +185,7 @@ async function authenticate(
     code: 'OK' | 401 | 403 | 500;
     authResponse?: NatsPortResponse | NatsPortErrorResponse;
   };
-  const subject = (request.headers['nats-subject'] ||
-    request.body['subject']) as string;
+  const subject = request.headers['nats-subject'] as string;
 
   const shouldAuthenticate =
     config.natsAuthSubjects?.length > 0 &&

@@ -7,7 +7,17 @@ import type {
 } from '@silenteer/natsu-type';
 import config from './configuration';
 
-const subscriptions: { [subject: string]: Subscription } = {};
+const subscriptions: {
+  [subject: string]: {
+    subscription: Subscription;
+    connections: Array<{
+      connectionId: string;
+      onHandle: (
+        response: NatsPortWSResponse | NatsPortWSErrorResponse
+      ) => void;
+    }>;
+  };
+} = {};
 let natsConnection: NatsConnection;
 
 async function getConnection(): Promise<NatsConnection> {
@@ -36,45 +46,83 @@ async function request(params: {
   });
 }
 
-async function subscribe(
-  subject: string,
-  onHandle: (response: NatsPortWSResponse | NatsPortWSErrorResponse) => void
-) {
-  if (subscriptions[subject]) {
+async function subscribe(params: {
+  connectionId: string;
+  subject: string;
+  onHandle: (response: NatsPortWSResponse | NatsPortWSErrorResponse) => void;
+}) {
+  const { connectionId, subject, onHandle } = params;
+
+  if (
+    subscriptions[subject]?.connections?.some((item) => {
+      item.connectionId === connectionId;
+    })
+  ) {
     return;
   }
 
-  const subcription = (await getConnection()).subscribe(subject);
-  subscriptions[subject] = subcription;
+  if (!subscriptions[subject]?.subscription) {
+    const subscription = (await getConnection()).subscribe(subject);
+    subscriptions[subject] = { subscription, connections: [] };
+  }
+  subscriptions[subject].connections = [
+    ...subscriptions[subject].connections,
+    { connectionId, onHandle },
+  ];
 
   const codec = JSONCodec<NatsResponse>();
   (async () => {
-    for await (const message of subcription) {
+    for await (const message of subscriptions[subject].subscription) {
       try {
         const data = message.data ? codec.decode(message.data) : undefined;
 
         if (data) {
-          onHandle({
-            subject,
-            code: data.code as
-              | NatsPortWSResponse['code']
-              | NatsPortWSErrorResponse['code'],
-            body: decodeBody(data.body),
+          subscriptions[subject].connections.forEach(({ onHandle }) => {
+            onHandle({
+              subject,
+              code: data.code as
+                | NatsPortWSResponse['code']
+                | NatsPortWSErrorResponse['code'],
+              body: decodeBody(data.body),
+            });
           });
         }
       } catch (error) {
         console.error(error);
-        onHandle({
-          subject,
-          code: 500,
+        subscriptions[subject].connections.forEach(({ onHandle }) => {
+          onHandle({
+            subject,
+            code: 500,
+          });
         });
       }
     }
   })();
 }
 
-async function unsubscribe(subject: string) {
-  return subscriptions[subject]?.unsubscribe();
+function unsubscribe(params: { connectionId: string; subject: string }) {
+  const { connectionId, subject } = params;
+
+  if (!subscriptions[subject]) {
+    return;
+  }
+
+  subscriptions[subject].connections = subscriptions[
+    subject
+  ].connections.filter((item) => item.connectionId !== connectionId);
+
+  if (subscriptions[subject].connections.length === 0) {
+    subscriptions[subject].subscription.unsubscribe();
+    delete subscriptions[subject];
+  }
+}
+
+function unsubscribeAllSubjects(connectionId: string) {
+  Object.entries(subscriptions).forEach(([subject, { connections }]) => {
+    if (connections.some((item) => item.connectionId === connectionId)) {
+      unsubscribe({ connectionId, subject });
+    }
+  });
 }
 
 function encodeBody(body: unknown) {
@@ -84,23 +132,14 @@ function encodeBody(body: unknown) {
 }
 
 function decodeBody(body: string) {
-  if (!body) {
-    return body;
-  }
-
-  try {
-    return JSONCodec().decode(Buffer.from(body, 'base64'));
-  } catch (e) {
-    // This is base64 thing
-  }
-
-  return body;
+  return body ? JSONCodec().decode(Buffer.from(body, 'base64')) : undefined;
 }
 
 export default {
   request,
   subscribe,
   unsubscribe,
+  unsubscribeAllSubjects,
   encodeBody,
   decodeBody,
 };

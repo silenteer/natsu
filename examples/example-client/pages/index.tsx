@@ -1,5 +1,4 @@
-import React, { useEffect, useState } from 'react';
-import usePromise from 'react-use-promise';
+import React, { useEffect, useRef, useState } from 'react';
 import { connect, connectWS } from '@silenteer/natsu-port';
 import type { HelloWorldChannel, NatsGetCareProviders } from 'example-type';
 
@@ -9,30 +8,51 @@ const request = connect({
 
 export function Index() {
   const [state, setState] = useState<any>();
-  // const [result] = usePromise(() => {
-  //   return request<NatsGetCareProviders>(
-  //     'api.v2.mobile.patient.getCareProviders',
-  //     {
-  //       ids: ['1', '2', '3'],
-  //     }
-  //   );
-  // }, []);
+  const [result, setResult] = useState<Array<{ id: string; name: string }>>();
+  const wsRef = useRef<ReturnType<typeof connectWS>>();
 
   useEffect(() => {
-    const { subscribe, unsubscribe } = connectWS({
+    wsRef.current = connectWS({
       serverURL: new URL('ws://localhost:8080'),
     });
 
-    subscribe<HelloWorldChannel>('hello.world', (msg) => {
-      setState(JSON.stringify(msg));
-      return () => unsubscribe('hello.world');
+    wsRef.current.subscribe<HelloWorldChannel>('hello.world', (response) => {
+      console.log(response);
+      setState(response);
     });
+
+    return () => wsRef.current.unsubscribe<HelloWorldChannel>('hello.world');
   }, []);
+
+  const loadData = () => {
+    request<NatsGetCareProviders>('api.v2.mobile.patient.getCareProviders', {
+      ids: ['1', '2', '3'],
+    }).then((result) => setResult(result));
+  };
+
+  const unsubscribe = () => {
+    setState(undefined);
+    wsRef.current.unsubscribe<HelloWorldChannel>('hello.world');
+  };
+
+  const clsoe = () => {
+    setState(undefined);
+    wsRef.current.close();
+  };
 
   return (
     <>
-      {/* <div>{result && JSON.stringify(result)}</div> */}
-      <div>Websocket {state}</div>
+      <button onClick={loadData}>Load data</button>
+      <br />
+      <br />
+      <button onClick={unsubscribe}>Unsubscribe</button>
+      <br />
+      <br />
+      <button onClick={clsoe}>Close</button>
+      <br />
+      <br />
+      <div>{result && JSON.stringify(result)}</div>
+      <div>Websocket {state && JSON.stringify(state)}</div>
     </>
   );
 }

@@ -21,6 +21,11 @@
   dependencies:
     "@cspotcode/source-map-consumer" "0.8.0"
 
+"@silenteer/example-type@../example-type":
+  version "0.0.1"
+  dependencies:
+    "@silenteer/natsu-type" "^0.0.1"
+
 "@silenteer/natsu-runner@^1.0.1":
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/@silenteer/natsu-runner/-/natsu-runner-1.0.1.tgz#753f7c4f02ca7c901531bdab2915b94be8f20e11"
@@ -91,9 +96,9 @@
   integrity sha512-YHUZhBOMTM3mjFkXVcK+WwAcYmyhe1wL4lfqNtzI0b3qAy7yuSetnM7QJazgE5PFmgVTNGiLOgRFfJMqW7XpSQ==
 
 "@types/node@^14.0.26":
-  version "14.17.21"
-  resolved "https://registry.yarnpkg.com/@types/node/-/node-14.17.21.tgz#6359d8cf73481e312a43886fa50afc70ce5592c6"
-  integrity sha512-zv8ukKci1mrILYiQOwGSV4FpkZhyxQtuFWGya2GujWg+zVAeRQ4qbaMmWp9vb9889CFA8JECH7lkwCL6Ygg8kA==
+  version "14.17.22"
+  resolved "https://registry.yarnpkg.com/@types/node/-/node-14.17.22.tgz#4053ec255ede70104f23df4a326c5f8e72b71d7d"
+  integrity sha512-6Mgu9YWd8j0dk9M8V9+5w6ktqIFCcn/fFXAVIDFk/niAOFiOiz4GeFAMWYAQjKrcsASbFqMkqR8/Y2wuVCAkNg==
 
 abbrev@1:
   version "1.1.1"
@@ -352,10 +357,6 @@ escape-goat@^2.0.0:
   version "2.1.1"
   resolved "https://registry.yarnpkg.com/escape-goat/-/escape-goat-2.1.1.tgz#1b2dc77003676c457ec760b2dc68edb648188675"
   integrity sha512-8/uIhbG12Csjy2JEW7D9pHbreaVaS/OpN3ycnyvElTdwM5n6GY6W6e2IPemfvGZeUMqZ9A/3GqIZMgKnBhAw/Q==
-
-"example-type@link:../example-type":
-  version "0.0.0"
-  uid ""
 
 fill-range@^7.0.1:
   version "7.0.1"

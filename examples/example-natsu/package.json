@@ -9,11 +9,11 @@
     "@silenteer/natsu": "^1.0.5",
     "@silenteer/natsu-runner": "^1.0.1",
     "esbuild": "^0.12.29",
-    "example-type": "link:../example-type",
     "matched": "^5.0.1",
     "yup": "0.32.9"
   },
   "devDependencies": {
+    "@silenteer/example-type": "../example-type",
     "@types/node": "16.9.6",
     "nodemon": "2.0.12",
     "ts-node": "10.2.1",

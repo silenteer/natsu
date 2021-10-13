@@ -93,7 +93,9 @@ function connectWS(options: NatsPortOptions) {
     }
   };
 
-  const subscribe = async <TService extends NatsChannel<string>>(
+  const subscribe = async <
+    TService extends NatsChannel<string, unknown, unknown>
+  >(
     subject: TService['subject'],
     onHandle: (
       response: NatsPortWSResponse<TService['subject'], TService['response']>
@@ -106,7 +108,7 @@ function connectWS(options: NatsPortOptions) {
     await websocketClient.send({ subject, action: 'subscribe' });
   };
 
-  const unsubscribe = <TService extends NatsChannel<string>>(
+  const unsubscribe = <TService extends NatsChannel<string, unknown, unknown>>(
     subject: TService['subject']
   ) => {
     if (subscriptions[subject]) {
@@ -115,9 +117,14 @@ function connectWS(options: NatsPortOptions) {
     }
   };
 
+  const close = () => {
+    websocketClient.close();
+  };
+
   return {
     subscribe,
     unsubscribe,
+    close,
   };
 }
 
