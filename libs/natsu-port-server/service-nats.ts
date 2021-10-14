@@ -51,6 +51,8 @@ async function getConnection(): Promise<NatsConnection> {
   if (!natsConnection) {
     natsConnection = await connect({
       servers: config.natsURI,
+      user: config.natsUser,
+      pass: config.natsPass,
     });
   }
 
