@@ -74,58 +74,100 @@ function connect(options: NatsPortOptions) {
 
 function connectWS(options: NatsPortOptions) {
   const subscriptions: {
-    [subject: string]: (
-      response: NatsPortWSResponse<string> | NatsPortWSErrorResponse<string>
-    ) => void;
+    [subject: string]: Array<{
+      subscriptionId: string;
+      onHandle: (
+        response: NatsPortWSResponse<string> | NatsPortWSErrorResponse<string>
+      ) => void;
+    }>;
   } = {};
 
-  const websocketClient = new WebsocketClient(options.serverURL.toString());
+  let websocketClient = new WebsocketClient(options.serverURL.toString());
   websocketClient.onerror = (event) => console.error(event);
   websocketClient.onmessage = (event) => {
     try {
       const data = JSON.parse(event.data) as
         | NatsPortWSResponse<string>
         | NatsPortWSErrorResponse<string>;
-      const handleFunc = subscriptions[data.subject];
-      handleFunc && handleFunc(data);
+      subscriptions[data.subject]?.forEach(({ onHandle }) => {
+        try {
+          onHandle(data);
+        } catch (error) {
+          console.error(`Handle response failed`, data);
+        }
+      });
     } catch (error) {
       websocketClient.onerror(error);
     }
   };
 
-  const subscribe = async <
+  const unsubscribe = <
     TService extends NatsChannel<string, unknown, unknown>
-  >(
+  >(params: {
+    subscriptionId: string;
+    subject: TService['subject'];
+  }) => {
+    const { subscriptionId, subject } = params;
+
+    if (
+      subscriptions[subject]?.some(
+        (item) => item.subscriptionId === subscriptionId
+      )
+    ) {
+      subscriptions[subject] = subscriptions[subject].filter(
+        (item) => item.subscriptionId !== subscriptionId
+      );
+      if (subscriptions[subject].length === 0) {
+        delete subscriptions[subject];
+        websocketClient?.send({ subject, action: 'unsubscribe' });
+      }
+    }
+  };
+
+  const subscribe = <TService extends NatsChannel<string, unknown, unknown>>(
     subject: TService['subject'],
     onHandle: (
       response: NatsPortWSResponse<TService['subject'], TService['response']>
     ) => void
   ) => {
-    if (subscriptions[subject]) {
-      return;
+    if (!websocketClient) {
+      throw new Error('Cannot subscribe because websocket closed');
     }
-    subscriptions[subject] = onHandle;
-    await websocketClient.send({ subject, action: 'subscribe' });
-  };
 
-  const unsubscribe = <TService extends NatsChannel<string, unknown, unknown>>(
-    subject: TService['subject']
-  ) => {
-    if (subscriptions[subject]) {
-      delete subscriptions[subject];
-      websocketClient.send({ subject, action: 'unsubscribe' });
+    const subscriptionId = getUUID();
+
+    if (!subscriptions[subject]) {
+      subscriptions[subject] = [];
     }
+    subscriptions[subject].push({ subscriptionId, onHandle });
+
+    websocketClient.send({ subject, action: 'subscribe' });
+
+    return { unsubscribe: () => unsubscribe({ subscriptionId, subject }) };
   };
 
   const close = () => {
     websocketClient.close();
+    websocketClient = undefined;
   };
 
   return {
     subscribe,
-    unsubscribe,
     close,
   };
+}
+
+function getUUID(): string {
+  let date = new Date().getTime();
+  const uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(
+    /[xy]/g,
+    (char) => {
+      const random = (date + Math.random() * 16) % 16 | 0;
+      date = Math.floor(date / 16);
+      return (char == 'x' ? random : (random & 0x3) | 0x8).toString(16);
+    }
+  );
+  return uuid;
 }
 
 export type { NatsPortOptions };

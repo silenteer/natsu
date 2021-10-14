@@ -7,6 +7,33 @@ import type {
 } from '@silenteer/natsu-type';
 import config from './configuration';
 
+class Queue<TParams> {
+  private _isProcessing: boolean;
+  private _queue: TParams[] = [];
+
+  constructor(private _onProcess: (params: TParams) => Promise<void>) {}
+
+  add(params: TParams) {
+    this._queue.unshift(params);
+    if (!this._isProcessing) {
+      this._process();
+    }
+  }
+
+  private _process() {
+    if (this._queue.length === 0) {
+      return;
+    }
+
+    this._isProcessing = true;
+    const params = this._queue.pop();
+    this._onProcess(params).then(() => {
+      this._isProcessing = false;
+      this._process();
+    });
+  }
+}
+
 const subscriptions: {
   [subject: string]: {
     subscription: Subscription;
@@ -54,21 +81,27 @@ async function subscribe(params: {
   const { connectionId, subject, onHandle } = params;
 
   if (
-    subscriptions[subject]?.connections?.some((item) => {
-      item.connectionId === connectionId;
-    })
+    subscriptions[subject]?.connections?.some(
+      (item) => item.connectionId === connectionId
+    )
   ) {
     return;
   }
 
+  let shouldSubscribe: boolean;
   if (!subscriptions[subject]?.subscription) {
     const subscription = (await getConnection()).subscribe(subject);
     subscriptions[subject] = { subscription, connections: [] };
+    shouldSubscribe = true;
   }
   subscriptions[subject].connections = [
     ...subscriptions[subject].connections,
     { connectionId, onHandle },
   ];
+
+  if (!shouldSubscribe) {
+    return;
+  }
 
   const codec = JSONCodec<NatsResponse>();
   (async () => {
@@ -89,7 +122,7 @@ async function subscribe(params: {
         }
       } catch (error) {
         console.error(error);
-        subscriptions[subject].connections.forEach(({ onHandle }) => {
+        subscriptions[subject]?.connections?.forEach(({ onHandle }) => {
           onHandle({
             subject,
             code: 500,
@@ -100,7 +133,7 @@ async function subscribe(params: {
   })();
 }
 
-function unsubscribe(params: { connectionId: string; subject: string }) {
+async function unsubscribe(params: { connectionId: string; subject: string }) {
   const { connectionId, subject } = params;
 
   if (!subscriptions[subject]) {
@@ -112,17 +145,9 @@ function unsubscribe(params: { connectionId: string; subject: string }) {
   ].connections.filter((item) => item.connectionId !== connectionId);
 
   if (subscriptions[subject].connections.length === 0) {
-    subscriptions[subject].subscription.unsubscribe();
+    await subscriptions[subject].subscription.drain();
     delete subscriptions[subject];
   }
-}
-
-function unsubscribeAllSubjects(connectionId: string) {
-  Object.entries(subscriptions).forEach(([subject, { connections }]) => {
-    if (connections.some((item) => item.connectionId === connectionId)) {
-      unsubscribe({ connectionId, subject });
-    }
-  });
 }
 
 function encodeBody(body: unknown) {
@@ -135,11 +160,22 @@ function decodeBody(body: string) {
   return body ? JSONCodec().decode(Buffer.from(body, 'base64')) : undefined;
 }
 
+const subscriptionQueue = new Queue(subscribe);
+const unsubscriptionQueue = new Queue(unsubscribe);
+
 export default {
   request,
-  subscribe,
-  unsubscribe,
-  unsubscribeAllSubjects,
+  subscribe: (params: Parameters<typeof subscribe>[0]) =>
+    subscriptionQueue.add(params),
+  unsubscribe: (params: Parameters<typeof unsubscribe>[0]) =>
+    unsubscriptionQueue.add(params),
+  unsubscribeAllSubjects: (connectionId: string) => {
+    for (const [subject, { connections }] of Object.entries(subscriptions)) {
+      if (connections.some((item) => item.connectionId === connectionId)) {
+        unsubscriptionQueue.add({ connectionId, subject });
+      }
+    }
+  },
   encodeBody,
   decodeBody,
 };

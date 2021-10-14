@@ -10,29 +10,38 @@ export function Index() {
   const [state, setState] = useState<any>();
   const [result, setResult] = useState<Array<{ id: string; name: string }>>();
   const wsRef = useRef<ReturnType<typeof connectWS>>();
+  const unsubscribeRef1 = useRef<() => void>();
+  const unsubscribeRef2 = useRef<() => void>();
 
   useEffect(() => {
     wsRef.current = connectWS({
       serverURL: new URL('ws://localhost:8080'),
     });
 
-    wsRef.current.subscribe<HelloWorldChannel>('hello.world', (response) => {
-      console.log(response);
-      setState(response);
-    });
+    const { unsubscribe: unsubscribe1 } =
+      wsRef.current.subscribe<HelloWorldChannel>('hello.world', (response) => {
+        console.log('response1', `${response.body.msg}:01`);
+        setState((prevState) => [...(prevState || []), response]);
+      });
 
-    return () => wsRef.current.unsubscribe<HelloWorldChannel>('hello.world');
+    const { unsubscribe: unsubscribe2 } =
+      wsRef.current.subscribe<HelloWorldChannel>('hello.world', (response) => {
+        console.log('response2', `${response.body.msg}:02`);
+        setState((prevState) => [...(prevState || []), response]);
+      });
+
+    unsubscribeRef1.current = unsubscribe1;
+    unsubscribeRef2.current = unsubscribe2;
+    return () => {
+      unsubscribe1();
+      unsubscribe2();
+    };
   }, []);
 
   const loadData = () => {
     request<NatsGetCareProviders>('api.v2.mobile.patient.getCareProviders', {
       ids: ['1', '2', '3'],
     }).then((result) => setResult(result));
-  };
-
-  const unsubscribe = () => {
-    setState(undefined);
-    wsRef.current.unsubscribe<HelloWorldChannel>('hello.world');
   };
 
   const clsoe = () => {
@@ -45,7 +54,10 @@ export function Index() {
       <button onClick={loadData}>Load data</button>
       <br />
       <br />
-      <button onClick={unsubscribe}>Unsubscribe</button>
+      <button onClick={() => unsubscribeRef1.current()}>Unsubscribe 1</button>
+      <br />
+      <br />
+      <button onClick={() => unsubscribeRef2.current()}>Unsubscribe 2</button>
       <br />
       <br />
       <button onClick={clsoe}>Close</button>

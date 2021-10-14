@@ -78,9 +78,9 @@ function start() {
     .get(config.wsPath, { websocket: true }, async (connection, request) => {
       const connectionId = randomUUID();
 
-      connection.socket.on('close', () =>
-        NatsService.unsubscribeAllSubjects(connectionId)
-      );
+      connection.socket.on('close', () => {
+        NatsService.unsubscribeAllSubjects(connectionId);
+      });
 
       connection.socket.on('message', async (message) => {
         let wsRequest: NatsPortWSRequest;
@@ -268,7 +268,6 @@ function sendWSResponse(params: {
   response: NatsPortWSResponse<string> | NatsPortWSErrorResponse<string>;
 }) {
   const { connection, response } = params;
-  console.log('Sending ', response);
   if (response?.subject) {
     connection.socket.send(JSON.stringify(response));
   }
