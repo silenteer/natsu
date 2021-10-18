@@ -121,7 +121,8 @@ class WebsocketClient {
             break;
           }
 
-          if (++this._retriedTimes > MAX_RETRY_TIMES) {
+          this._retriedTimes++;
+          if (this._retriedTimes > MAX_RETRY_TIMES) {
             console.log(
               `[WebSocket] Closed ${this._url}. Cannot reconnect after ${MAX_RETRY_TIMES} retries`,
               event

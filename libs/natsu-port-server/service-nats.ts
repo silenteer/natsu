@@ -172,11 +172,11 @@ export default {
   unsubscribe: (params: Parameters<typeof unsubscribe>[0]) =>
     unsubscriptionQueue.add(params),
   unsubscribeAllSubjects: (connectionId: string) => {
-    for (const [subject, { connections }] of Object.entries(subscriptions)) {
+    Object.entries(subscriptions).forEach(([subject, { connections }]) => {
       if (connections.some((item) => item.connectionId === connectionId)) {
         unsubscriptionQueue.add({ connectionId, subject });
       }
-    }
+    });
   },
   encodeBody,
   decodeBody,

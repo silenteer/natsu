@@ -75,7 +75,7 @@ function start() {
         }
       }
     })
-    .get(config.wsPath, { websocket: true }, async (connection, request) => {
+    .get(config.wsPath, { websocket: true }, (connection, request) => {
       const connectionId = randomUUID();
 
       connection.socket.on('close', () => {
