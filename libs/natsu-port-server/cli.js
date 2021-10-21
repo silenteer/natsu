@@ -84,32 +84,31 @@ if (args['--config']) {
   Object.entries(config || {}).forEach(([key, value]) => {
     process.env[key] = value;
   });
-} else {
-  if (args['--nats-uri']) {
-    process.env['NATS_URI'] = args['--nats-uri'];
-  }
-  if (args['--nats-auth-subjects']) {
-    process.env['NATS_AUTH_SUBJECTS'] = args['--nats-auth-subjects'];
-  }
-  if (args['--nats-non-auth-subjects']) {
-    process.env['NATS_NON_AUTHORIZED_SUBJECTS'] =
-      args['--nats-non-auth-subjects'];
-  }
-  if (args['--nats-user']) {
-    process.env['NATS_USER'] = args['--nats-user'];
-  }
-  if (args['--nats-pass']) {
-    process.env['NATS_PASS'] = args['--nats-pass'];
-  }
-  if (args['--server-port']) {
-    process.env['SERVER_PORT'] = args['--server-port'];
-  }
-  if (args['--server-http-path']) {
-    process.env['SERVER_HTTP_PATH'] = args['--server-http-path'];
-  }
-  if (args['--server-ws-path']) {
-    process.env['SERVER_WS_PATH'] = args['--server-ws-path'];
-  }
+}
+if (args['--nats-uri']) {
+  process.env['NATS_URI'] = args['--nats-uri'];
+}
+if (args['--nats-auth-subjects']) {
+  process.env['NATS_AUTH_SUBJECTS'] = args['--nats-auth-subjects'];
+}
+if (args['--nats-non-auth-subjects']) {
+  process.env['NATS_NON_AUTHORIZED_SUBJECTS'] =
+    args['--nats-non-auth-subjects'];
+}
+if (args['--nats-user']) {
+  process.env['NATS_USER'] = args['--nats-user'];
+}
+if (args['--nats-pass']) {
+  process.env['NATS_PASS'] = args['--nats-pass'];
+}
+if (args['--server-port']) {
+  process.env['SERVER_PORT'] = args['--server-port'];
+}
+if (args['--server-http-path']) {
+  process.env['SERVER_HTTP_PATH'] = args['--server-http-path'];
+}
+if (args['--server-ws-path']) {
+  process.env['SERVER_WS_PATH'] = args['--server-ws-path'];
 }
 
 const serverPath = path.join(__dirname, 'dist/index.js');
