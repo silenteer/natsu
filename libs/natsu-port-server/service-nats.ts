@@ -153,13 +153,23 @@ async function unsubscribe(params: { connectionId: string; subject: string }) {
 }
 
 function encodeBody(body: unknown) {
-  return body
-    ? Buffer.from(JSONCodec().encode(body)).toString('base64')
-    : undefined;
+  try {
+    return body
+      ? Buffer.from(JSONCodec().encode(body)).toString('base64')
+      : undefined;
+  } catch (error) {
+    console.error('[encodeBody]', error);
+    return undefined;
+  }
 }
 
 function decodeBody(body: string) {
-  return body ? JSONCodec().decode(Buffer.from(body, 'base64')) : undefined;
+  try {
+    return body ? JSONCodec().decode(Buffer.from(body, 'base64')) : undefined;
+  } catch (error) {
+    console.error('[decodeBody]', error);
+    return undefined;
+  }
 }
 
 const subscriptionQueue = new Queue(subscribe);
