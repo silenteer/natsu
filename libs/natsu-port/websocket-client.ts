@@ -10,11 +10,10 @@ const RETRY_INTERVAL = 5 * 1000;
 const waitForOpenConnection = (socket) => {
   return new Promise((resolve, reject) => {
     const maxNumberOfAttempts = 10;
-    const intervalTime = 200; //ms
 
-    let currentAttempt = 0;
+    let currentAttempt = 1;
     const interval = setInterval(() => {
-      if (currentAttempt > maxNumberOfAttempts - 1) {
+      if (currentAttempt > maxNumberOfAttempts) {
         clearInterval(interval);
         reject(new Error('Maximum number of attempts exceeded'));
       } else if (socket.readyState === socket.OPEN) {
@@ -22,7 +21,7 @@ const waitForOpenConnection = (socket) => {
         resolve(WebSocket.OPEN);
       }
       currentAttempt++;
-    }, intervalTime);
+    }, 1000);
   });
 };
 
@@ -67,9 +66,8 @@ class WebsocketClient {
   }
 
   async send(data: NatsPortWSRequest<string>) {
-    await waitForOpenConnection(this._webSocket);
-
     try {
+      await waitForOpenConnection(this._webSocket);
       this._webSocket.send(JSON.stringify(data));
     } catch (error) {
       console.error(`[WebSocket] Error`, error);
