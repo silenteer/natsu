@@ -115,5 +115,10 @@ const serverPath = path.join(__dirname, 'dist/index.js');
 if (!serverPath) {
   throw new Error(`Not found entry file at ${serverPath}`);
 }
+
+process
+  .on('unhandledRejection', console.error)
+  .on('uncaughtException', console.error);
+
 const server = require(serverPath).default;
 server.start();
