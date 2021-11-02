@@ -58,7 +58,11 @@ function start() {
 
         const authenticationResult = await authenticate(request);
         if (authenticationResult.code !== 'OK') {
-          reply.send(authenticationResult.authResponse);
+          reply.send({
+            code: authenticationResult.code,
+            body: authenticationResult.authResponse?.body,
+          });
+          return;
         }
 
         const response = await sendNatsRequest({
