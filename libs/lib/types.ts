@@ -6,16 +6,21 @@ export type Context = {
   log: typeof console.log;
 };
 
-export type RequestContext = Context & {
+export type RequestContext<T = any> = Context & {
   id?: string;
   message: Msg;
-  data?: any;
+  data?: T;
   handleUnit: ServiceLike;
+};
+
+export type ResponseContext<T = any> = RequestContext & {
+  response?: T;
+  error?: any;
 };
 
 export type InitialContext = Context & {
   beforeMiddlewares: MiddlewareOps[];
-  afterMiddlewares: MiddlewareOps[];
+  afterMiddlewares: Array<MiddlewareOps<ResponseContext>>;
   closeMiddlewares: MiddlewareOps[];
   errorMiddlewares: MiddlewareOps[];
 };
@@ -38,7 +43,7 @@ export type NotOkOps<T> = {
 export type Result<R, E> = [OkOps<R>, undefined] | [undefined, NotOkOps<E>];
 
 export type Handle<Rq extends Req, Rt, Er = any> = {
-  (ctx: RequestContext, request: Rq): Promise<Result<Rt, Er>>;
+  (ctx: RequestContext<Rq>): Promise<Result<Rt, Er>>;
 };
 
 type MiddlewareOps<T = {}> = (
@@ -47,7 +52,7 @@ type MiddlewareOps<T = {}> = (
 
 type MiddlewareStruct<T = {}> = {
   before?: MiddlewareOps<T>;
-  after?: MiddlewareOps<T>;
+  after?: MiddlewareOps<ResponseContext & T>;
   error?: MiddlewareOps<T>;
   close?: MiddlewareOps<T>;
 };
@@ -62,6 +67,8 @@ export type SubjectConfig = string;
 
 export type Service<S extends SubjectConfig, Input, Return> = {
   subject: S;
+  codec?: 'string' | 'json';
+  middlewares?: Middleware[];
   handle: Handle<Input, Return, any>;
   validate?: Handle<Input, Result<any, any>>;
   authorize?: Handle<Input, Result<any, any>>;

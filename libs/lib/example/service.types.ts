@@ -5,3 +5,5 @@ export type HelloworldService = Service<
   { msg: string },
   { msg: string }
 >;
+
+export type HelloworldString = Service<'hello', string, string>;

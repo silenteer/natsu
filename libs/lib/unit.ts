@@ -3,12 +3,14 @@ import type {
   RequestContext,
   Middleware,
   ServiceLike,
+  ResponseContext,
 } from './types';
 
 type Unit = ServiceLike;
 
 type NatsuConfig = {
   units?: Unit[];
+  codec: 'string' | 'json';
   middlewares?: Array<Middleware<any>>;
   connectionOpts?: ConnectionOptions;
 };
@@ -45,11 +47,14 @@ async function startNats({
 
 /** Loading middlewares */
 async function loadMiddlewares(
-  { middlewares = [] }: NatsuConfig,
+  { middlewares = [], units = [] }: NatsuConfig,
   ctx: InitialContext
 ) {
+  const loaded = [];
   for (const m of middlewares) {
     const { after, before, error, close } = await m(ctx);
+    loaded.push(m);
+
     after && ctx.afterMiddlewares.push(after);
     before && ctx.beforeMiddlewares.push(before);
     error && ctx.errorMiddlewares.push(error);
@@ -69,6 +74,22 @@ async function loadHandlers(
   );
 }
 
+import { StringCodec, JSONCodec } from 'nats';
+
+function getCodec(codec: 'string' | 'json') {
+  switch (codec) {
+    case 'json':
+      return JSONCodec();
+    case 'string':
+      return StringCodec();
+
+    default:
+      throw new Error(
+        `Invalid codec requested, requested ${codec}, expected 'string' or 'json'`
+      );
+  }
+}
+
 async function loadHandler(
   unit: Unit,
   config: NatsuConfig,
@@ -76,6 +97,7 @@ async function loadHandler(
 ) {
   const nc = ctx.nc;
   const subject = unit.subject;
+  const codec = getCodec(unit.codec || config.codec);
 
   // Check type of subject, can be subscription detail as well, only string for now
   // Array to prep for future
@@ -87,11 +109,12 @@ async function loadHandler(
 
     for await (const m of s) {
       const rCtx: RequestContext = {
-        id: m.sid + '',
+        id: new Date().getTime() + '',
         message: m,
+        data: codec.decode(m.data),
         handleUnit: unit,
         ...ctx,
-        log: (...data) => ctx.log(m.sid, '-', ...data),
+        log: (...data: any) => ctx.log(rCtx.id, '-', ...data),
       };
       rCtx.log(`Received request to ${m.subject} - ${m.sid}`);
 
@@ -101,11 +124,23 @@ async function loadHandler(
       }
       rCtx.log(`Processing the handle`);
 
-      unit.handle && unit.handle(rCtx, rCtx.data);
+      if (unit.handle) {
+        const [result, error] = await unit.handle(rCtx);
 
-      rCtx.log(`After process`);
-      for (const after of ctx.afterMiddlewares) {
-        await after(rCtx);
+        const rsCtx: ResponseContext = {
+          ...rCtx,
+          response: result,
+          error: error,
+        };
+
+        rCtx.log(`After process`);
+        for (const after of ctx.afterMiddlewares) {
+          await after(rsCtx);
+        }
+
+        if (rsCtx.data) {
+          m.respond(codec.encode(JSON.stringify(rsCtx.data)));
+        }
       }
     }
   }
@@ -115,13 +150,15 @@ async function loadHandler(
 /** End of loading handler */
 
 import Service from './example/service';
+import Service2 from './example/service2';
 import RequestLog from './middlewares/request';
 import ProcessTime from './middlewares/processTime';
 
 async function main() {
   Natsu({
+    codec: 'json',
     middlewares: [RequestLog, ProcessTime],
-    units: [Service],
+    units: [Service, Service2],
   });
 }
 
