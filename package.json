@@ -13,20 +13,20 @@
     "lint": "eslint --fix --ext .ts,.tsx,.json -c .eslintrc.js ."
   },
   "devDependencies": {
-    "@typescript-eslint/eslint-plugin": "4.28.3",
-    "@typescript-eslint/parser": "4.28.3",
-    "concurrently": "6.2.1",
+    "@typescript-eslint/eslint-plugin": "5.2.0",
+    "@typescript-eslint/parser": "5.2.0",
+    "concurrently": "6.3.0",
     "del-cli": "4.0.1",
     "dotenv": "10.0.0",
-    "eslint": "7.22.0",
-    "eslint-config-prettier": "8.1.0",
-    "eslint-plugin-jest": "24.4.0",
-    "eslint-plugin-prettier": "3.4.1",
-    "eslint-plugin-react": "7.25.1",
+    "eslint": "8.1.0",
+    "eslint-config-prettier": "8.3.0",
+    "eslint-plugin-jest": "25.2.2",
+    "eslint-plugin-prettier": "4.0.0",
+    "eslint-plugin-react": "7.26.1",
     "eslint-plugin-react-hooks": "4.2.0",
-    "husky": "7.0.1",
-    "jest": "27.0.3",
-    "prettier": "2.3.1",
-    "typescript": "4.4.3"
+    "husky": "7.0.4",
+    "jest": "27.3.1",
+    "prettier": "2.4.1",
+    "typescript": "4.4.4"
   }
 }
