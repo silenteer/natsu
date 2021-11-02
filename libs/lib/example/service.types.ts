@@ -1,9 +1,4 @@
-import type { Service } from '../types';
+import type { Channel, Service } from '../types';
 
-export type HelloworldService = Service<
-  'hello.world',
-  { msg: string },
-  { msg: string }
->;
-
-export type HelloworldString = Service<'hello', string, string>;
+export type PingService = Channel<'ping', { msg: string }>;
+export type PongService = Channel<'pong', { msg: string }>;

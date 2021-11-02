@@ -8,15 +8,18 @@ import type {
 
 type Unit = ServiceLike;
 
-type NatsuConfig = {
+export type NatsuConfig = {
   units?: Unit[];
   codec: 'string' | 'json';
   middlewares?: Array<Middleware<any>>;
   connectionOpts?: ConnectionOptions;
 };
 
+import { createClient } from './client';
+
 async function Natsu(config: NatsuConfig) {
   const nc = await startNats(config);
+  const { publish, request } = createClient(nc, config);
   const initialContext: InitialContext = {
     nc: nc,
     log: console.log,
@@ -24,6 +27,8 @@ async function Natsu(config: NatsuConfig) {
     afterMiddlewares: [],
     closeMiddlewares: [],
     errorMiddlewares: [],
+    publish,
+    request,
   };
 
   await loadMiddlewares(config, initialContext);
@@ -74,21 +79,7 @@ async function loadHandlers(
   );
 }
 
-import { StringCodec, JSONCodec } from 'nats';
-
-function getCodec(codec: 'string' | 'json') {
-  switch (codec) {
-    case 'json':
-      return JSONCodec();
-    case 'string':
-      return StringCodec();
-
-    default:
-      throw new Error(
-        `Invalid codec requested, requested ${codec}, expected 'string' or 'json'`
-      );
-  }
-}
+import { getCodec } from './helpers';
 
 async function loadHandler(
   unit: Unit,
@@ -97,7 +88,7 @@ async function loadHandler(
 ) {
   const nc = ctx.nc;
   const subject = unit.subject;
-  const codec = getCodec(unit.codec || config.codec);
+  const codec = getCodec(config.codec);
 
   // Check type of subject, can be subscription detail as well, only string for now
   // Array to prep for future
@@ -149,8 +140,7 @@ async function loadHandler(
 }
 /** End of loading handler */
 
-import Service from './example/service';
-import Service2 from './example/service2';
+import { pingService, pongService } from './example/ping-pong';
 import RequestLog from './middlewares/request';
 import ProcessTime from './middlewares/processTime';
 
@@ -158,7 +148,7 @@ async function main() {
   Natsu({
     codec: 'json',
     middlewares: [RequestLog, ProcessTime],
-    units: [Service, Service2],
+    units: [pingService, pongService],
   });
 }
 

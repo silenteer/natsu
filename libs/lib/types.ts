@@ -4,6 +4,8 @@ import type { Msg, NatsConnection } from 'nats';
 export type Context = {
   nc: NatsConnection;
   log: typeof console.log;
+  request: ClientRequest;
+  publish: ClientPublish;
 };
 
 export type RequestContext<T = any> = Context & {
@@ -67,7 +69,6 @@ export type SubjectConfig = string;
 
 export type Service<S extends SubjectConfig, Input, Return> = {
   subject: S;
-  codec?: 'string' | 'json';
   middlewares?: Middleware[];
   handle: Handle<Input, Return, any>;
   validate?: Handle<Input, Result<any, any>>;
@@ -81,3 +82,21 @@ export type Validator<T extends Service<any, any, any>> = T['validate'];
 export type Authorizor<T extends Service<any, any, any>> = T['authorize'];
 
 export type Channel<S extends SubjectConfig, Input> = Service<S, Input, void>;
+export type ChannelLike = Channel<string, any>;
+
+export type ExtractRequest<Type> = Type extends Service<any, infer X, any>
+  ? X
+  : never;
+export type ExtractResponse<Type> = Type extends Service<any, any, infer X>
+  ? X
+  : never;
+
+export type ClientRequest = <T extends ServiceLike>(
+  subject: T['subject'],
+  request: ExtractRequest<T>
+) => Promise<ExtractResponse<T>>;
+
+export type ClientPublish = <T extends ChannelLike>(
+  subject: T['subject'],
+  request: ExtractRequest<T>
+) => void;
