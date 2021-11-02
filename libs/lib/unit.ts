@@ -37,6 +37,8 @@ async function Natsu(config: NatsuConfig) {
 
   return {
     close: async () => nc.close(),
+    publish,
+    request,
   };
 }
 
@@ -143,13 +145,15 @@ async function loadHandler(
 import { pingService, pongService } from './example/ping-pong';
 import RequestLog from './middlewares/request';
 import ProcessTime from './middlewares/processTime';
-
+import type { PingService } from './example/service.types';
 async function main() {
-  Natsu({
+  const { request } = await Natsu({
     codec: 'json',
     middlewares: [RequestLog, ProcessTime],
     units: [pingService, pongService],
   });
+
+  request<PingService>('ping', { msg: new Date().getUTCMilliseconds() + '' });
 }
 
 main();
