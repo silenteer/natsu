@@ -4,6 +4,7 @@ import type {
   Middleware,
   ServiceLike,
   ResponseContext,
+  Result,
 } from './types';
 
 type Unit = ServiceLike;
@@ -117,13 +118,11 @@ async function loadHandler(
       }
       rCtx.log(`Processing the handle`);
 
-      if (unit.handle) {
-        const [result, error] = await unit.handle(rCtx);
-
+      const respond = async (result: any, error: any) => {
         const rsCtx: ResponseContext = {
           ...rCtx,
           response: result,
-          error: error,
+          error,
         };
 
         rCtx.log(`After process`);
@@ -131,8 +130,52 @@ async function loadHandler(
           await after(rsCtx);
         }
 
-        if (rsCtx.data) {
-          m.respond(codec.encode(JSON.stringify(rsCtx.data)));
+        if (error) {
+          rCtx.log(`Error detected, responding with error`, error);
+          m.respond(
+            codec.encode(
+              JSON.stringify({
+                status: 'error',
+                error: error,
+                data: rsCtx.response,
+              })
+            )
+          );
+        } else {
+          m.respond(
+            codec.encode(
+              JSON.stringify({
+                status: 'ok',
+                data: rsCtx.response,
+              })
+            )
+          );
+        }
+      };
+
+      if (unit.validate) {
+        const [, error] = await unit.handle(rCtx);
+        if (error) {
+          respond(undefined, error);
+          continue;
+        }
+      }
+
+      if (unit.authorize) {
+        const [, error] = await unit.handle(rCtx);
+        if (error) {
+          respond(undefined, error);
+          continue;
+        }
+      }
+
+      if (unit.handle) {
+        const [result, error] = await unit.handle(rCtx);
+        if (error) {
+          respond(undefined, error);
+          continue;
+        } else {
+          respond(result, undefined);
         }
       }
     }
@@ -142,18 +185,4 @@ async function loadHandler(
 }
 /** End of loading handler */
 
-import { pingService, pongService } from './example/ping-pong';
-import RequestLog from './middlewares/request';
-import ProcessTime from './middlewares/processTime';
-import type { PingService } from './example/service.types';
-async function main() {
-  const { request } = await Natsu({
-    codec: 'json',
-    middlewares: [RequestLog, ProcessTime],
-    units: [pingService, pongService],
-  });
-
-  request<PingService>('ping', { msg: new Date().getUTCMilliseconds() + '' });
-}
-
-main();
+export default Natsu;
