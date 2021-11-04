@@ -11,7 +11,7 @@ async function main() {
     units: [pingService, pongService],
   });
 
-  request<PingService>('ping', { msg: new Date().getUTCMilliseconds() + '' });
+  request<PingService>({ subject: 'ping', codec: 'string' });
 }
 
 main();

@@ -1,6 +1,6 @@
 import type { Result } from './types';
 
-export function ok<T = undefined>(data?: T): Result<T, any> {
+export function ok<T>(data?: T): Result<T, any> {
   return [
     {
       type: 'ok',
@@ -10,7 +10,7 @@ export function ok<T = undefined>(data?: T): Result<T, any> {
   ];
 }
 
-export function notOk<T = undefined>(data?: T): Result<any, T> {
+export function notOk<T>(data?: T): Result<any, T> {
   return [
     undefined,
     {

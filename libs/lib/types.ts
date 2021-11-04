@@ -8,14 +8,16 @@ export type Context = {
   publish: ClientPublish;
 };
 
-export type RequestContext<T = any> = Context & {
+export type RequestContext<Input, Response> = Context & {
   id?: string;
   message: Msg;
-  data?: T;
+  data?: Input;
   handleUnit: ServiceLike;
+  ok: (data: Response) => Result<Response, any>;
+  notOk: <T>(data?: T) => Result<undefined, T>;
 };
 
-export type ResponseContext<T = any> = RequestContext & {
+export type ResponseContext<T = any> = RequestContext<unknown, unknown> & {
   response?: T;
   error?: any;
 };
@@ -27,7 +29,8 @@ export type InitialContext = Context & {
   errorMiddlewares: MiddlewareOps[];
 };
 
-export type Req = {};
+export type Req = string | Record<string, any> | void;
+export type Ret = string | Record<string, any> | void;
 
 // Middleware
 export type OkOps<T> = {
@@ -44,12 +47,8 @@ export type NotOkOps<T> = {
 
 export type Result<R, E> = [OkOps<R>, undefined] | [undefined, NotOkOps<E>];
 
-export type Handle<Rq extends Req, Rt, Er = any> = {
-  (ctx: RequestContext<Rq>): Promise<Result<Rt, Er>>;
-};
-
 type MiddlewareOps<T = {}> = (
-  ctx: RequestContext & T
+  ctx: RequestContext<unknown, unknown> & T
 ) => Promise<Result<void, void>>;
 
 type MiddlewareStruct<T = {}> = {
@@ -63,25 +62,34 @@ export type Middleware<T = {}> = (
   initialContext: InitialContext
 ) => Promise<MiddlewareStruct<T>>;
 
-export type Subject = string | string[] | { subject: string; queue: string };
+export type ProtocolConfig =
+  | string
+  | {
+      subject: string;
+      queue?: string;
+      codec?: 'string' | 'json';
+    };
 
-export type SubjectConfig = string;
-
-export type Service<S extends SubjectConfig, Input, Return> = {
+export type Service<
+  S extends ProtocolConfig,
+  Input extends Req,
+  Return extends Ret,
+  Er = any
+> = {
   subject: S;
   middlewares?: Middleware[];
-  handle: Handle<Input, Return, any>;
-  validate?: Handle<Input, Result<any, any>>;
-  authorize?: Handle<Input, Result<any, any>>;
+  handle: (ctx: RequestContext<Input, Return>) => Promise<Result<Return, Er>>;
+  validate?: (ctx: RequestContext<Input, Return>) => Promise<Result<void, Er>>;
+  authorize?: (ctx: RequestContext<Input, Return>) => Promise<Result<void, Er>>;
 };
 
-export type ServiceLike = Service<SubjectConfig, any, any>;
+export type ServiceLike = Service<ProtocolConfig, any, any>;
 
 export type Handler<T extends Service<any, any, any>> = T['handle'];
 export type Validator<T extends Service<any, any, any>> = T['validate'];
 export type Authorizor<T extends Service<any, any, any>> = T['authorize'];
 
-export type Channel<S extends SubjectConfig, Input> = Service<S, Input, void>;
+export type Channel<S extends ProtocolConfig, Input> = Service<S, Input, void>;
 export type ChannelLike = Channel<string, any>;
 
 export type ExtractRequest<Type> = Type extends Service<any, infer X, any>
@@ -93,10 +101,10 @@ export type ExtractResponse<Type> = Type extends Service<any, any, infer X>
 
 export type ClientRequest = <T extends ServiceLike>(
   subject: T['subject'],
-  request: ExtractRequest<T>
+  request?: ExtractRequest<T>
 ) => Promise<ExtractResponse<T>>;
 
 export type ClientPublish = <T extends ChannelLike>(
   subject: T['subject'],
-  request: ExtractRequest<T>
+  request?: ExtractRequest<T>
 ) => void;

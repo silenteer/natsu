@@ -22,15 +22,16 @@ const createClient: CreateClient = (nc, config) => {
   return {
     request: async <T extends ServiceLike>(
       subject: T['subject'],
-      request: ExtractRequest<T>
+      request?: ExtractRequest<T>
     ) => {
-      const m = await nc.request(subject, codec.encode(request));
+      const s = typeof subject === 'string' ? subject : subject.subject;
+      const m = await nc.request(s, codec.encode(request));
       return codec.decode(m.data) as ExtractResponse<T>;
     },
 
     publish: async <T extends ChannelLike>(
       subject: T['subject'],
-      request: ExtractRequest<T>
+      request?: ExtractRequest<T>
     ) => {
       nc.publish(subject, codec.encode(request));
     },

@@ -1,20 +1,13 @@
-import { notOk, ok } from '../results';
 import type { PingService, PongService } from './service.types';
 
 const pingService: PingService = {
-  subject: 'ping',
+  subject: { subject: 'ping', codec: 'string' },
   handle: async (ctx) => {
     setTimeout(async () => {
-      ctx.request<PongService>('pong', { msg: new Date().getTime() + '' });
+      ctx.request<PongService>('pong');
     }, 1000);
 
-    // pseudo error
-    const numb = parseInt(ctx?.data?.msg as string, 10);
-    if (numb % 2 === 0) {
-      return notOk('Cannot take even number');
-    }
-
-    return ok();
+    return ctx.ok({ msg: 'abc' });
   },
 };
 
@@ -23,9 +16,9 @@ const pongService: PongService = {
   handle: async (ctx) => {
     ctx.log(ctx.data);
     setTimeout(() => {
-      ctx.request<PingService>('ping', { msg: new Date().getTime() + '' });
+      ctx.request<PingService>({ subject: 'ping', codec: 'string' });
     }, 1000);
-    return ok();
+    return ctx.ok();
   },
 };
 

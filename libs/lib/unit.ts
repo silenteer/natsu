@@ -4,8 +4,11 @@ import type {
   Middleware,
   ServiceLike,
   ResponseContext,
-  Result,
+  ExtractRequest,
+  ExtractResponse,
 } from './types';
+
+import { ok, notOk } from './results';
 
 type Unit = ServiceLike;
 
@@ -44,7 +47,12 @@ async function Natsu(config: NatsuConfig) {
 }
 
 /** Construct nats */
-import type { ConnectionOptions, NatsConnection, Subscription } from 'nats';
+import type {
+  Codec,
+  ConnectionOptions,
+  NatsConnection,
+  Subscription,
+} from 'nats';
 import { connect } from 'nats';
 async function startNats({
   connectionOpts = {},
@@ -91,24 +99,40 @@ async function loadHandler(
 ) {
   const nc = ctx.nc;
   const subject = unit.subject;
-  const codec = getCodec(config.codec);
 
-  // Check type of subject, can be subscription detail as well, only string for now
-  // Array to prep for future
-  const subs = [nc.subscribe(subject)];
+  let codec: Codec<any> = getCodec(config.codec);
+  let subjects: string[];
+
+  if (typeof subject === 'string') {
+    subjects = [subject];
+  } else if (Array.isArray(subject)) {
+    subjects = subject;
+  } else {
+    codec = getCodec(subject.codec || config.codec);
+
+    if (Array.isArray(subject.subject)) {
+      subjects = subject.subject;
+    } else {
+      subjects = [subject.subject];
+    }
+  }
+
+  const subs = subjects.map((s) => nc.subscribe(s));
 
   async function handle(s: Subscription) {
     const subject = s.getSubject();
     ctx.log(-1, `Listening for ${subject}`);
 
     for await (const m of s) {
-      const rCtx: RequestContext = {
+      const rCtx: RequestContext<unknown, unknown> = {
         id: new Date().getTime() + '',
         message: m,
-        data: codec.decode(m.data),
+        data: m.data && codec.decode(m.data),
         handleUnit: unit,
         ...ctx,
         log: (...data: any) => ctx.log(rCtx.id, '-', ...data),
+        ok,
+        notOk,
       };
       rCtx.log(`Received request to ${m.subject} - ${m.sid}`);
 
@@ -142,14 +166,17 @@ async function loadHandler(
             )
           );
         } else {
-          m.respond(
-            codec.encode(
-              JSON.stringify({
-                status: 'ok',
-                data: rsCtx.response,
-              })
-            )
-          );
+          if (!rsCtx.response) m.respond();
+          else {
+            m.respond(
+              codec.encode(
+                JSON.stringify({
+                  status: 'ok',
+                  data: rsCtx.response,
+                })
+              )
+            );
+          }
         }
       };
 

@@ -1,4 +1,8 @@
 import type { Channel, Service } from '../types';
 
-export type PingService = Channel<'ping', { msg: string }>;
-export type PongService = Channel<'pong', { msg: string }>;
+export type PingService = Service<
+  { subject: 'ping'; codec: 'string' },
+  void,
+  { msg: string }
+>;
+export type PongService = Service<'pong', void, void>;
