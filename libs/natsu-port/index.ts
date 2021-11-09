@@ -84,6 +84,12 @@ function connectWS(options: NatsPortOptions) {
 
   let websocketClient = new WebsocketClient(options.serverURL.toString());
   websocketClient.onerror = (event) => console.error(event);
+  websocketClient.onreconnected = () => {
+    const subjects = Object.keys(subscriptions);
+    subjects.forEach((subject) => {
+      websocketClient.send({ subject, action: 'subscribe' });
+    });
+  };
   websocketClient.onmessage = (event) => {
     try {
       const data = JSON.parse(event.data) as
