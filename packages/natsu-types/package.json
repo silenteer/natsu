@@ -1,0 +1,22 @@
+{
+  "name": "@natsu/types",
+  "version": "2.0.0",
+  "description": "Based types for Natsu services",
+  "keywords": [
+    "natsu",
+    "natsu-types"
+  ],
+  "scripts": {
+    "build": "tsc -d --outDir dist index.ts"
+  },
+  "author": "Silenteer",
+  "license": "ISC",
+  "types": "dist/index.d.ts",
+  "devDependencies": {
+    "nats": "^2.3.0",
+    "typescript": "^4.4.4"
+  },
+  "peerDependencies": {
+    "nats": "^2.3.0"
+  }
+}
