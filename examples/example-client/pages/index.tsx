@@ -40,7 +40,7 @@ export function Index() {
 
   const loadData = () => {
     request<NatsGetCareProviders>('api.v2.mobile.patient.getCareProviders', {
-      ids: ['1', '2', '3'],
+      ids: ['1', '2'],
     }).then((result) => setResult(result));
   };
 
@@ -51,7 +51,7 @@ export function Index() {
 
   return (
     <>
-      <button onClick={loadData}>Load data</button>
+      <button onClick={loadData}>Hello world</button>
       <br />
       <br />
       <button onClick={() => unsubscribeRef1.current()}>Unsubscribe 1</button>
