@@ -86,7 +86,7 @@ function start() {
         NatsService.unsubscribeAllSubjects(connectionId);
       });
 
-      connection.socket.on('message', async (message) => {
+      connection.socket.on('message', async (message: any) => {
         let wsRequest: NatsPortWSRequest;
 
         try {

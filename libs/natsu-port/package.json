@@ -14,10 +14,11 @@
   ],
   "scripts": {
     "build": "rm -rf dist && tsc -p tsconfig.lib.json",
+    "dev": "tsc -w -p tsconfig.lib.json",
     "test": "jest"
   },
   "dependencies": {
-    "@silenteer/natsu-type": "0.0.8",
+    "@silenteer/natsu-type": "*",
     "reconnecting-websocket": "^4.4.0"
   },
   "devDependencies": {

@@ -14,13 +14,13 @@
     "cli.js"
   ],
   "scripts": {
-    "build": "rm -rf dist && tsc"
+    "build": "tsup-node index.ts --dts",
+    "dev": "tsup-node index.ts --watch"
   },
   "bin": {
     "natsu-port-server": "./cli.js"
   },
   "dependencies": {
-    "@silenteer/natsu-type": "0.0.8",
     "arg": "5.0.1",
     "cli-table3": "0.6.0",
     "fastify": "3.21.0",
@@ -30,9 +30,12 @@
     "yup": "0.32.9"
   },
   "devDependencies": {
+    "@silenteer/natsu-type": "*",
     "@types/node": "16.9.1",
     "ts-node": "10.2.1",
+    "tsconfig": "*",
     "tslib": "2.3.1",
+    "tsup": "^5.11.2",
     "typescript": "4.4.3"
   }
 }

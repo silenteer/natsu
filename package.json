@@ -4,29 +4,54 @@
   "license": "MIT",
   "private": true,
   "scripts": {
-    "dev:enter": "node ./enter-dev-mode.js",
-    "dev:exit": "del **/node_modules/@silenteer examples/*/dist libs/*/dist && yarn install:all",
-    "install:all": "node ./install-all.js",
-    "uninstall:all": "del **/node_modules **/yarn.lock",
-    "test:all": "node ./test-all.js",
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "test": "turbo run test",
     "release": "node ./prepare-release.js && (cd $PROJECT && npx np --branch=main --no-cleanup --no-release-draft && rm -rf .npmrc)",
     "lint": "eslint --fix --ext .ts,.tsx,.json -c .eslintrc.js ."
   },
   "devDependencies": {
-    "@typescript-eslint/eslint-plugin": "4.28.3",
-    "@typescript-eslint/parser": "4.28.3",
-    "concurrently": "6.2.1",
+    "@typescript-eslint/eslint-plugin": "5.7.0",
+    "@typescript-eslint/parser": "5.7.0",
+    "concurrently": "6.4.0",
     "del-cli": "4.0.1",
     "dotenv": "10.0.0",
-    "eslint": "7.22.0",
-    "eslint-config-prettier": "8.1.0",
-    "eslint-plugin-jest": "24.4.0",
-    "eslint-plugin-prettier": "3.4.1",
-    "eslint-plugin-react": "7.25.1",
-    "eslint-plugin-react-hooks": "4.2.0",
-    "husky": "7.0.1",
-    "jest": "27.0.3",
-    "prettier": "2.3.1",
-    "typescript": "4.4.3"
-  }
+    "eslint": "8.4.1",
+    "eslint-config-prettier": "8.3.0",
+    "eslint-plugin-jest": "25.3.0",
+    "eslint-plugin-prettier": "4.0.0",
+    "eslint-plugin-react": "7.27.1",
+    "eslint-plugin-react-hooks": "4.3.0",
+    "husky": "7.0.4",
+    "jest": "27.4.5",
+    "prettier": "2.5.1",
+    "turbo": "^1.0.9",
+    "typescript": "4.5.4"
+  },
+  "turbo": {
+    "baseBranch": "origin/main",
+    "pipeline": {
+      "build": {
+        "dependsOn": [
+          "^build"
+        ]
+      },
+      "test": {
+        "dependsOn": [
+          "build"
+        ]
+      },
+      "dev": {
+        "cache": false
+      },
+      "lint": {
+        "outputs": []
+      }
+    }
+  },
+  "workspaces": [
+    "libs/*",
+    "examples/*",
+    "packages/*"
+  ]
 }

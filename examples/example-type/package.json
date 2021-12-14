@@ -1,9 +1,9 @@
 {
-  "name": "@silenteer/example-type",
+  "name": "example-type",
   "version": "0.0.1",
   "license": "MIT",
   "dependencies": {
-    "@silenteer/natsu-type": "^0.0.1"
+    "@silenteer/natsu-type": "*"
   },
   "devDependencies": {
     "@types/node": "16.9.1",

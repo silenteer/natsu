@@ -6,12 +6,12 @@
     "dev": "next dev"
   },
   "dependencies": {
-    "@silenteer/natsu-port": "^0.0.1",
+    "@silenteer/natsu-port": "*",
     "next": "11.1.0",
     "react": "17.0.2",
     "react-dom": "17.0.2",
     "react-use-promise": "0.4.1",
-    "example-type": "link:../example-type"
+    "example-type": "*"
   },
   "devDependencies": {
     "@types/react": "17.0.21",

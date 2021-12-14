@@ -4,6 +4,7 @@
 dist
 build
 tmp
+.turbo
 
 # dependencies
 **/node_modules

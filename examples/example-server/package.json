@@ -6,8 +6,8 @@
     "dev": "nodemon main.ts --ext ts,json --ignore dist"
   },
   "dependencies": {
-    "@silenteer/natsu": "^1.0.5",
-    "@silenteer/natsu-port-server": "^0.0.4",
+    "@silenteer/natsu": "*",
+    "@silenteer/natsu-port-server": "*",
     "yup": "0.32.9"
   },
   "devDependencies": {
