@@ -71,7 +71,7 @@ describe('Provide a mocked server will respond error for request', () => {
         request<NatsTestService>('api.test', { data: `${errorCode}` })
       ).rejects.toThrowError({
         code: errorCode,
-        message: 'Request failed',
+        message: JSON.stringify({ code: errorCode }, null, 2),
       } as NatsPortError);
     }
   });
