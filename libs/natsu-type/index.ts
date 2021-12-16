@@ -38,6 +38,9 @@ export type NatsPortErrorResponse = {
 export type NatsPortWSRequest<TSubject = string, TBody = unknown> = {
   subject: TSubject;
   action: 'subscribe' | 'unsubscribe';
+  headers?: {
+    [key: string]: unknown;
+  };
   data?: TBody;
 };
 
@@ -52,3 +55,13 @@ export type NatsPortWSErrorResponse<TSubject = string> = {
   code: 400 | 401 | 403 | 404 | 500;
   body?: unknown;
 };
+
+export type NatsGetNamespace<TSubject extends string> = NatsService<
+  TSubject,
+  {
+    subject: string;
+  },
+  {
+    namespace: string;
+  }
+>;

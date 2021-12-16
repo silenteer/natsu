@@ -6,6 +6,8 @@ const args = require('arg')({
   '--nats-uri': String,
   '--nats-auth-subjects': String,
   '--nats-non-auth-subjects': String,
+  '--nats-namespace-subjects': String,
+  '--nats-get-namespace-subject': String,
   '--nats-user': String,
   '--nats-pass': String,
   '--server-port': Number,
@@ -18,7 +20,7 @@ if (args['--help']) {
   const Table = require('cli-table3');
   const guideTable = new Table({
     head: ['Argument', 'Required', 'Default', 'Description'],
-    colWidths: [30, 20, 20],
+    colWidths: [30, 40, 20],
   });
   guideTable.push(
     [
@@ -31,13 +33,25 @@ if (args['--help']) {
       '--nats-auth-subjects',
       false,
       'undefined',
-      `It can be a string with many urls which delimited by ','.\nServer will send request to them for authentication.`,
+      `It can be a string with many subjects which delimited by ','.\nServer will send request to them for authentication.`,
     ],
     [
       '--nats-non-auth-subjects',
       false,
       'undefined',
-      `It can be a string with many urls which delimited by ','.\nServer won't authenticate them even authentication enabled.`,
+      `It can be a string with many subjects which delimited by ','.\nServer won't authenticate them even authentication enabled.`,
+    ],
+    [
+      '--nats-namespace-subjects',
+      false,
+      'undefined',
+      `It can be a string with many subjects which delimited by ','.\nServer will add a namespace to subject by following format [subject].[namespace].\nIt's used to filter incomming messages for natsu socket.`,
+    ],
+    [
+      '--nats-get-namespace-subject',
+      'Only required if \n--nats-namespace-subjects provided',
+      'undefined',
+      `It's subject of your nats handler which provide namespace.`,
     ],
     [
       '--nats-user',
@@ -94,6 +108,13 @@ if (args['--nats-auth-subjects']) {
 if (args['--nats-non-auth-subjects']) {
   process.env['NATS_NON_AUTHORIZED_SUBJECTS'] =
     args['--nats-non-auth-subjects'];
+}
+if (args['--nats-namespace-subjects']) {
+  process.env['NATS_NAMESPACE_SUBJECTS'] = args['--nats-namespace-subjects'];
+}
+if (args['--nats-get-namespace-subject']) {
+  process.env['NATS_GET_NAMESPACE_SUBJECT'] =
+    args['--nats-get-namespace-subject'];
 }
 if (args['--nats-user']) {
   process.env['NATS_USER'] = args['--nats-user'];

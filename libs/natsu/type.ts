@@ -1,4 +1,4 @@
-import type { Msg, NatsConnection } from 'nats';
+import type { Msg, NatsConnection, PublishOptions, RequestOptions } from 'nats';
 import type {
   NatsService,
   NatsRequest,
@@ -7,7 +7,20 @@ import type {
 
 type NatsInjection = {
   message: Msg;
-  natsService: NatsConnection;
+  natsService: {
+    request: (
+      subject: string,
+      data?: NatsRequest,
+      opts?: RequestOptions
+    ) => Promise<Msg>;
+    publish: (
+      subject: string,
+      data?: NatsResponse,
+      opts?: PublishOptions
+    ) => Promise<void>;
+    subscribe: NatsConnection['subscribe'];
+    drain: NatsConnection['drain'];
+  };
 };
 
 type NatsHandleResult<TBody> = {
@@ -55,7 +68,7 @@ type NatsHandler<
   TService extends NatsService<string, unknown, unknown>,
   TInjection extends Record<string, unknown> = Record<string, unknown>
 > = {
-  subject: string;
+  subject: TService['subject'];
   validate: NatsValidate<TService, TInjection>;
   authorize: NatsAuthorize<TService, TInjection>;
   handle: NatsHandle<TService, TInjection>;

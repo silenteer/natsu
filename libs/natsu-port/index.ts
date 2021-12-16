@@ -22,7 +22,7 @@ class NatsPortError extends Error implements NatsPortErrorResponse {
   }
 
   constructor(private _error: NatsPortErrorResponse) {
-    super(typeof _error?.body === 'string' ? _error.body : 'Request failed');
+    super(getErrorMessage(_error));
   }
 }
 
@@ -76,6 +76,9 @@ function connectWS(options: NatsPortOptions) {
   const subscriptions: {
     [subject: string]: Array<{
       subscriptionId: string;
+      headers?: {
+        [key: string]: unknown;
+      };
       onHandle: (
         response: NatsPortWSResponse<string> | NatsPortWSErrorResponse<string>
       ) => void;
@@ -87,7 +90,11 @@ function connectWS(options: NatsPortOptions) {
   websocketClient.onreconnected = () => {
     const subjects = Object.keys(subscriptions);
     subjects.forEach((subject) => {
-      websocketClient.send({ subject, action: 'subscribe' });
+      websocketClient.send({
+        subject,
+        headers: { ...options.headers },
+        action: 'subscribe',
+      });
     });
   };
   websocketClient.onmessage = (event) => {
@@ -125,7 +132,11 @@ function connectWS(options: NatsPortOptions) {
       );
       if (subscriptions[subject].length === 0) {
         delete subscriptions[subject];
-        websocketClient?.send({ subject, action: 'unsubscribe' });
+        websocketClient?.send({
+          subject,
+          headers: { ...options.headers },
+          action: 'unsubscribe',
+        });
       }
     }
   };
@@ -147,7 +158,11 @@ function connectWS(options: NatsPortOptions) {
     }
     subscriptions[subject].push({ subscriptionId, onHandle });
 
-    websocketClient.send({ subject, action: 'subscribe' });
+    websocketClient.send({
+      subject,
+      headers: { ...options.headers },
+      action: 'subscribe',
+    });
 
     return { unsubscribe: () => unsubscribe({ subscriptionId, subject }) };
   };
@@ -174,6 +189,15 @@ function getUUID(): string {
     }
   );
   return uuid;
+}
+
+function getErrorMessage(error: NatsPortErrorResponse) {
+  try {
+    return JSON.stringify(error, null, 2);
+  } catch (err) {
+    console.error('Request failed', error);
+    return 'Request failed';
+  }
 }
 
 export type { NatsPortOptions };

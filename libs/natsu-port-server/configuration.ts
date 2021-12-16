@@ -4,6 +4,8 @@ type Config = {
   natsURI: string;
   natsAuthSubjects: string[];
   natsNonAuthorizedSubjects: string[];
+  natsNamespaceSubjects: string[];
+  getNamespaceSubject: string;
   natsUser: string;
   natsPass: string;
   httpPath: string;
@@ -18,6 +20,13 @@ const schema = yup.object({
     .array(yup.string().trim())
     .min(1)
     .notRequired(),
+  natsNamespaceSubjects: yup.array(yup.string().trim()).min(1).notRequired(),
+  getNamespaceSubject: yup.string().when('natsNamespaceSubjects', {
+    is: (natsNamespaceSubjects) =>
+      natsNamespaceSubjects?.every((item) => !!item.trim()),
+    then: yup.string().trim().required(),
+    otherwise: yup.string().trim().notRequired(),
+  }),
   natsUser: yup.string().trim().notRequired(),
   natsPass: yup.string().trim().notRequired(),
   httpPath: yup.string(),
@@ -33,6 +42,10 @@ const config = {
   natsNonAuthorizedSubjects: process.env.NATS_NON_AUTHORIZED_SUBJECTS?.split(
     ','
   ).filter((item) => !!item),
+  natsNamespaceSubjects: process.env.NATS_NAMESPACE_SUBJECTS?.split(',').filter(
+    (item) => !!item
+  ),
+  getNamespaceSubject: process.env.NATS_GET_NAMESPACE_SUBJECT,
   natsUser: process.env.NATS_USER,
   natsPass: process.env.NATS_PASS,
   port: parseInt(process.env.SERVER_PORT) || 8080,
@@ -41,6 +54,7 @@ const config = {
 };
 
 try {
+  console.log(config);
   schema.validateSync(config);
 } catch (error) {
   console.error('Config error', JSON.stringify(error.errors, undefined, 2));

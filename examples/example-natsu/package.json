@@ -3,9 +3,10 @@
   "version": "0.0.1",
   "license": "MIT",
   "scripts": {
-    "dev": "nodemon -e ts,js -i node_modules --exec npx natsu-runner"
+    "dev": "nodemon -e ts,js -i node_modules --exec natsu-runner"
   },
   "dependencies": {
+    "@silenteer/natsu-type": "^0.0.1",
     "@silenteer/natsu": "^1.0.5",
     "@silenteer/natsu-runner": "^1.0.1",
     "esbuild": "^0.12.29",

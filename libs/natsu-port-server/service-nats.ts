@@ -78,12 +78,14 @@ async function request(params: {
 async function subscribe(params: {
   connectionId: string;
   subject: string;
+  namespace?: string;
   onHandle: (response: NatsPortWSResponse | NatsPortWSErrorResponse) => void;
 }) {
-  const { connectionId, subject, onHandle } = params;
+  const { connectionId, subject, namespace, onHandle } = params;
+  const _subject = namespace ? `${subject}.${namespace}` : subject;
 
   if (
-    subscriptions[subject]?.connections?.some(
+    subscriptions[_subject]?.connections?.some(
       (item) => item.connectionId === connectionId
     )
   ) {
@@ -91,13 +93,13 @@ async function subscribe(params: {
   }
 
   let shouldSubscribe: boolean;
-  if (!subscriptions[subject]?.subscription) {
-    const subscription = (await getConnection()).subscribe(subject);
-    subscriptions[subject] = { subscription, connections: [] };
+  if (!subscriptions[_subject]?.subscription) {
+    const subscription = (await getConnection()).subscribe(_subject);
+    subscriptions[_subject] = { subscription, connections: [] };
     shouldSubscribe = true;
   }
-  subscriptions[subject].connections = [
-    ...subscriptions[subject].connections,
+  subscriptions[_subject].connections = [
+    ...subscriptions[_subject].connections,
     { connectionId, onHandle },
   ];
 
@@ -107,12 +109,12 @@ async function subscribe(params: {
 
   const codec = JSONCodec<NatsResponse>();
   (async () => {
-    for await (const message of subscriptions[subject].subscription) {
+    for await (const message of subscriptions[_subject].subscription) {
       try {
         const data = message.data ? codec.decode(message.data) : undefined;
 
         if (data) {
-          subscriptions[subject].connections.forEach(({ onHandle }) => {
+          subscriptions[_subject].connections.forEach(({ onHandle }) => {
             onHandle({
               subject,
               code: data.code as
@@ -124,7 +126,7 @@ async function subscribe(params: {
         }
       } catch (error) {
         console.error(error);
-        subscriptions[subject]?.connections?.forEach(({ onHandle }) => {
+        subscriptions[_subject]?.connections?.forEach(({ onHandle }) => {
           onHandle({
             subject,
             code: 500,
@@ -135,20 +137,25 @@ async function subscribe(params: {
   })();
 }
 
-async function unsubscribe(params: { connectionId: string; subject: string }) {
-  const { connectionId, subject } = params;
+async function unsubscribe(params: {
+  connectionId: string;
+  subject: string;
+  namespace?: string;
+}) {
+  const { connectionId, subject, namespace } = params;
+  const _subject = namespace ? `${subject}.${namespace}` : subject;
 
-  if (!subscriptions[subject]) {
+  if (!subscriptions[_subject]) {
     return;
   }
 
-  subscriptions[subject].connections = subscriptions[
-    subject
+  subscriptions[_subject].connections = subscriptions[
+    _subject
   ].connections.filter((item) => item.connectionId !== connectionId);
 
-  if (subscriptions[subject].connections.length === 0) {
-    await subscriptions[subject].subscription.drain();
-    delete subscriptions[subject];
+  if (subscriptions[_subject].connections.length === 0) {
+    await subscriptions[_subject].subscription.drain();
+    delete subscriptions[_subject];
   }
 }
 

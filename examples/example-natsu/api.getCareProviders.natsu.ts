@@ -1,5 +1,4 @@
 import * as yup from 'yup';
-import { JSONCodec } from 'nats';
 import type { NatsGetCareProviders } from '@silenteer/example-type';
 import type { NatsValidate, NatsAuthorize, NatsHandle } from '@silenteer/natsu';
 import {
@@ -23,25 +22,14 @@ const authorize: NatsAuthorize<NatsGetCareProviders> = async () => {
   return NatsAuthorizationResultUtil.ok();
 };
 
-const handle: NatsHandle<NatsGetCareProviders> = async (data, injection) => {
-  injection.natsService.request(
-    'hello.world',
-    JSONCodec().encode({
-      code: 200,
-      body: Buffer.from(
-        JSONCodec().encode({
-          msg: 'TEST',
-        })
-      ).toString('base64'),
-    })
-  );
+const handle: NatsHandle<NatsGetCareProviders> = async (data) => {
   return NatsHandleResultUtil.ok(
     data.body.ids.map((id) => ({ id, name: `Care provider ${id}` }))
   );
 };
 
 export default {
-  subject: 'api.v2.mobile.patient.getCareProviders',
+  subject: 'api.getCareProviders',
   validate,
   authorize,
   handle,

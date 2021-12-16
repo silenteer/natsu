@@ -17,6 +17,7 @@ import type {
   NatsPortWSErrorResponse,
   NatsRequest,
   NatsResponse,
+  NatsGetNamespace,
 } from '@silenteer/natsu-type';
 import config from './configuration';
 import NatsService from './service-nats';
@@ -91,7 +92,11 @@ function start() {
 
         try {
           wsRequest = JSON.parse(message.toString()) as NatsPortWSRequest;
-          request.headers['nats-subject'] = wsRequest.subject;
+          request.headers = {
+            ...wsRequest.headers,
+            ...request.headers,
+            ['nats-subject']: wsRequest.subject,
+          };
 
           const validationResult = validateWSRequest(wsRequest);
           if (validationResult.code === 400) {
@@ -105,20 +110,22 @@ function start() {
 
           const authenticationResult = await authenticate(request);
           if (authenticationResult.code !== 'OK') {
-            NatsService.unsubscribe({
-              connectionId,
-              subject: wsRequest.subject,
-            });
             connection.destroy(
               new Error(JSON.stringify({ code: authenticationResult.code }))
             );
             return;
           }
 
+          const namespace = await getNamespace({
+            httpRequest: request,
+            natsAuthResponse: authenticationResult.authResponse as NatsResponse,
+          });
+
           if (wsRequest.action === 'subscribe') {
             NatsService.subscribe({
               connectionId,
               subject: wsRequest.subject,
+              namespace,
               onHandle: (response) => {
                 sendWSResponse({ connection, response });
               },
@@ -127,6 +134,7 @@ function start() {
             NatsService.unsubscribe({
               connectionId,
               subject: wsRequest.subject,
+              namespace,
             });
           } else {
             connection.destroy(new Error('Unsupported operation'));
@@ -218,6 +226,37 @@ async function authenticate(
 
   result = { code: 'OK' };
   return result;
+}
+
+async function getNamespace(params: {
+  httpRequest: FastifyRequest<RouteGenericInterface, Server, IncomingMessage>;
+  natsAuthResponse: NatsResponse;
+}): Promise<string> {
+  const { httpRequest, natsAuthResponse } = params;
+  const subject = httpRequest.headers['nats-subject'] as string;
+  let namespace: string;
+
+  const shouldSetNamespace = config.natsNamespaceSubjects?.includes(subject);
+  if (shouldSetNamespace) {
+    const natsRequest: NatsRequest<string> = {
+      headers: natsAuthResponse
+        ? natsAuthResponse.headers
+        : httpRequest.headers,
+    };
+
+    const message = await NatsService.request({
+      subject: config.getNamespaceSubject,
+      data: requestCodec.encode(natsRequest),
+    });
+    const natsResponse = responseCodec.decode(message.data);
+    namespace = (
+      NatsService.decodeBody(
+        natsResponse.body
+      ) as NatsGetNamespace<string>['response']
+    )?.namespace;
+  }
+
+  return namespace;
 }
 
 async function sendNatsAuthRequest(

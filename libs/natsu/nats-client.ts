@@ -1,8 +1,15 @@
 /* eslint-disable @typescript-eslint/ban-types */
-import type { NatsConnection, Msg } from 'nats';
-import { connect, JSONCodec } from 'nats';
 import type {
-  NatsService,
+  NatsConnection,
+  Msg,
+  RequestOptions,
+  PublishOptions,
+  SubscriptionOptions,
+} from 'nats';
+import { connect, JSONCodec } from 'nats';
+import type { NatsGetNamespace } from '@silenteer/natsu-type';
+import type { NatsService } from './type';
+import type {
   NatsRequest,
   NatsResponse,
   NatsInjection,
@@ -11,7 +18,7 @@ import type {
 
 const clients: {
   [urls: string]: {
-    client: NatsConnection;
+    natsService: NatsInjection['natsService'];
     handlers: {
       [subject: string]: NatsHandler<
         NatsService<string, unknown, unknown>,
@@ -27,7 +34,19 @@ async function start<TInjection extends Record<string, unknown>>(params: {
   user?: string;
   pass?: string;
   verbose?: boolean;
+  namespace?: {
+    getNamespaceSubject: string;
+    namespaceSubjects: string[];
+  };
 }) {
+  if (
+    params.namespace &&
+    (!params.namespace.getNamespaceSubject ||
+      params.namespace.namespaceSubjects?.length === 0)
+  ) {
+    throw new Error(`Wrong config for 'namespace' `);
+  }
+
   const { urls, user, pass, verbose } = params;
   const key = getClientKey(urls);
 
@@ -35,7 +54,7 @@ async function start<TInjection extends Record<string, unknown>>(params: {
     throw new Error(`Must register handlers before starting client`);
   }
 
-  if (!clients[key].client) {
+  if (!clients[key].natsService) {
     const client = await connect({
       servers: urls,
       user,
@@ -47,14 +66,15 @@ async function start<TInjection extends Record<string, unknown>>(params: {
 
     clients[key] = {
       ...clients[key],
-      client,
+      natsService: createNatsService({ client, namespace: params.namespace }),
     };
 
     const requestCodec = JSONCodec<NatsRequest>();
     const responseCodec = JSONCodec<NatsResponse>();
 
     Object.entries(clients[key].handlers).forEach(([subject, handler]) => {
-      const subcription = client.subscribe(subject);
+      const natsService = clients[key].natsService;
+      const subcription = natsService.subscribe(subject);
       (async () => {
         for await (const message of subcription) {
           let data = message.data
@@ -83,7 +103,7 @@ async function start<TInjection extends Record<string, unknown>>(params: {
             const injection: TInjection & NatsInjection = {
               ...params.injections,
               message,
-              natsService: client,
+              natsService,
             };
 
             if (handler.validate) {
@@ -172,7 +192,7 @@ async function stop(urls: string[]) {
   const key = getClientKey(urls);
 
   if (clients[key]) {
-    await clients[key].client.drain();
+    await clients[key].natsService.drain();
     delete clients[key];
   }
 }
@@ -185,7 +205,7 @@ function register<TInjection extends Record<string, unknown>>(params: {
 }) {
   const { urls, handlers } = params;
   const key = getClientKey(urls);
-  const isStarted = !!clients[key]?.client;
+  const isStarted = !!clients[key]?.natsService;
 
   if (isStarted) {
     throw new Error(`Can't register more handler after nats client started`);
@@ -193,20 +213,86 @@ function register<TInjection extends Record<string, unknown>>(params: {
 
   if (!clients[key]) {
     clients[key] = {
-      client: undefined,
+      natsService: undefined,
       handlers: {},
     };
   }
 
   handlers.forEach((handler) => {
-    if (!clients[key].handlers[handler.subject]) {
-      clients[key].handlers[handler.subject] = handler;
+    const { subject } = handler;
+    if (!clients[key].handlers[subject]) {
+      clients[key].handlers[subject] = handler;
     }
   });
 }
 
 function getClientKey(urls: string[]) {
   return urls.sort().join('|');
+}
+
+function createNatsService(params: {
+  client: NatsConnection;
+  namespace?: {
+    getNamespaceSubject: string;
+    namespaceSubjects: string[];
+  };
+}): NatsInjection['natsService'] {
+  const { client } = params;
+  const { getNamespaceSubject, namespaceSubjects } = params.namespace || {};
+
+  return {
+    request: async (
+      subject: string,
+      data?: NatsRequest,
+      opts?: RequestOptions
+    ) => {
+      return client.request(subject, JSONCodec().encode(data), opts);
+    },
+    publish: async (
+      subject: string,
+      data?: NatsResponse,
+      opts?: PublishOptions
+    ) => {
+      const shouldSetNamespace =
+        getNamespaceSubject && namespaceSubjects?.includes(subject);
+
+      let _subject = subject;
+      if (shouldSetNamespace) {
+        try {
+          const { headers } = data || {};
+          const natsRequest: NatsRequest<string> = {
+            headers,
+            body: encodeBody({ subject }),
+          };
+
+          const message = await client.request(
+            getNamespaceSubject,
+            JSONCodec().encode(natsRequest)
+          );
+          const natsResponse = JSONCodec<NatsResponse>().decode(message.data);
+          const { namespace } = (decodeBody(natsResponse.body) ||
+            {}) as NatsGetNamespace<string>['response'];
+
+          if (namespace) {
+            _subject = `${subject}.${namespace}`;
+          } else {
+            throw new Error(`Namespace is required for subject: ${subject}`);
+          }
+        } catch (error) {
+          console.error(`Get namespace failed for subject: ${subject}`);
+          throw error;
+        }
+      }
+
+      return client.publish(_subject, JSONCodec().encode(data), opts);
+    },
+    subscribe: (subject: string, opts?: SubscriptionOptions) => {
+      return client.subscribe(subject, opts);
+    },
+    drain: async () => {
+      return client.drain();
+    },
+  };
 }
 
 function respond(params: { message: Msg; data?: Uint8Array }) {
@@ -233,11 +319,15 @@ export default {
     user?: string;
     pass?: string;
     verbose?: boolean;
+    namespace?: {
+      getNamespaceSubject: string;
+      namespaceSubjects: string[];
+    };
   }) => {
-    const { urls, injections, user, pass, verbose } = params;
+    const { urls, injections, user, pass, verbose, namespace } = params;
 
     const client = {
-      start: () => start({ urls, injections, user, pass, verbose }),
+      start: () => start({ urls, injections, user, pass, verbose, namespace }),
       stop: () => stop(urls),
       register: (
         handlers: Array<
