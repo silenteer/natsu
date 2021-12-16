@@ -16,7 +16,7 @@
     "build": "rm -rf dist && tsc"
   },
   "dependencies": {
-    "@silenteer/natsu-type": "0.0.5",
+    "@silenteer/natsu-type": "0.0.10",
     "nats": "^2.2.0"
   },
   "devDependencies": {
