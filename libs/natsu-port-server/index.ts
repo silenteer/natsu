@@ -242,6 +242,7 @@ async function getNamespace(params: {
       headers: natsAuthResponse
         ? natsAuthResponse.headers
         : httpRequest.headers,
+      body: NatsService.encodeBody({ subject }),
     };
 
     const message = await NatsService.request({
