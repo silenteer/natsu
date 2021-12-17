@@ -116,16 +116,22 @@ function start() {
             return;
           }
 
-          const namespace = await getNamespace({
+          const getNamespaceResult = await getNamespace({
             httpRequest: request,
             natsAuthResponse: authenticationResult.authResponse as NatsResponse,
           });
+          if (getNamespaceResult.code !== 'OK') {
+            connection.destroy(
+              new Error(JSON.stringify({ code: authenticationResult.code }))
+            );
+            return;
+          }
 
           if (wsRequest.action === 'subscribe') {
             NatsService.subscribe({
               connectionId,
               subject: wsRequest.subject,
-              namespace,
+              namespace: getNamespaceResult.namespace,
               onHandle: (response) => {
                 sendWSResponse({ connection, response });
               },
@@ -134,7 +140,7 @@ function start() {
             NatsService.unsubscribe({
               connectionId,
               subject: wsRequest.subject,
-              namespace,
+              namespace: getNamespaceResult.namespace,
             });
           } else {
             connection.destroy(new Error('Unsupported operation'));
@@ -231,10 +237,13 @@ async function authenticate(
 async function getNamespace(params: {
   httpRequest: FastifyRequest<RouteGenericInterface, Server, IncomingMessage>;
   natsAuthResponse: NatsResponse;
-}): Promise<string> {
+}) {
   const { httpRequest, natsAuthResponse } = params;
   const subject = httpRequest.headers['nats-subject'] as string;
-  let namespace: string;
+  let result: {
+    code: 'OK' | 400 | 401 | 403 | 500;
+    namespace?: string;
+  };
 
   const shouldSetNamespace = config.natsNamespaceSubjects?.includes(subject);
   if (shouldSetNamespace) {
@@ -250,14 +259,26 @@ async function getNamespace(params: {
       data: requestCodec.encode(natsRequest),
     });
     const natsResponse = responseCodec.decode(message.data);
-    namespace = (
-      NatsService.decodeBody(
-        natsResponse.body
-      ) as NatsGetNamespace<string>['response']
-    )?.namespace;
+    const namespace =
+      natsResponse.code === 200
+        ? (
+            NatsService.decodeBody(
+              natsResponse.body
+            ) as NatsGetNamespace<string>['response']
+          )?.namespace
+        : undefined;
+
+    if (namespace) {
+      result = { code: 'OK', namespace };
+      return result;
+    } else {
+      result = { code: natsResponse.code as any };
+      return result;
+    }
   }
 
-  return namespace;
+  result = { code: 'OK' };
+  return result;
 }
 
 async function sendNatsAuthRequest(
