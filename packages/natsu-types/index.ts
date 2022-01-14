@@ -68,7 +68,7 @@ type MiddlewareStruct<T = {}> = {
 };
 
 export type Middleware<T = {}> = (
-  initialContext: InitialContext
+  middlewareContext: InitialContext
 ) => Promise<MiddlewareStruct<T>>;
 
 export type ProtocolConfig =

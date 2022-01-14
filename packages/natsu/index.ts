@@ -69,7 +69,9 @@ async function loadMiddlewares(
 ) {
   const loaded = [];
   for (const m of middlewares) {
-    const { after, before, error, close } = await m({...ctx, log: (...data: any) => console.log(m.name, ...data)});
+    const mCtx= {...ctx};
+    const { after, before, error, close, name } = await m(mCtx);
+    mCtx.log = (...data: any) => console.log(name, ...data);
     loaded.push(m);
 
     after && ctx.afterMiddlewares.push(after);

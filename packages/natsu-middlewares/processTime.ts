@@ -1,6 +1,6 @@
 import type { Middleware } from '@natsu/types';
 
-const ProcessTime: Middleware<{ startTime: number }> = async (initialContext) => {
+const ProcessTime: Middleware<{ startTime: number }> = async (middlewareContext) => {
   return  {
     name: 'process-time',
     before: async (ctx) => {
@@ -13,7 +13,7 @@ const ProcessTime: Middleware<{ startTime: number }> = async (initialContext) =>
       const endTime = new Date().getUTCMilliseconds();
       const startTime = ctx.startTime;
 
-      initialContext.log(ctx.id, `${ctx.error ? 'ko' : 'ok'} processTime: ${endTime - startTime}`);
+      middlewareContext.log(ctx.id, `${ctx.error ? 'ko' : 'ok'} processTime: ${endTime - startTime}`);
       return ctx.ok();
     },
   };

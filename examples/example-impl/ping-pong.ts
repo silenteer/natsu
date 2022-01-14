@@ -14,7 +14,6 @@ const pingService: PingService = {
 const pongService: PongService = {
   subject: 'pong',
   handle: async (ctx) => {
-    ctx.log(ctx.data);
     setTimeout(() => {
       ctx.request<PingService>('ping');
     }, 1000);
