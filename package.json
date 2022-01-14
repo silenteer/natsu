@@ -2,6 +2,7 @@
   "private": "true",
   "workspaces": ["packages/*", "examples/*"],
   "scripts": {
-    "delete-node-modules": "find . -name \"node_modules\" -type d -prune | xargs rm -rf"
+    "delete-node-modules": "find . -name \"node_modules\" -type d -prune | xargs rm -rf",
+    "delete-turbo": "find . -name \".turbo\" -type d -prune | xargs rm -rf"
   }
 }
