@@ -18,5 +18,8 @@
   },
   "peerDependencies": {
     "nats": "^2.3.0"
+  },
+  "dependencies": {
+    "pratica": "^2.0.3"
   }
 }

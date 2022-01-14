@@ -1,6 +1,19 @@
 import type { Msg, NatsConnection } from 'nats/lib/nats-base-client/types';
+import type { Result, Err } from 'pratica';
 
-/** Context type, to be shared across services */
+type Ok<T> = (data?: T) => Result<T, void>;
+type Err<T> = (data?: T) => Result<void, T>;
+
+export type ResultStruct<T, E> = {
+  isOk: true;
+  data?: T
+} | {
+  isOk: false,
+  errorCode?: string | number;
+  errorMessage?: string;
+  error?: E
+}
+
 export type Context = {
   nc: NatsConnection;
   log: typeof console.log;
@@ -10,11 +23,12 @@ export type Context = {
 
 export type RequestContext<Input, Response> = Context & {
   id?: string;
+  subject: string;
   message: Msg;
   data?: Input;
   handleUnit: ServiceLike;
-  ok: (data: Response) => Result<Response, any>;
-  notOk: <T>(data?: T) => Result<undefined, T>;
+  ok: Ok<Response>;
+  err: Err<any>;
 };
 
 export type ResponseContext<T = any> = RequestContext<unknown, unknown> & {
@@ -29,31 +43,24 @@ export type InitialContext = Context & {
   afterMiddlewares: Array<MiddlewareOps<ResponseContext>>;
   closeMiddlewares: MiddlewareOps[];
   errorMiddlewares: MiddlewareOps[];
+
+  ok: Ok<void>;
+  err: Err<void>;
 };
 
 export type Req = string | Record<string, any> | void;
 export type Ret = string | Record<string, any> | void;
 
 // Middleware
-export type OkOps<T> = {
-  type: 'ok';
-  data?: T;
-};
-
-export type NotOkOps<T> = {
-  type: 'error';
-  errorCode?: string;
-  errorMessage?: string;
-  data?: T;
-};
-
-export type Result<R, E> = [OkOps<R>, undefined] | [undefined, NotOkOps<E>];
 
 type MiddlewareOps<T = {}> = (
   ctx: RequestContext<unknown, unknown> & T
-) => Promise<Result<void, void>>;
+) => Promise<Result<unknown, unknown>>;
 
 type MiddlewareStruct<T = {}> = {
+  name: string;
+  onRequest?: MiddlewareOps<T>;
+  onPublish?: MiddlewareOps<T>;
   before?: MiddlewareOps<T>;
   after?: MiddlewareOps<ResponseContext & T>;
   error?: MiddlewareOps<T>;
@@ -104,7 +111,7 @@ export type ExtractResponse<Type> = Type extends Service<any, any, infer X>
 export type ClientRequest = <T extends ServiceLike>(
   subject: T['subject'],
   request?: ExtractRequest<T>
-) => Promise<ExtractResponse<T>>;
+) => Promise<Result<ResultStruct<ExtractResponse<T>, any>, any>>;
 
 export type ClientPublish = <T extends ChannelLike>(
   subject: T['subject'],

@@ -22,6 +22,11 @@ nkeys.js@^1.0.0-9:
     "@types/node" "^14.0.26"
     tweetnacl "^1.0.3"
 
+pratica@^2.0.3:
+  version "2.0.3"
+  resolved "https://registry.yarnpkg.com/pratica/-/pratica-2.0.3.tgz#77eae84838d78c907f118581f8b8cd2507955bdc"
+  integrity sha512-MXOO7NtsxjZBInCPK7iFLEgthZ0EH9QJEBmE6xF6+0rA71IS2HLITV8LJ1ByrTfzRVSqfvZMOmFqkEhkZ/nqSw==
+
 tweetnacl@^1.0.3:
   version "1.0.3"
   resolved "https://registry.yarnpkg.com/tweetnacl/-/tweetnacl-1.0.3.tgz#ac0af71680458d8a6378d0d0d050ab1407d35596"

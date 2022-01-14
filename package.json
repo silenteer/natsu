@@ -1,32 +1,7 @@
 {
-  "name": "natsu",
-  "version": "0.0.0",
-  "license": "MIT",
-  "private": true,
+  "private": "true",
+  "workspaces": ["packages/*", "examples/*"],
   "scripts": {
-    "dev:enter": "node ./enter-dev-mode.js",
-    "dev:exit": "del **/node_modules/@silenteer examples/*/dist libs/*/dist && yarn install:all",
-    "install:all": "node ./install-all.js",
-    "uninstall:all": "del **/node_modules **/yarn.lock",
-    "test:all": "node ./test-all.js",
-    "release": "node ./prepare-release.js && (cd $PROJECT && npx np --branch=main --no-cleanup --no-release-draft && rm -rf .npmrc)",
-    "lint": "eslint --fix --ext .ts,.tsx,.json -c .eslintrc.js ."
-  },
-  "devDependencies": {
-    "@typescript-eslint/eslint-plugin": "5.2.0",
-    "@typescript-eslint/parser": "5.2.0",
-    "concurrently": "6.3.0",
-    "del-cli": "4.0.1",
-    "dotenv": "10.0.0",
-    "eslint": "8.1.0",
-    "eslint-config-prettier": "8.3.0",
-    "eslint-plugin-jest": "25.2.2",
-    "eslint-plugin-prettier": "4.0.0",
-    "eslint-plugin-react": "7.26.1",
-    "eslint-plugin-react-hooks": "4.2.0",
-    "husky": "7.0.4",
-    "jest": "27.3.1",
-    "prettier": "2.4.1",
-    "typescript": "4.4.4"
+    "delete-node-modules": "find . -name \"node_modules\" -type d -prune | xargs rm -rf"
   }
 }

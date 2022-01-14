@@ -1,5 +1,5 @@
 {
-  "name": "example-type",
+  "name": "example-middleware",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -8,8 +8,5 @@
   },
   "keywords": [],
   "author": "Duke",
-  "license": "ISC",
-  "dependencies": {
-    "@natsu/types": "*"
-  }
+  "license": "ISC"
 }

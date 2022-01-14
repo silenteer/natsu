@@ -3,7 +3,7 @@
   "version": "2.0.0",
   "description": "Natsu based unit",
   "source": "",
-  "main": "index.js",
+  "main": "index.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -11,13 +11,11 @@
   "author": "Duke",
   "license": "ISC",
   "devDependencies": {
-    "@types/lodash": "^4.14.176",
-    "parcel": "^2.0.0",
     "ts-node": "^10.4.0"
   },
   "dependencies": {
-    "lodash": "^4.17.21",
+    "@natsu/types": "*",
     "nats": "^2.2.0",
-    "@natsu/types": "2.0.0"
+    "pratica": "^2.0.3"
   }
 }

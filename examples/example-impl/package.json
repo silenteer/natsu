@@ -1,8 +1,8 @@
 {
-  "name": "example-type",
+  "name": "example-impl",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "main.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -10,6 +10,9 @@
   "author": "Duke",
   "license": "ISC",
   "dependencies": {
-    "@natsu/types": "*"
+    "example-type": "*",
+    "natsu": "*",
+    "natsu-middlewares": "*",
+    "ts-node": "^10.4.0"
   }
 }
