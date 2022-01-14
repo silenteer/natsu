@@ -25,7 +25,7 @@ async function Natsu(config: NatsuConfig) {
   const { publish, request } = createClient(nc, config);
   const initialContext: InitialContext = {
     nc: nc,
-    log: console.log,
+    log: (...data: any) => console.log('[', 'natsu', ']', ...data),
     beforeMiddlewares: [],
     afterMiddlewares: [],
     closeMiddlewares: [],
@@ -71,7 +71,7 @@ async function loadMiddlewares(
   for (const m of middlewares) {
     const mCtx= {...ctx};
     const { after, before, error, close, name } = await m(mCtx);
-    mCtx.log = (...data: any) => console.log(name, ...data);
+    mCtx.log = (...data: any) => console.log('[', name, ']', ...data);
     loaded.push(m);
 
     after && ctx.afterMiddlewares.push(after);
@@ -124,7 +124,7 @@ async function loadHandler(
 
   async function handle(s: Subscription) {
     const subject = s.getSubject();
-    ctx.log('initial', `Listening for ${subject}`);
+    ctx.log(`Listening for ${subject}`);
 
     for await (const m of s) {
       const rCtx: RequestContext<unknown, unknown> = {
@@ -134,11 +134,11 @@ async function loadHandler(
         message: m,
         data: m.data && codec.decode(m.data),
         handleUnit: unit,
-        log: (...data: any) => ctx.log(rCtx.id, '-', ...data),
+        log: (...data: any) => ctx.log('[', rCtx.id, ']', '-', ...data),
         ok: Ok,
         err: Err,
       };
-      rCtx.log(`Received request to ${m.subject} - ${m.sid}`);
+      ctx.log(`Received request to ${m.subject} - ${m.sid}`);
 
       rCtx.log(`Before process`);
       for (const before of ctx.beforeMiddlewares) {
@@ -160,14 +160,14 @@ async function loadHandler(
             await after(rsCtx);
           }
 
-          if (!rsCtx.response) m.respond();
+          if (!rsCtx.response) m.respond(codec.encode(JSON.stringify({ isOk: true })));
           else {
             m.respond(
               codec.encode(
                 JSON.stringify({
-                  status: 'ok',
+                  isOk: true,
                   data: rsCtx.response,
-                })
+                } as ResultStruct<any, any>)
               )
             );
           }
@@ -187,7 +187,7 @@ async function loadHandler(
       };
 
       if (unit.validate) {
-        const result = await unit.handle(rCtx);
+        const result = await unit.validate(rCtx);
         if (result.isErr()) {
           respond({ isOk: false, error: result.swap().toMaybe().value()});
           continue;
@@ -195,7 +195,7 @@ async function loadHandler(
       }
 
       if (unit.authorize) {
-        const result = await unit.handle(rCtx);
+        const result = await unit.authorize(rCtx);
         if (result.isErr()) {
           respond({ isOk: false, error: result.swap().toMaybe().value()});
           continue;
