@@ -72,7 +72,7 @@ function start() {
         });
         reply.send(response);
       } catch (error) {
-        console.error(error);
+        console.error(request.headers['nats-subject'], error);
         if (error.code) {
           reply.send(error);
         } else {
