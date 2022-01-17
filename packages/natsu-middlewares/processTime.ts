@@ -6,7 +6,7 @@ const ProcessTime: Middleware<{ startTime: number }> = async (middlewareContext)
     before: async (ctx) => {
       const startTime = new Date().getUTCMilliseconds();
       ctx.startTime = startTime;
-      return ctx.ok();
+      return ctx.ok(null);
     },
 
     after: async (ctx) => {
@@ -14,7 +14,7 @@ const ProcessTime: Middleware<{ startTime: number }> = async (middlewareContext)
       const startTime = ctx.startTime;
 
       middlewareContext.log(ctx.id, `${ctx.error ? 'ko' : 'ok'} processTime: ${endTime - startTime}`);
-      return ctx.ok();
+      return ctx.ok(null);
     },
   };
 };

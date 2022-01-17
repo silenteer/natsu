@@ -7,10 +7,9 @@ import type {
   ExtractRequest,
   ExtractResponse,
   ServiceLike,
-  ResultStruct
 } from '@natsu/types';
 
-import {Ok, Err} from 'pratica';
+import { Ok, Result } from 'ts-results';
 import type { NatsuConfig } from '.';
 
 type CreateClient = {
@@ -32,9 +31,9 @@ const createClient: CreateClient = (nc, config) => {
       const m = await nc.request(s, codec.encode(request));
 
       if (m.data.length === 0) {
-        return Ok();
+        return Ok(null) as Result<ExtractResponse<T>, any>;
       } else {
-        return Ok(codec.decode(m.data) as ResultStruct<ExtractResponse<T>, any>);
+        return Ok(codec.decode(m.data)) as Result<ExtractResponse<T>, any>;
       }
     },
 

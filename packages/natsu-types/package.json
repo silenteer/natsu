@@ -20,6 +20,7 @@
     "nats": "^2.3.0"
   },
   "dependencies": {
-    "pratica": "^2.0.3"
+    "pratica": "^2.0.3",
+    "ts-results": "^3.3.0"
   }
 }

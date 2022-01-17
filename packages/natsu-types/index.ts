@@ -1,18 +1,6 @@
 import type { Msg, NatsConnection } from 'nats/lib/nats-base-client/types';
-import type { Result, Err } from 'pratica';
 
-type Ok<T> = (data?: T) => Result<T, void>;
-type Err<T> = (data?: T) => Result<void, T>;
-
-export type ResultStruct<T, E> = {
-  isOk: true;
-  data?: T
-} | {
-  isOk: false,
-  errorCode?: string | number;
-  errorMessage?: string;
-  error?: E
-}
+import type {Ok, Err, Result} from 'ts-results';
 
 export type Context = {
   nc: NatsConnection;
@@ -27,8 +15,8 @@ export type RequestContext<Input, Response> = Context & {
   message: Msg;
   data?: Input;
   handleUnit: ServiceLike;
-  ok: Ok<Response>;
-  err: Err<any>;
+  ok: (resp?: Response) => Ok<Response>;
+  err: (e: any) => Err<any>;
 };
 
 export type ResponseContext<T = any> = RequestContext<unknown, unknown> & {
@@ -44,8 +32,8 @@ export type InitialContext = Context & {
   closeMiddlewares: MiddlewareOps[];
   errorMiddlewares: MiddlewareOps[];
 
-  ok: Ok<void>;
-  err: Err<void>;
+  ok: () => Ok<any>;
+  err: (e: any) => Err<any>;
 };
 
 export type Req = string | Record<string, any> | void;
@@ -55,7 +43,7 @@ export type Ret = string | Record<string, any> | void;
 
 type MiddlewareOps<T = {}> = (
   ctx: RequestContext<unknown, unknown> & T
-) => Promise<Result<unknown, unknown>>;
+) => Promise<Result<unknown, any>>;
 
 type MiddlewareStruct<T = {}> = {
   name: string;
@@ -83,7 +71,7 @@ export type Service<
   S extends ProtocolConfig,
   Input extends Req,
   Return extends Ret,
-  Er = any
+  Er extends Error = Error
 > = {
   subject: S;
   middlewares?: Middleware[];
@@ -111,7 +99,7 @@ export type ExtractResponse<Type> = Type extends Service<any, any, infer X>
 export type ClientRequest = <T extends ServiceLike>(
   subject: T['subject'],
   request?: ExtractRequest<T>
-) => Promise<Result<ResultStruct<ExtractResponse<T>, any>, any>>;
+) => Promise<Result<ExtractResponse<T>, any>>;
 
 export type ClientPublish = <T extends ChannelLike>(
   subject: T['subject'],

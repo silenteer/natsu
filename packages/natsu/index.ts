@@ -4,10 +4,11 @@ import type {
   Middleware,
   ServiceLike,
   ResponseContext,
-  ResultStruct,
 } from '@natsu/types';
 
-import { Ok, Err } from 'pratica';
+import { Err, Ok } from 'ts-results';
+import type { Result } from 'ts-results';
+import { tryAwait } from './helpers';
 
 type Unit = ServiceLike;
 
@@ -21,19 +22,29 @@ export type NatsuConfig = {
 import { createClient } from './client';
 
 async function Natsu(config: NatsuConfig) {
-  const nc = await startNats(config);
+  const defaultLogger = (...data: any) =>
+    console.log('[', 'natsu', ']', ...data);
+  const startNc = await tryAwait(startNats(config));
+
+  if (startNc.err) {
+    defaultLogger('Unable to connect to Nats');
+    process.exit(1);
+  }
+
+  const nc = startNc.val;
+
   const { publish, request } = createClient(nc, config);
   const initialContext: InitialContext = {
     nc: nc,
-    log: (...data: any) => console.log('[', 'natsu', ']', ...data),
+    log: defaultLogger,
     beforeMiddlewares: [],
     afterMiddlewares: [],
     closeMiddlewares: [],
     errorMiddlewares: [],
     publish,
     request,
-    ok: (arg?: any) => Ok(arg),
-    err: (arg?: any) => Err(arg),
+    ok: () => Ok(null),
+    err: (e) => Err(e),
   };
 
   await loadMiddlewares(config, initialContext);
@@ -41,7 +52,7 @@ async function Natsu(config: NatsuConfig) {
   await loadHandlers(config, initialContext);
 
   return {
-    close: async () => nc.close(),
+    close: nc.close,
     publish,
     request,
   };
@@ -69,7 +80,7 @@ async function loadMiddlewares(
 ) {
   const loaded = [];
   for (const m of middlewares) {
-    const mCtx= {...ctx};
+    const mCtx = { ...ctx };
     const { after, before, error, close, name } = await m(mCtx);
     mCtx.log = (...data: any) => console.log('[', name, ']', ...data);
     loaded.push(m);
@@ -127,7 +138,7 @@ async function loadHandler(
     ctx.log(`Listening for ${subject}`);
 
     for await (const m of s) {
-      const rCtx: RequestContext<unknown, unknown> = {
+      const rCtx: RequestContext<any, any> = {
         ...ctx,
         subject: m.subject,
         id: new Date().getTime() + '',
@@ -135,8 +146,8 @@ async function loadHandler(
         data: m.data && codec.decode(m.data),
         handleUnit: unit,
         log: (...data: any) => ctx.log('[', rCtx.id, ']', '-', ...data),
-        ok: Ok,
-        err: Err,
+        ok: (response: any) => Ok(response),
+        err: (e: any) => Err(e),
       };
       ctx.log(`Received request to ${m.subject} - ${m.sid}`);
 
@@ -146,13 +157,11 @@ async function loadHandler(
       }
       rCtx.log(`Processing the handle`);
 
-      const respond = async (
-        data: ResultStruct<unknown, unknown>
-      ) => {
-        if (data.isOk) {
+      const respond = async (data: Result<unknown, unknown>) => {
+        if (data.ok) {
           const rsCtx: ResponseContext = {
             ...rCtx,
-            response: data.data
+            response: data.val,
           };
 
           rCtx.log(`After process`);
@@ -160,27 +169,15 @@ async function loadHandler(
             await after(rsCtx);
           }
 
-          if (!rsCtx.response) m.respond(codec.encode(JSON.stringify({ isOk: true })));
+          if (!rsCtx.response) m.respond(codec.encode(Ok(null)));
           else {
-            m.respond(
-              codec.encode(
-                JSON.stringify({
-                  isOk: true,
-                  data: rsCtx.response,
-                } as ResultStruct<any, any>)
-              )
-            );
+            m.respond(codec.encode(Ok(rsCtx.response)));
           }
-        }
-
-        else {
+        } else {
           rCtx.log(`Error detected, responding with error`, data);
           m.respond(
             codec.encode(
-              JSON.stringify({
-                isOk: false,
-                error: data,
-              } as ResultStruct<any, any>)
+              JSON.stringify(Err(data))
             )
           );
         }
@@ -188,27 +185,27 @@ async function loadHandler(
 
       if (unit.validate) {
         const result = await unit.validate(rCtx);
-        if (result.isErr()) {
-          respond({ isOk: false, error: result.swap().toMaybe().value()});
+        if (result.err) {
+          respond(Err(result.val));
           continue;
         }
       }
 
       if (unit.authorize) {
         const result = await unit.authorize(rCtx);
-        if (result.isErr()) {
-          respond({ isOk: false, error: result.swap().toMaybe().value()});
+        if (result.err) {
+          respond(Err(result.val));
           continue;
         }
       }
 
       if (unit.handle) {
         const result = await unit.handle(rCtx);
-        if (result.isErr()) {
-          respond({ isOk: false, error: result.swap().toMaybe().value()});
+        if (result.err) {
+          respond(Err(result.val));
           continue;
         } else {
-          respond({ isOk: true, data: result.toMaybe().value()});
+          respond(Ok(result.val));
         }
       }
     }

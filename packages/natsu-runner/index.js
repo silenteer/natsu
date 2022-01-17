@@ -13,13 +13,14 @@ const buildDir = path.join(process.cwd(), '.natsu', 'build');
 fs.mkdirSync('.natsu/build', { recursive: true });
 
 esbuild.buildSync({
+  write: false,
   entryPoints: files,
   target: 'node12',
   format: 'cjs',
   platform: 'node',
   minify: false,
-  bundle: true,
-  outdir: buildDir,
+  sourcemap: true,
+  bundle: false,
 });
 
 const NatsClient = require('@silenteer/natsu');
