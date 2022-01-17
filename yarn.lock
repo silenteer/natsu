@@ -3164,11 +3164,6 @@ postcss@^8.4.5:
     picocolors "^1.0.0"
     source-map-js "^1.0.1"
 
-pratica@^2.0.3:
-  version "2.0.3"
-  resolved "https://registry.yarnpkg.com/pratica/-/pratica-2.0.3.tgz#77eae84838d78c907f118581f8b8cd2507955bdc"
-  integrity sha512-MXOO7NtsxjZBInCPK7iFLEgthZ0EH9QJEBmE6xF6+0rA71IS2HLITV8LJ1ByrTfzRVSqfvZMOmFqkEhkZ/nqSw==
-
 prelude-ls@~1.1.2:
   version "1.1.2"
   resolved "https://registry.yarnpkg.com/prelude-ls/-/prelude-ls-1.1.2.tgz#21932a549f5e52ffd9a827f570e04be62a97da54"

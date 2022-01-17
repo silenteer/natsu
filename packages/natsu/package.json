@@ -16,7 +16,6 @@
   "dependencies": {
     "@natsu/types": "*",
     "nats": "^2.2.0",
-    "pratica": "^2.0.3",
     "ts-results": "^3.3.0"
   }
 }
