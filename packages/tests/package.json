@@ -10,7 +10,8 @@
   "author": "Duke",
   "license": "ISC",
   "devDependencies": {
-    "vitest": "^0.1.18",
-    "natsu": "*"
+    "natsu": "*",
+    "ts-node": "^10.4.0",
+    "vitest": "^0.1.18"
   }
 }

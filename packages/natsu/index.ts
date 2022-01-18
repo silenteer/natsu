@@ -26,7 +26,7 @@ async function Natsu(config: NatsuConfig) {
     console.log('[', 'natsu', ']', ...data);
   const startNc = await tryAwait(startNats(config));
 
-  if (startNc.err) {
+  if (!startNc.ok) {
     defaultLogger('Unable to connect to Nats');
     process.exit(1);
   }
@@ -52,7 +52,7 @@ async function Natsu(config: NatsuConfig) {
   await loadHandlers(config, initialContext);
 
   return {
-    close: nc.close,
+    nc,
     publish,
     request,
   };
@@ -158,35 +158,34 @@ async function loadHandler(
       rCtx.log(`Processing the handle`);
 
       const respond = async (data: Result<unknown, unknown>) => {
-        if (data.ok) {
-          const rsCtx: ResponseContext = {
-            ...rCtx,
-            response: data.val,
-          };
+        try {
+          if (data.ok) {
+            const rsCtx: ResponseContext = {
+              ...rCtx,
+              response: data.val,
+            };
 
-          rCtx.log(`After process`);
-          for (const after of ctx.afterMiddlewares) {
-            await after(rsCtx);
-          }
+            for (const after of ctx.afterMiddlewares) {
+              await after(rsCtx);
+            }
 
-          if (!rsCtx.response) m.respond(codec.encode(Ok(null)));
-          else {
-            m.respond(codec.encode(Ok(rsCtx.response)));
+            if (!rsCtx.response) {
+              m.respond(codec.encode(Ok(null)));
+            } else {
+              m.respond(codec.encode(Ok(rsCtx.response)));
+            }
+          } else {
+            m.respond(codec.encode(data));
           }
-        } else {
-          rCtx.log(`Error detected, responding with error`, data);
-          m.respond(
-            codec.encode(
-              JSON.stringify(Err(data))
-            )
-          );
+        } catch (e) {
+          m.respond(codec.encode(Err(data)));
         }
       };
 
       if (unit.validate) {
         const result = await unit.validate(rCtx);
         if (result.err) {
-          respond(Err(result.val));
+          respond(result);
           continue;
         }
       }
@@ -194,19 +193,15 @@ async function loadHandler(
       if (unit.authorize) {
         const result = await unit.authorize(rCtx);
         if (result.err) {
-          respond(Err(result.val));
+          respond(result);
           continue;
         }
       }
 
       if (unit.handle) {
         const result = await unit.handle(rCtx);
-        if (result.err) {
-          respond(Err(result.val));
-          continue;
-        } else {
-          respond(Ok(result.val));
-        }
+        respond(result);
+        continue;
       }
     }
   }
@@ -215,4 +210,4 @@ async function loadHandler(
 }
 /** End of loading handler */
 
-export default Natsu;
+export {Natsu};
