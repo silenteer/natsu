@@ -1,7 +1,4 @@
-import type { Service } from '@natsu/types';
+import type { Definition } from '@natsu/types';
 
-export type PingService = Service<'ping',
-  void,
-  void
->;
-export type PongService = Service<'pong', void, void>;
+export type PingService = Definition<'ping', void, void>;
+export type PongService = Definition<'pong', void, void>;

@@ -1,6 +1,7 @@
 import type { PingService, PongService } from 'example-type';
+import type { Implementation, Middleware } from '@natsu/types';
 
-const pingService: PingService = {
+const pingService: Implementation<PingService> = {
   subject: 'ping',
   handle: async (ctx) => {
     setTimeout(async () => {
@@ -11,14 +12,14 @@ const pingService: PingService = {
   },
 };
 
-const pongService: PongService = {
+const pongService: Implementation<PongService> = {
   subject: 'pong',
   handle: async (ctx) => {
     setTimeout(() => {
       ctx.request<PingService>('ping');
     }, 1000);
     return ctx.ok();
-  },
+  }
 };
 
 export { pingService, pongService };
