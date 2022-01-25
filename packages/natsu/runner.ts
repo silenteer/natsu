@@ -2,7 +2,6 @@ import type {
   InitialContext,
   RequestContext,
   Middleware,
-  ServiceLike,
   AnyImplementation,
   ResponseContext,
 } from '@natsu/types';
@@ -147,13 +146,6 @@ async function loadHandler(
         ok: (response: any) => Ok(response),
         err: (e: any) => Err(e),
       };
-      ctx.log(`Received request to ${m.subject} - ${m.sid}`);
-
-      rCtx.log(`Before process`);
-      for (const before of ctx.beforeMiddlewares) {
-        await before(rCtx);
-      }
-      rCtx.log(`Processing the handle`);
 
       const respond = async (data: Result<unknown, unknown>) => {
         try {
@@ -180,26 +172,38 @@ async function loadHandler(
         }
       };
 
-      if (unit.validate) {
-        const result = await unit.validate(rCtx);
-        if (result.err) {
+      try {
+        ctx.log(`Received request to ${m.subject} - ${m.sid}`);
+
+        rCtx.log(`Before process`);
+        for (const before of ctx.beforeMiddlewares) {
+          await before(rCtx);
+        }
+        rCtx.log(`Processing the handle`);
+
+        if (unit.validate) {
+          const result = await unit.validate(rCtx);
+          if (result.err) {
+            respond(result);
+            continue;
+          }
+        }
+
+        if (unit.authorize) {
+          const result = await unit.authorize(rCtx);
+          if (result.err) {
+            respond(result);
+            continue;
+          }
+        }
+
+        if (unit.handle) {
+          const result = await unit.handle(rCtx);
           respond(result);
           continue;
         }
-      }
-
-      if (unit.authorize) {
-        const result = await unit.authorize(rCtx);
-        if (result.err) {
-          respond(result);
-          continue;
-        }
-      }
-
-      if (unit.handle) {
-        const result = await unit.handle(rCtx);
-        respond(result);
-        continue;
+      } catch (e) {
+        respond(Err(e));
       }
     }
   }
@@ -208,4 +212,4 @@ async function loadHandler(
 }
 /** End of loading handler */
 
-export {Natsu};
+export { Natsu };

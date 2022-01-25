@@ -1,9 +1,9 @@
 import { Natsu } from 'natsu';
-import type { Middleware, Service, Implementation, Definition } from '@natsu/types';
+import type { Middleware, Implementation, Definition } from '@natsu/types';
 
 import { test, expect, afterAll, describe } from 'vitest';
 
-type TestMiddleware = Middleware<{logger: string}>;
+type TestMiddleware = Middleware<{ logger: string }>;
 
 type OkDefinition = Definition<'ok', { msg: string }, { msg: string }>;
 type FaultyDefinition = Definition<'faulty', { msg: string }, { msg: string }>;
@@ -11,26 +11,24 @@ type FaultyDefinition = Definition<'faulty', { msg: string }, { msg: string }>;
 type OkService = Implementation<OkDefinition, [TestMiddleware]>;
 type FaultyService = Implementation<FaultyDefinition>;
 
-
 const testMiddleware: TestMiddleware = async () => {
   return {
-    name: 'test-middleware'
-  }
-}
+    name: 'test-middleware',
+  };
+};
 
-const otherMiddleware: Middleware<{startTime: string}> = async () => {
+const otherMiddleware: Middleware<{ startTime: string }> = async () => {
   return {
     name: 'start-middleware',
-  }
-}
+  };
+};
 
 const okService: OkService = {
   subject: 'ok',
   handle: async (ctx) => {
     return ctx.ok(ctx.data);
   },
-  middlewares: [testMiddleware]
-
+  middlewares: [testMiddleware],
 };
 
 const faultyService: FaultyService = {

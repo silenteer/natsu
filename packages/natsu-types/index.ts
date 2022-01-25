@@ -7,7 +7,7 @@ export type RequestHolder = {
     subject: ExtractSubject<D>,
     input?: ExtractRequest<D>
   ) => Promise<Result<ExtractResponse<D>, ExtractError<D>>>;
-}
+};
 
 export type RequestType = RequestHolder['request'];
 
@@ -73,7 +73,11 @@ export type ProtocolConfig =
       codec?: Codec;
     };
 
-type MiddlewareUnionType<T> = T extends undefined ? {} : T extends Array<Middleware<infer U>> ? U : {};
+type MiddlewareUnionType<T> = T extends undefined
+  ? {}
+  : T extends Array<Middleware<infer U>>
+  ? U
+  : {};
 
 export type Definition<
   S extends string,
@@ -98,7 +102,8 @@ export type Implementation<
   middlewares?: Deps;
   test?: MiddlewareUnionType<Deps>;
   handle: (
-    ctx: RequestContext<ExtractRequest<T>, ExtractResponse<T>> &MiddlewareUnionType<Deps>
+    ctx: RequestContext<ExtractRequest<T>, ExtractResponse<T>> &
+      MiddlewareUnionType<Deps>
   ) => Promise<Result<ExtractResponse<T>, ExtractError<T>>>;
   validate?: (
     ctx: RequestContext<ExtractRequest<T>, ExtractResponse<T>> &
@@ -109,41 +114,6 @@ export type Implementation<
       MiddlewareUnionType<Deps>
   ) => Promise<Result<void, ExtractError<T>>>;
 };
-
-export type Service<
-  S extends string,
-  Input extends Req,
-  Return extends Ret,
-  Deps extends Middleware<any>[] = [],
-  Er extends Error = Error
-> = {
-  subject:
-    | S
-    | {
-        subject: S;
-        queue: string;
-        protocol: 'string' | 'json';
-      };
-  middlewares: Deps;
-  handle: (
-    ctx: RequestContext<Input, Return> & MiddlewareUnionType<Deps>
-  ) => Promise<Result<Return, Er>>;
-  validate?: (
-    ctx: RequestContext<Input, Return> & MiddlewareUnionType<Deps>
-  ) => Promise<Result<void, Er>>;
-  authorize?: (
-    ctx: RequestContext<Input, Return> & MiddlewareUnionType<Deps>
-  ) => Promise<Result<void, Er>>;
-};
-
-export type ServiceLike = Service<string, any, any, Middleware<any>[]>;
-
-export type Handler<T extends Service<any, any, any>> = T['handle'];
-export type Validator<T extends Service<any, any, any>> = T['validate'];
-export type Authorizor<T extends Service<any, any, any>> = T['authorize'];
-
-export type Channel<S extends string, Input> = Service<S, Input, void>;
-export type ChannelLike = Channel<string, any>;
 
 export type ExtractRequest<Type> = Type extends Definition<
   any,
@@ -170,11 +140,16 @@ export type ExtractSubject<Type> = Type extends Definition<
   any,
   any
 >
-  ? X extends String ? X : never
+  ? X extends String
+    ? X
+    : never
   : never;
 
 export type AnyDefinition = Definition<any, any, any, any>;
-export type AnyImplementation = Implementation<AnyDefinition, Middleware<any>[]>
+export type AnyImplementation = Implementation<
+  AnyDefinition,
+  Middleware<any>[]
+>;
 export type UnknownDefinition = Definition<
   any,
   unknown,
@@ -188,8 +163,3 @@ export type ClientRequest<D extends AnyDefinition> = Definition<
   ExtractResponse<D>,
   ExtractError<D>
 >;
-
-export type ClientPublish = <T extends ChannelLike>(
-  subject: T['subject'],
-  request?: ExtractRequest<T>
-) => void;
