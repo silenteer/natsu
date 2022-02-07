@@ -38,6 +38,7 @@ async function start<TInjection extends Record<string, unknown>>(params: {
     getNamespaceSubject: string;
     namespaceSubjects: string[];
   };
+  onError?: (error: any) => void;
 }) {
   if (
     params.namespace &&
@@ -47,7 +48,7 @@ async function start<TInjection extends Record<string, unknown>>(params: {
     throw new Error(`Wrong config for 'namespace' `);
   }
 
-  const { urls, user, pass, verbose } = params;
+  const { urls, user, pass, verbose, onError } = params;
   const key = getClientKey(urls);
 
   if (!clients[key]) {
@@ -173,6 +174,8 @@ async function start<TInjection extends Record<string, unknown>>(params: {
             respond({ message });
           } catch (error) {
             console.error(error);
+            onError && onError(error);
+
             respond({
               message,
               data: responseCodec.encode({
@@ -323,11 +326,14 @@ export default {
       getNamespaceSubject: string;
       namespaceSubjects: string[];
     };
+    onError?: (error: any) => void;
   }) => {
-    const { urls, injections, user, pass, verbose, namespace } = params;
+    const { urls, injections, user, pass, verbose, namespace, onError } =
+      params;
 
     const client = {
-      start: () => start({ urls, injections, user, pass, verbose, namespace }),
+      start: () =>
+        start({ urls, injections, user, pass, verbose, namespace, onError }),
       stop: () => stop(urls),
       register: (
         handlers: Array<
