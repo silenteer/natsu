@@ -16,6 +16,7 @@ import type {
   NatsInjection,
   NatsHandler,
 } from './type';
+import type { Span, Transaction } from '@sentry/types';
 
 const clients: {
   [urls: string]: {
@@ -64,7 +65,11 @@ async function start<TInjection extends Record<string, unknown>>(params: {
 
   if (!clients[key].natsService) {
     if (sentry) {
-      Sentry.init(sentry.options);
+      Sentry.init({
+        ...sentry.options,
+        integrations: [new Sentry.Integrations.Http({ tracing: true })],
+        tracesSampleRate: 1.0,
+      });
     }
 
     const client = await connect({
@@ -93,7 +98,8 @@ async function start<TInjection extends Record<string, unknown>>(params: {
             ? requestCodec.decode(message.data)
             : undefined;
 
-          let transaction: ReturnType<typeof Sentry.startTransaction>;
+          let transaction: Transaction;
+          let handleSpan: Span;
           try {
             if (!data) {
               respond({
@@ -118,9 +124,10 @@ async function start<TInjection extends Record<string, unknown>>(params: {
               name: subject,
               traceId: data.headers['trace-id'] as string,
             });
-            Sentry.configureScope((scope) => {
-              scope.setSpan(transaction);
-            });
+
+            Sentry.getCurrentHub().configureScope((scope) =>
+              scope.setSpan(transaction)
+            );
 
             const injection: TInjection & NatsInjection = {
               ...params.injections,
@@ -129,6 +136,11 @@ async function start<TInjection extends Record<string, unknown>>(params: {
             };
 
             if (handler.validate) {
+              const validateSpan = transaction.startChild({
+                op: `${subject} - validate`,
+                description: `${subject} - validate`,
+              });
+
               const validationResult = await handler.validate(data, injection);
               if (validationResult.code !== 'OK') {
                 respond({
@@ -139,12 +151,20 @@ async function start<TInjection extends Record<string, unknown>>(params: {
                     body: encodeBody(validationResult.errors),
                   }),
                 });
+                validateSpan.finish();
                 transaction?.finish();
                 continue;
+              } else {
+                validateSpan.finish();
               }
             }
 
             if (handler.authorize) {
+              const authorizeSpan = transaction.startChild({
+                op: `${subject} - authorize`,
+                description: `${subject} - authorize`,
+              });
+
               const authorizationResult = await handler.authorize(
                 data,
                 injection
@@ -159,12 +179,20 @@ async function start<TInjection extends Record<string, unknown>>(params: {
                     body: encodeBody(authorizationResult.message),
                   }),
                 });
+                authorizeSpan.finish();
                 transaction?.finish();
                 continue;
+              } else {
+                authorizeSpan.finish();
               }
             }
 
             if (handler.handle) {
+              handleSpan = transaction.startChild({
+                op: `${subject} - handle`,
+                description: `${subject} - handle`,
+              });
+
               const handleResult = await handler.handle(data, injection);
               if (handleResult.code !== 200) {
                 respond({
@@ -178,6 +206,7 @@ async function start<TInjection extends Record<string, unknown>>(params: {
                 Sentry.captureMessage(`${subject} [${handleResult.code}]`, {
                   extra: { ...data, errors: handleResult.errors },
                 });
+                handleSpan.finish();
                 transaction?.finish();
                 continue;
               }
@@ -195,6 +224,8 @@ async function start<TInjection extends Record<string, unknown>>(params: {
                   body: encodeBody(handleResult.body),
                 }),
               });
+
+              handleSpan.finish();
               transaction?.finish();
               continue;
             }
@@ -219,6 +250,7 @@ async function start<TInjection extends Record<string, unknown>>(params: {
               }),
             });
           } finally {
+            handleSpan.finish();
             transaction?.finish();
           }
         }
