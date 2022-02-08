@@ -26,10 +26,13 @@ class NatsPortError extends Error implements NatsPortErrorResponse {
   }
 }
 
-function connect(options: NatsPortOptions) {
+function connect(initialOptions: NatsPortOptions) {
   return async <TService extends NatsService<string, unknown, unknown>>(
     subject: TService['subject'],
-    body: TService['request']
+    body: TService['request'],
+    options?: {
+      traceId: string;
+    }
   ): Promise<TService['response']> => {
     const requestBody: NatsPortRequest<unknown> =
       body !== undefined && body !== null
@@ -37,12 +40,14 @@ function connect(options: NatsPortOptions) {
             data: body,
           }
         : {};
-    const result = await fetch(options.serverURL.toString(), {
-      ...options,
+
+    const result = await fetch(initialOptions.serverURL.toString(), {
+      ...initialOptions,
       method: 'POST',
       mode: 'cors',
       headers: {
-        ...options.headers,
+        ...initialOptions.headers,
+        ...(options?.traceId ? { 'trace-id': options?.traceId } : {}),
         'nats-subject': subject,
         'Content-Type': 'application/json',
       },

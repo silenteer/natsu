@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/ban-types */
+import * as Sentry from '@sentry/node';
 import type {
   NatsConnection,
   Msg,
@@ -38,7 +39,13 @@ async function start<TInjection extends Record<string, unknown>>(params: {
     getNamespaceSubject: string;
     namespaceSubjects: string[];
   };
-  onError?: (error: any) => void;
+  sentry?: {
+    options: Pick<
+      Sentry.NodeOptions,
+      'dsn' | 'tracesSampleRate' | 'environment' | 'release' | 'enabled'
+    >;
+    getUser: (data: NatsRequest<unknown>) => Sentry.User;
+  };
 }) {
   if (
     params.namespace &&
@@ -48,7 +55,7 @@ async function start<TInjection extends Record<string, unknown>>(params: {
     throw new Error(`Wrong config for 'namespace' `);
   }
 
-  const { urls, user, pass, verbose, onError } = params;
+  const { urls, user, pass, verbose, sentry } = params;
   const key = getClientKey(urls);
 
   if (!clients[key]) {
@@ -56,6 +63,10 @@ async function start<TInjection extends Record<string, unknown>>(params: {
   }
 
   if (!clients[key].natsService) {
+    if (sentry) {
+      Sentry.init(sentry.options);
+    }
+
     const client = await connect({
       servers: urls,
       user,
@@ -82,6 +93,7 @@ async function start<TInjection extends Record<string, unknown>>(params: {
             ? requestCodec.decode(message.data)
             : undefined;
 
+          let transaction: ReturnType<typeof Sentry.startTransaction>;
           try {
             if (!data) {
               respond({
@@ -101,6 +113,15 @@ async function start<TInjection extends Record<string, unknown>>(params: {
               };
             }
 
+            Sentry.setUser(sentry.getUser(data));
+            transaction = Sentry.startTransaction({
+              name: subject,
+              traceId: data.headers['trace-id'] as string,
+            });
+            Sentry.configureScope((scope) => {
+              scope.setSpan(transaction);
+            });
+
             const injection: TInjection & NatsInjection = {
               ...params.injections,
               message,
@@ -118,6 +139,7 @@ async function start<TInjection extends Record<string, unknown>>(params: {
                     body: encodeBody(validationResult.errors),
                   }),
                 });
+                transaction?.finish();
                 continue;
               }
             }
@@ -137,6 +159,7 @@ async function start<TInjection extends Record<string, unknown>>(params: {
                     body: encodeBody(authorizationResult.message),
                   }),
                 });
+                transaction?.finish();
                 continue;
               }
             }
@@ -152,6 +175,10 @@ async function start<TInjection extends Record<string, unknown>>(params: {
                     body: encodeBody(handleResult.errors),
                   }),
                 });
+                Sentry.captureMessage(`${subject} [${handleResult.code}]`, {
+                  extra: { ...data, errors: handleResult.errors },
+                });
+                transaction?.finish();
                 continue;
               }
               respond({
@@ -168,13 +195,20 @@ async function start<TInjection extends Record<string, unknown>>(params: {
                   body: encodeBody(handleResult.body),
                 }),
               });
+              transaction?.finish();
               continue;
             }
 
             respond({ message });
           } catch (error) {
             console.error(error);
-            onError && onError(error);
+            Sentry.captureException(error, {
+              extra: {
+                subject,
+                data,
+                code: 500,
+              },
+            });
 
             respond({
               message,
@@ -184,6 +218,8 @@ async function start<TInjection extends Record<string, unknown>>(params: {
                 code: 500,
               }),
             });
+          } finally {
+            transaction?.finish();
           }
         }
       })();
@@ -326,14 +362,27 @@ export default {
       getNamespaceSubject: string;
       namespaceSubjects: string[];
     };
-    onError?: (error: any) => void;
+    sentry?: {
+      options: Pick<
+        Sentry.NodeOptions,
+        'dsn' | 'tracesSampleRate' | 'environment' | 'release' | 'enabled'
+      >;
+      getUser: (data: NatsRequest<unknown>) => Sentry.User;
+    };
   }) => {
-    const { urls, injections, user, pass, verbose, namespace, onError } =
-      params;
+    const { urls, injections, user, pass, verbose, namespace, sentry } = params;
 
     const client = {
       start: () =>
-        start({ urls, injections, user, pass, verbose, namespace, onError }),
+        start({
+          urls,
+          injections,
+          user,
+          pass,
+          verbose,
+          namespace,
+          sentry,
+        }),
       stop: () => stop(urls),
       register: (
         handlers: Array<

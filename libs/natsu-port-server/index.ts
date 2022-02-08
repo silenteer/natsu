@@ -24,6 +24,7 @@ import NatsService from './service-nats';
 
 const httpRequestSchema = yup.object({
   subject: yup.string().trim().required(),
+  traceId: yup.string().trim().notRequired(),
   contentType: yup
     .string()
     .trim()
@@ -169,11 +170,12 @@ function validateHttpRequest(
 ) {
   const contentType = request.headers['content-type'];
   const subject = request.headers['nats-subject'] as string;
+  const traceId = request.headers['trace-id'] as string;
   let result: {
     code: 'OK' | 400;
   };
 
-  if (!httpRequestSchema.isValidSync({ contentType, subject })) {
+  if (!httpRequestSchema.isValidSync({ contentType, subject, traceId })) {
     result = { code: 400 };
     return result;
   }
