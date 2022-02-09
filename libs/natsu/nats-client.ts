@@ -234,23 +234,23 @@ async function start<TInjection extends Record<string, unknown>>(params: {
                   handleSpan.setStatus(
                     spanStatusfromHttpCode(handleResult.code)
                   );
+                } else {
+                  respond({
+                    message,
+                    data: responseCodec.encode({
+                      ...data,
+                      headers: handleResult.headers
+                        ? {
+                            ...data.headers,
+                            ...handleResult.headers,
+                          }
+                        : data.headers,
+                      code: handleResult.code,
+                      body: encodeBody(handleResult.body),
+                    }),
+                  });
+                  handleSpan.setStatus('ok' as SpanStatusType);
                 }
-
-                respond({
-                  message,
-                  data: responseCodec.encode({
-                    ...data,
-                    headers: handleResult.headers
-                      ? {
-                          ...data.headers,
-                          ...handleResult.headers,
-                        }
-                      : data.headers,
-                    code: handleResult.code,
-                    body: encodeBody(handleResult.body),
-                  }),
-                });
-                handleSpan.setStatus('ok' as SpanStatusType);
               } catch (error) {
                 handleSpan.setStatus('internal_error' as SpanStatusType);
                 handleSpan.finish();
