@@ -66,9 +66,9 @@ async function start<TInjection extends Record<string, unknown>>(params: {
   if (!clients[key].natsService) {
     if (sentry) {
       Sentry.init({
-        ...sentry.options,
         integrations: [new Sentry.Integrations.Http({ tracing: true })],
         tracesSampleRate: 1.0,
+        ...sentry.options,
       });
     }
 
@@ -121,6 +121,7 @@ async function start<TInjection extends Record<string, unknown>>(params: {
 
             Sentry.setUser(sentry.getUser(data));
             transaction = Sentry.startTransaction({
+              op: subject,
               name: subject,
               traceId: data.headers['trace-id'] as string,
             });
