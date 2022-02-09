@@ -15,9 +15,12 @@ const authorize: NatsAuthorize<NatsErrorFunction> = async () => {
 };
 
 const handle: NatsHandle<NatsErrorFunction> = async () => {
-  foo();
-
-  return NatsHandleResultUtil.ok();
+  return NatsHandleResultUtil.error({
+    code: 500,
+    errors: {
+      message: 'Internal server error',
+    },
+  });
 };
 
 export default {
