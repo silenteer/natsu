@@ -1,4 +1,8 @@
 /* eslint-disable @typescript-eslint/ban-types */
+import * as Sentry from '@sentry/node';
+import type { SpanStatusType } from '@sentry/tracing';
+import { spanStatusfromHttpCode } from '@sentry/tracing';
+import type { Transaction } from '@sentry/types';
 import type {
   NatsConnection,
   Msg,
@@ -38,6 +42,13 @@ async function start<TInjection extends Record<string, unknown>>(params: {
     getNamespaceSubject: string;
     namespaceSubjects: string[];
   };
+  sentry?: {
+    options: Pick<
+      Sentry.NodeOptions,
+      'dsn' | 'tracesSampleRate' | 'environment' | 'release' | 'enabled'
+    >;
+    getUser: (data: NatsRequest<unknown>) => Sentry.User;
+  };
 }) {
   if (
     params.namespace &&
@@ -47,7 +58,7 @@ async function start<TInjection extends Record<string, unknown>>(params: {
     throw new Error(`Wrong config for 'namespace' `);
   }
 
-  const { urls, user, pass, verbose } = params;
+  const { urls, user, pass, verbose, sentry } = params;
   const key = getClientKey(urls);
 
   if (!clients[key]) {
@@ -55,6 +66,14 @@ async function start<TInjection extends Record<string, unknown>>(params: {
   }
 
   if (!clients[key].natsService) {
+    if (sentry) {
+      Sentry.init({
+        integrations: [new Sentry.Integrations.Http({ tracing: true })],
+        tracesSampleRate: 1.0,
+        ...sentry.options,
+      });
+    }
+
     const client = await connect({
       servers: urls,
       user,
@@ -81,6 +100,7 @@ async function start<TInjection extends Record<string, unknown>>(params: {
             ? requestCodec.decode(message.data)
             : undefined;
 
+          let transaction: Transaction;
           try {
             if (!data) {
               respond({
@@ -100,6 +120,16 @@ async function start<TInjection extends Record<string, unknown>>(params: {
               };
             }
 
+            Sentry.setUser(sentry.getUser(data));
+            transaction = Sentry.startTransaction({
+              name: subject,
+              traceId: data.headers['trace-id'] as string,
+            });
+
+            Sentry.getCurrentHub().configureScope((scope) =>
+              scope.setSpan(transaction)
+            );
+
             const injection: TInjection & NatsInjection = {
               ...params.injections,
               message,
@@ -107,72 +137,141 @@ async function start<TInjection extends Record<string, unknown>>(params: {
             };
 
             if (handler.validate) {
-              const validationResult = await handler.validate(data, injection);
-              if (validationResult.code !== 'OK') {
-                respond({
-                  message,
-                  data: responseCodec.encode({
-                    ...data,
-                    code: validationResult.code as number,
-                    body: encodeBody(validationResult.errors),
-                  }),
-                });
-                continue;
+              const validateSpan = transaction.startChild({
+                description: `${subject} - validate`,
+              });
+
+              try {
+                const validationResult = await handler.validate(
+                  data,
+                  injection
+                );
+                if (validationResult.code !== 'OK') {
+                  respond({
+                    message,
+                    data: responseCodec.encode({
+                      ...data,
+                      code: validationResult.code as number,
+                      body: encodeBody(validationResult.errors),
+                    }),
+                  });
+
+                  validateSpan.setStatus(
+                    spanStatusfromHttpCode(validationResult.code)
+                  );
+                  validateSpan.finish();
+                  transaction.finish();
+                  continue;
+                } else {
+                  validateSpan.setStatus('ok' as SpanStatusType);
+                  validateSpan.finish();
+                }
+              } catch (error) {
+                validateSpan.setStatus('internal_error' as SpanStatusType);
+                validateSpan.finish();
+                throw error;
               }
             }
 
             if (handler.authorize) {
-              const authorizationResult = await handler.authorize(
-                data,
-                injection
-              );
+              const authorizeSpan = transaction.startChild({
+                description: `${subject} - authorize`,
+              });
 
-              if (authorizationResult.code !== 'OK') {
-                respond({
-                  message,
-                  data: responseCodec.encode({
-                    ...data,
-                    code: authorizationResult.code as number,
-                    body: encodeBody(authorizationResult.message),
-                  }),
-                });
-                continue;
+              try {
+                const authorizationResult = await handler.authorize(
+                  data,
+                  injection
+                );
+
+                if (authorizationResult.code !== 'OK') {
+                  respond({
+                    message,
+                    data: responseCodec.encode({
+                      ...data,
+                      code: authorizationResult.code as number,
+                      body: encodeBody(authorizationResult.message),
+                    }),
+                  });
+
+                  authorizeSpan.setStatus(
+                    spanStatusfromHttpCode(authorizationResult.code)
+                  );
+                  authorizeSpan.finish();
+                  transaction.finish();
+                  continue;
+                } else {
+                  authorizeSpan.setStatus('ok' as SpanStatusType);
+                  authorizeSpan.finish();
+                }
+              } catch (error) {
+                authorizeSpan.setStatus('internal_error' as SpanStatusType);
+                authorizeSpan.finish();
+                throw error;
               }
             }
 
             if (handler.handle) {
-              const handleResult = await handler.handle(data, injection);
-              if (handleResult.code !== 200) {
+              const handleSpan = transaction.startChild({
+                description: `${subject} - handle`,
+              });
+
+              try {
+                const handleResult = await handler.handle(data, injection);
+                if (handleResult.code !== 200) {
+                  respond({
+                    message,
+                    data: responseCodec.encode({
+                      ...data,
+                      code: handleResult.code,
+                      body: encodeBody(handleResult.errors),
+                    }),
+                  });
+
+                  Sentry.captureMessage(`${subject} [${handleResult.code}]`, {
+                    extra: { ...data, errors: handleResult.errors },
+                  });
+                  handleSpan.setStatus(
+                    spanStatusfromHttpCode(handleResult.code)
+                  );
+                }
+
                 respond({
                   message,
                   data: responseCodec.encode({
                     ...data,
+                    headers: handleResult.headers
+                      ? {
+                          ...data.headers,
+                          ...handleResult.headers,
+                        }
+                      : data.headers,
                     code: handleResult.code,
-                    body: encodeBody(handleResult.errors),
+                    body: encodeBody(handleResult.body),
                   }),
                 });
-                continue;
+                handleSpan.setStatus('ok' as SpanStatusType);
+              } catch (error) {
+                handleSpan.setStatus('internal_error' as SpanStatusType);
+                handleSpan.finish();
+                throw error;
               }
-              respond({
-                message,
-                data: responseCodec.encode({
-                  ...data,
-                  headers: handleResult.headers
-                    ? {
-                        ...data.headers,
-                        ...handleResult.headers,
-                      }
-                    : data.headers,
-                  code: handleResult.code,
-                  body: encodeBody(handleResult.body),
-                }),
-              });
+              handleSpan.finish();
+              transaction.finish();
               continue;
             }
 
             respond({ message });
           } catch (error) {
             console.error(error);
+            Sentry.captureException(error, {
+              extra: {
+                subject,
+                data,
+                code: 500,
+              },
+            });
+
             respond({
               message,
               data: responseCodec.encode({
@@ -181,6 +280,8 @@ async function start<TInjection extends Record<string, unknown>>(params: {
                 code: 500,
               }),
             });
+          } finally {
+            transaction?.finish();
           }
         }
       })();
@@ -323,11 +424,27 @@ export default {
       getNamespaceSubject: string;
       namespaceSubjects: string[];
     };
+    sentry?: {
+      options: Pick<
+        Sentry.NodeOptions,
+        'dsn' | 'tracesSampleRate' | 'environment' | 'release' | 'enabled'
+      >;
+      getUser: (data: NatsRequest<unknown>) => Sentry.User;
+    };
   }) => {
-    const { urls, injections, user, pass, verbose, namespace } = params;
+    const { urls, injections, user, pass, verbose, namespace, sentry } = params;
 
     const client = {
-      start: () => start({ urls, injections, user, pass, verbose, namespace }),
+      start: () =>
+        start({
+          urls,
+          injections,
+          user,
+          pass,
+          verbose,
+          namespace,
+          sentry,
+        }),
       stop: () => stop(urls),
       register: (
         handlers: Array<
