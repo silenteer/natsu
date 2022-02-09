@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/ban-types */
 import * as Sentry from '@sentry/node';
+import type { Span, Transaction } from '@sentry/types';
 import type {
   NatsConnection,
   Msg,
@@ -16,7 +17,6 @@ import type {
   NatsInjection,
   NatsHandler,
 } from './type';
-import type { Span, Transaction } from '@sentry/types';
 
 const clients: {
   [urls: string]: {
