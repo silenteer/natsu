@@ -45,7 +45,12 @@ async function start<TInjection extends Record<string, unknown>>(params: {
   sentry?: {
     options: Pick<
       Sentry.NodeOptions,
-      'dsn' | 'tracesSampleRate' | 'environment' | 'release' | 'enabled'
+      | 'dsn'
+      | 'tracesSampleRate'
+      | 'environment'
+      | 'release'
+      | 'enabled'
+      | 'serverName'
     >;
     getUser: (data: NatsRequest<unknown>) => Sentry.User;
   };
@@ -427,7 +432,12 @@ export default {
     sentry?: {
       options: Pick<
         Sentry.NodeOptions,
-        'dsn' | 'tracesSampleRate' | 'environment' | 'release' | 'enabled'
+        | 'dsn'
+        | 'tracesSampleRate'
+        | 'environment'
+        | 'release'
+        | 'enabled'
+        | 'serverName'
       >;
       getUser: (data: NatsRequest<unknown>) => Sentry.User;
     };
