@@ -233,8 +233,13 @@ async function start<TInjection extends Record<string, unknown>>(params: {
                     }),
                   });
 
+                  const { cookie, ...headers } = data.headers;
                   Sentry.captureMessage(`${subject} [${handleResult.code}]`, {
-                    extra: { ...data, errors: handleResult.errors },
+                    extra: {
+                      body: data.body,
+                      headers,
+                      errors: handleResult.errors,
+                    },
                   });
                   handleSpan.setStatus(
                     spanStatusfromHttpCode(handleResult.code)
@@ -269,10 +274,12 @@ async function start<TInjection extends Record<string, unknown>>(params: {
             respond({ message });
           } catch (error) {
             console.error(error);
+            const { cookie, ...headers } = data.headers;
             Sentry.captureException(error, {
               extra: {
                 subject,
-                data,
+                body: data.body,
+                headers,
                 code: 500,
               },
             });
