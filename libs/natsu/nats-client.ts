@@ -128,7 +128,7 @@ async function start<TInjection extends Record<string, unknown>>(params: {
             Sentry.setUser(sentry.getUser(data));
             transaction = Sentry.startTransaction({
               name: subject,
-              traceId: data.headers['trace-id'] as string,
+              traceId: data?.headers?.['trace-id'] as string,
             });
 
             Sentry.getCurrentHub().configureScope((scope) =>
