@@ -13,7 +13,7 @@
     "dist/**"
   ],
   "scripts": {
-    "build": "rm -rf dist && tsc",
+    "build": "rm -rf dist && tsc -p tsconfig.lib.json",
     "test": "jest",
     "test:coverage": "jest --coverage=true"
   },

@@ -5,6 +5,6 @@
     "types": ["node"],
     "declaration": true
   },
-  "exclude": ["./__tests__", "./jest.setup.ts"],
+  "exclude": ["./__tests__"],
   "include": ["**/*.ts"]
 }
