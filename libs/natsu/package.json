@@ -1,6 +1,6 @@
 {
   "name": "@silenteer/natsu",
-  "version": "1.0.13",
+  "version": "1.0.14",
   "license": "MIT",
   "private": false,
   "main": "dist/index.js",
@@ -18,8 +18,8 @@
     "test:coverage": "jest --coverage=true"
   },
   "dependencies": {
-    "nats": "^2.2.0",
-    "@silenteer/natsu-type": "0.0.10"
+    "@silenteer/natsu-type": "0.0.10",
+    "nats": "^2.2.0"
   },
   "devDependencies": {
     "@types/jest": "27.4.0",
