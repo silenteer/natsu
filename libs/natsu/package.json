@@ -18,7 +18,8 @@
     "test:coverage": "jest --coverage=true"
   },
   "dependencies": {
-    "nats": "^2.2.0"
+    "nats": "^2.2.0",
+    "@silenteer/natsu-type": "0.0.10"
   },
   "devDependencies": {
     "@types/jest": "27.4.0",
