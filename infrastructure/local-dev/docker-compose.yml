@@ -1,0 +1,14 @@
+version: "3.3"
+
+services:
+  natsu_nats_dev:
+    image: nats
+    container_name: "natsu_nats_dev"
+    ports:
+      - "4222:4222"
+    restart: always
+    networks: ["natsu-nats-dev"]
+
+networks:
+  natsu-nats-dev:
+    name: natsu-nats-dev

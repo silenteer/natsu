@@ -1,8 +1,4 @@
 /* eslint-disable @typescript-eslint/ban-types */
-import * as Sentry from '@sentry/node';
-import type { SpanStatusType } from '@sentry/tracing';
-import { spanStatusfromHttpCode } from '@sentry/tracing';
-import type { Transaction } from '@sentry/types';
 import type {
   NatsConnection,
   Msg,
@@ -12,13 +8,22 @@ import type {
 } from 'nats';
 import { connect, JSONCodec } from 'nats';
 import type { NatsGetNamespace } from '@silenteer/natsu-type';
-import type { NatsService } from './type';
 import type {
+  NatsService,
   NatsRequest,
   NatsResponse,
   NatsInjection,
   NatsHandler,
+  NatsValidationResult,
+  NatsAuthorizationResult,
+  NatsHandleResult,
+  NatsMiddlewareValidationResult,
+  NatsMiddlewareAuthorizationResult,
+  NatsMiddlewareHandleResult,
 } from './type';
+
+const requestCodec = JSONCodec<NatsRequest>();
+const responseCodec = JSONCodec<NatsResponse>();
 
 const clients: {
   [urls: string]: {
@@ -42,18 +47,6 @@ async function start<TInjection extends Record<string, unknown>>(params: {
     getNamespaceSubject: string;
     namespaceSubjects: string[];
   };
-  sentry?: {
-    options: Pick<
-      Sentry.NodeOptions,
-      | 'dsn'
-      | 'tracesSampleRate'
-      | 'environment'
-      | 'release'
-      | 'enabled'
-      | 'serverName'
-    >;
-    getUser: (data: NatsRequest<unknown>) => Sentry.User;
-  };
 }) {
   if (
     params.namespace &&
@@ -63,7 +56,7 @@ async function start<TInjection extends Record<string, unknown>>(params: {
     throw new Error(`Wrong config for 'namespace' `);
   }
 
-  const { urls, user, pass, verbose, sentry } = params;
+  const { urls, user, pass, verbose } = params;
   const key = getClientKey(urls);
 
   if (!clients[key]) {
@@ -71,14 +64,6 @@ async function start<TInjection extends Record<string, unknown>>(params: {
   }
 
   if (!clients[key].natsService) {
-    if (sentry) {
-      Sentry.init({
-        integrations: [new Sentry.Integrations.Http({ tracing: true })],
-        tracesSampleRate: 1.0,
-        ...sentry.options,
-      });
-    }
-
     const client = await connect({
       servers: urls,
       user,
@@ -93,9 +78,6 @@ async function start<TInjection extends Record<string, unknown>>(params: {
       natsService: createNatsService({ client, namespace: params.namespace }),
     };
 
-    const requestCodec = JSONCodec<NatsRequest>();
-    const responseCodec = JSONCodec<NatsResponse>();
-
     Object.entries(clients[key].handlers).forEach(([subject, handler]) => {
       const natsService = clients[key].natsService;
       const subcription = natsService.subscribe(subject);
@@ -104,8 +86,8 @@ async function start<TInjection extends Record<string, unknown>>(params: {
           let data = message.data
             ? requestCodec.decode(message.data)
             : undefined;
+          let injection: TInjection & NatsInjection;
 
-          let transaction: Transaction;
           try {
             if (!data) {
               respond({
@@ -125,175 +107,129 @@ async function start<TInjection extends Record<string, unknown>>(params: {
               };
             }
 
-            Sentry.setUser(sentry.getUser(data));
-            transaction = Sentry.startTransaction({
-              name: subject,
-              traceId: data.headers['trace-id'] as string,
-            });
-
-            Sentry.getCurrentHub().configureScope((scope) =>
-              scope.setSpan(transaction)
-            );
-
-            const injection: TInjection & NatsInjection = {
+            injection = {
               ...params.injections,
+              subject,
               message,
               natsService,
             };
 
-            if (handler.validate) {
-              const validateSpan = transaction.startChild({
-                description: `${subject} - validate`,
-              });
-
-              try {
-                const validationResult = await handler.validate(
-                  data,
-                  injection
-                );
-                if (validationResult.code !== 'OK') {
-                  respond({
-                    message,
-                    data: responseCodec.encode({
-                      ...data,
-                      code: validationResult.code as number,
-                      body: encodeBody(validationResult.errors),
-                    }),
-                  });
-
-                  validateSpan.setStatus(
-                    spanStatusfromHttpCode(validationResult.code)
-                  );
-                  validateSpan.finish();
-                  transaction.finish();
-                  continue;
-                } else {
-                  validateSpan.setStatus('ok' as SpanStatusType);
-                  validateSpan.finish();
-                }
-              } catch (error) {
-                validateSpan.setStatus('internal_error' as SpanStatusType);
-                validateSpan.finish();
-                throw error;
-              }
+            //#region Validate
+            const beforeValidateResult = await beforeValidate({
+              message,
+              data,
+              injection,
+              handler,
+            });
+            if (beforeValidateResult && beforeValidateResult.code !== 'OK') {
+              continue;
+            } else if (beforeValidateResult) {
+              data = beforeValidateResult.data;
             }
 
-            if (handler.authorize) {
-              const authorizeSpan = transaction.startChild({
-                description: `${subject} - authorize`,
-              });
-
-              try {
-                const authorizationResult = await handler.authorize(
-                  data,
-                  injection
-                );
-
-                if (authorizationResult.code !== 'OK') {
-                  respond({
-                    message,
-                    data: responseCodec.encode({
-                      ...data,
-                      code: authorizationResult.code as number,
-                      body: encodeBody(authorizationResult.message),
-                    }),
-                  });
-
-                  authorizeSpan.setStatus(
-                    spanStatusfromHttpCode(authorizationResult.code)
-                  );
-                  authorizeSpan.finish();
-                  transaction.finish();
-                  continue;
-                } else {
-                  authorizeSpan.setStatus('ok' as SpanStatusType);
-                  authorizeSpan.finish();
-                }
-              } catch (error) {
-                authorizeSpan.setStatus('internal_error' as SpanStatusType);
-                authorizeSpan.finish();
-                throw error;
-              }
-            }
-
-            if (handler.handle) {
-              const handleSpan = transaction.startChild({
-                description: `${subject} - handle`,
-              });
-
-              try {
-                const handleResult = await handler.handle(data, injection);
-                if (handleResult.code !== 200) {
-                  respond({
-                    message,
-                    data: responseCodec.encode({
-                      ...data,
-                      code: handleResult.code,
-                      body: encodeBody(handleResult.errors),
-                    }),
-                  });
-
-                  const { cookie, ...headers } = data.headers;
-                  Sentry.captureMessage(`${subject} [${handleResult.code}]`, {
-                    extra: {
-                      body: data.body,
-                      headers,
-                      errors: handleResult.errors,
-                    },
-                  });
-                  handleSpan.setStatus(
-                    spanStatusfromHttpCode(handleResult.code)
-                  );
-                } else {
-                  respond({
-                    message,
-                    data: responseCodec.encode({
-                      ...data,
-                      headers: handleResult.headers
-                        ? {
-                            ...data.headers,
-                            ...handleResult.headers,
-                          }
-                        : data.headers,
-                      code: handleResult.code,
-                      body: encodeBody(handleResult.body),
-                    }),
-                  });
-                  handleSpan.setStatus('ok' as SpanStatusType);
-                }
-              } catch (error) {
-                handleSpan.setStatus('internal_error' as SpanStatusType);
-                handleSpan.finish();
-                throw error;
-              }
-              handleSpan.finish();
-              transaction.finish();
+            const validateResult = await validate({
+              message,
+              data,
+              injection,
+              handler,
+            });
+            if (validateResult && validateResult.code !== 'OK') {
               continue;
             }
+
+            const afterValidateResult = await afterValidate({
+              message,
+              data,
+              injection,
+              handler,
+            });
+            if (afterValidateResult && afterValidateResult.code !== 'OK') {
+              continue;
+            } else if (afterValidateResult) {
+              data = afterValidateResult.data;
+            }
+            //#endregion
+
+            //#region Authorize
+            const beforeAuthorizeResult = await beforeAuthorize({
+              message,
+              data,
+              injection,
+              handler,
+            });
+            if (beforeAuthorizeResult && beforeAuthorizeResult.code !== 'OK') {
+              continue;
+            } else if (beforeAuthorizeResult) {
+              data = beforeAuthorizeResult.data;
+            }
+
+            const authorizeResult = await authorize({
+              message,
+              data,
+              injection,
+              handler,
+            });
+            if (authorizeResult && authorizeResult.code !== 'OK') {
+              continue;
+            }
+
+            const afterAuthorizeResult = await afterAuthorize({
+              message,
+              data,
+              injection,
+              handler,
+            });
+            if (afterAuthorizeResult && afterAuthorizeResult.code !== 'OK') {
+              continue;
+            } else if (afterAuthorizeResult) {
+              data = afterAuthorizeResult.data;
+            }
+            //#endregion
+
+            //#region Handle
+            const beforeHandleResult = await beforeHandle({
+              message,
+              data,
+              injection,
+              handler,
+            });
+            if (beforeHandleResult && beforeHandleResult.code !== 'OK') {
+              continue;
+            } else if (beforeHandleResult) {
+              data = beforeHandleResult.data;
+            }
+
+            const handleResult = await handle({
+              message,
+              data,
+              injection,
+              handler,
+            });
+            if (handleResult) {
+              if (handleResult.code === 200) {
+                await afterHandle({
+                  message,
+                  data,
+                  result: handleResult,
+                  injection,
+                  handler,
+                });
+              }
+              continue;
+            }
+            //#endregion
 
             respond({ message });
           } catch (error) {
             console.error(error);
-            const { cookie, ...headers } = data.headers;
-            Sentry.captureException(error, {
-              extra: {
-                subject,
-                body: data.body,
-                headers,
-                code: 500,
-              },
-            });
 
-            respond({
+            await respondUnhandledError({
               message,
-              data: responseCodec.encode({
-                ...data,
-                body: data?.body as string,
-                code: 500,
-              }),
+              data,
+              error,
+              injection,
+              handler,
             });
-          } finally {
-            transaction?.finish();
           }
         }
       })();
@@ -408,6 +344,460 @@ function createNatsService(params: {
   };
 }
 
+async function beforeValidate(params: {
+  message: Msg;
+  data: NatsRequest<unknown>;
+  injection: NatsInjection;
+  handler: NatsHandler<
+    NatsService<string, unknown, unknown>,
+    Record<string, unknown>
+  >;
+}) {
+  const { message, data, injection, handler } = params;
+  let validationResult: NatsMiddlewareValidationResult;
+
+  if (handler.beforeValidateMiddlewares?.length > 0) {
+    for (const validateMiddleware of handler.beforeValidateMiddlewares) {
+      validationResult = await validateMiddleware.handle(
+        validationResult ? validationResult.data : data,
+        injection
+      );
+
+      if (validationResult.code !== 'OK') {
+        await handleErrorResponse({
+          data: validationResult.data,
+          error: {
+            code: validationResult.code,
+            errors: validationResult.errors,
+          },
+          injection,
+          handler,
+        });
+
+        respond({
+          message,
+          data: responseCodec.encode({
+            ...validationResult.data,
+            code: validationResult.code,
+            body: encodeBody(validationResult.errors),
+          }),
+        });
+        break;
+      }
+    }
+  }
+
+  return validationResult;
+}
+
+async function validate(params: {
+  message: Msg;
+  data: NatsRequest<unknown>;
+  injection: NatsInjection;
+  handler: NatsHandler<
+    NatsService<string, unknown, unknown>,
+    Record<string, unknown>
+  >;
+}) {
+  const { message, data, injection, handler } = params;
+  let validationResult: NatsValidationResult;
+
+  if (handler.validate) {
+    validationResult = await handler.validate(data, injection);
+
+    if (validationResult.code !== 'OK') {
+      await handleErrorResponse({
+        data,
+        error: {
+          code: validationResult.code,
+          errors: validationResult.errors,
+        },
+        injection,
+        handler,
+      });
+
+      respond({
+        message,
+        data: responseCodec.encode({
+          ...data,
+          code: validationResult.code as number,
+          body: encodeBody(validationResult.errors),
+        }),
+      });
+    }
+  }
+
+  return validationResult;
+}
+
+async function afterValidate(params: {
+  message: Msg;
+  data: NatsRequest<unknown>;
+  injection: NatsInjection;
+  handler: NatsHandler<
+    NatsService<string, unknown, unknown>,
+    Record<string, unknown>
+  >;
+}) {
+  const { message, data, injection, handler } = params;
+  let validationResult: NatsMiddlewareValidationResult;
+
+  if (handler.afterValidateMiddlewares?.length > 0) {
+    for (const validateMiddleware of handler.afterValidateMiddlewares) {
+      validationResult = await validateMiddleware.handle(
+        validationResult ? validationResult.data : data,
+        injection
+      );
+
+      if (validationResult.code !== 'OK') {
+        await handleErrorResponse({
+          data: validationResult.data,
+          error: {
+            code: validationResult.code,
+            errors: validationResult.errors,
+          },
+          injection,
+          handler,
+        });
+
+        respond({
+          message,
+          data: responseCodec.encode({
+            ...validationResult.data,
+            code: validationResult.code,
+            body: encodeBody(validationResult.errors),
+          }),
+        });
+        break;
+      }
+    }
+  }
+
+  return validationResult;
+}
+
+async function beforeAuthorize(params: {
+  message: Msg;
+  data: NatsRequest<unknown>;
+  injection: NatsInjection;
+  handler: NatsHandler<
+    NatsService<string, unknown, unknown>,
+    Record<string, unknown>
+  >;
+}) {
+  const { message, data, injection, handler } = params;
+  let authorizationResult: NatsMiddlewareAuthorizationResult;
+
+  if (handler.beforeAuthorizeMiddlewares?.length > 0) {
+    for (const authorizeMiddleware of handler.beforeAuthorizeMiddlewares) {
+      authorizationResult = await authorizeMiddleware.handle(
+        authorizationResult ? authorizationResult.data : data,
+        injection
+      );
+
+      if (authorizationResult.code !== 'OK') {
+        await handleErrorResponse({
+          data: authorizationResult.data,
+          error: {
+            code: authorizationResult.code,
+            errors: authorizationResult.errors,
+          },
+          injection,
+          handler,
+        });
+
+        respond({
+          message,
+          data: responseCodec.encode({
+            ...authorizationResult.data,
+            code: authorizationResult.code,
+            body: encodeBody(authorizationResult.errors),
+          }),
+        });
+        break;
+      }
+    }
+  }
+  return authorizationResult;
+}
+
+async function authorize(params: {
+  message: Msg;
+  data: NatsRequest<unknown>;
+  injection: NatsInjection;
+  handler: NatsHandler<
+    NatsService<string, unknown, unknown>,
+    Record<string, unknown>
+  >;
+}) {
+  const { message, data, injection, handler } = params;
+  let authorizationResult: NatsAuthorizationResult;
+
+  if (handler.authorize) {
+    authorizationResult = await handler.authorize(data, injection);
+
+    if (authorizationResult.code !== 'OK') {
+      await handleErrorResponse({
+        data,
+        error: {
+          code: authorizationResult.code,
+          errors: authorizationResult.errors,
+        },
+        injection,
+        handler,
+      });
+
+      respond({
+        message,
+        data: responseCodec.encode({
+          ...data,
+          code: authorizationResult.code as number,
+          body: encodeBody(authorizationResult.errors),
+        }),
+      });
+    }
+  }
+  return authorizationResult;
+}
+
+async function afterAuthorize(params: {
+  message: Msg;
+  data: NatsRequest<unknown>;
+  injection: NatsInjection;
+  handler: NatsHandler<
+    NatsService<string, unknown, unknown>,
+    Record<string, unknown>
+  >;
+}) {
+  const { message, data, injection, handler } = params;
+  let authorizationResult: NatsMiddlewareAuthorizationResult;
+
+  if (handler.afterAuthorizeMiddlewares?.length > 0) {
+    for (const authorizeMiddleware of handler.afterAuthorizeMiddlewares) {
+      authorizationResult = await authorizeMiddleware.handle(
+        authorizationResult ? authorizationResult.data : data,
+        injection
+      );
+
+      if (authorizationResult.code !== 'OK') {
+        await handleErrorResponse({
+          data: authorizationResult.data,
+          error: {
+            code: authorizationResult.code,
+            errors: authorizationResult.errors,
+          },
+          injection,
+          handler,
+        });
+
+        respond({
+          message,
+          data: responseCodec.encode({
+            ...authorizationResult.data,
+            code: authorizationResult.code,
+            body: encodeBody(authorizationResult.errors),
+          }),
+        });
+        break;
+      }
+    }
+  }
+  return authorizationResult;
+}
+
+async function beforeHandle(params: {
+  message: Msg;
+  data: NatsRequest<unknown>;
+  injection: NatsInjection;
+  handler: NatsHandler<
+    NatsService<string, unknown, unknown>,
+    Record<string, unknown>
+  >;
+}) {
+  const { message, data, injection, handler } = params;
+  let handleResult: NatsMiddlewareHandleResult;
+
+  if (handler.beforeHandleMiddlewares?.length > 0) {
+    for (const handleMiddleware of handler.beforeHandleMiddlewares) {
+      handleResult = await handleMiddleware.handle(
+        handleResult ? handleResult.data : data,
+        injection
+      );
+
+      if (handleResult.code != 'OK') {
+        await handleErrorResponse({
+          data: handleResult.data,
+          error: {
+            code: handleResult.code,
+            errors: handleResult.errors,
+          },
+          injection,
+          handler,
+        });
+
+        respond({
+          message,
+          data: responseCodec.encode({
+            ...handleResult.data,
+            code: handleResult.code,
+            body: encodeBody(handleResult.errors),
+          }),
+        });
+        break;
+      }
+    }
+  }
+  return handleResult;
+}
+
+async function handle(params: {
+  message: Msg;
+  data: NatsRequest<unknown>;
+  injection: NatsInjection;
+  handler: NatsHandler<
+    NatsService<string, unknown, unknown>,
+    Record<string, unknown>
+  >;
+}) {
+  const { message, data, injection, handler } = params;
+  let handleResult: NatsHandleResult<unknown>;
+
+  if (handler.handle) {
+    handleResult = await handler.handle(data, injection);
+    if (handleResult.code !== 200) {
+      await handleErrorResponse({
+        data,
+        error: {
+          code: handleResult.code,
+          errors: handleResult.errors,
+        },
+        injection,
+        handler,
+      });
+
+      respond({
+        message,
+        data: responseCodec.encode({
+          ...data,
+          code: handleResult.code,
+          body: encodeBody(handleResult.errors),
+        }),
+      });
+    }
+  }
+  return handleResult;
+}
+
+async function afterHandle(params: {
+  message: Msg;
+  data: NatsRequest<unknown>;
+  result: NatsHandleResult<unknown>;
+  injection: NatsInjection;
+  handler: NatsHandler<
+    NatsService<string, unknown, unknown>,
+    Record<string, unknown>
+  >;
+}) {
+  const { message, data, result, injection, handler } = params;
+  let handleResult: NatsMiddlewareHandleResult;
+
+  if (handler.afterHandleMiddlewares?.length > 0) {
+    for (const handleMiddleware of handler.afterHandleMiddlewares) {
+      handleResult = await handleMiddleware.handle(
+        handleResult ? handleResult.data : data,
+        handleResult ? handleResult.result : result,
+        injection
+      );
+
+      if (handleResult.code !== 'OK') {
+        await handleErrorResponse({
+          data: handleResult.data,
+          error: {
+            code: handleResult.code,
+            errors: handleResult.errors,
+          },
+          injection,
+          handler,
+        });
+
+        respond({
+          message,
+          data: responseCodec.encode({
+            ...handleResult.data,
+            code: handleResult.code,
+            body: encodeBody(handleResult.errors),
+          }),
+        });
+        return;
+      }
+    }
+  }
+
+  const lastData = handleResult ? handleResult.data : data;
+  const lastResult = handleResult ? handleResult.result : result;
+
+  respond({
+    message,
+    data: responseCodec.encode({
+      ...lastData,
+      headers: lastResult?.headers
+        ? {
+            ...lastData?.headers,
+            ...lastResult?.headers,
+          }
+        : lastData?.headers,
+      code: lastResult?.code || 200,
+      body: encodeBody(lastResult?.body),
+    }),
+  });
+}
+
+async function handleErrorResponse(params: {
+  data: NatsRequest<unknown>;
+  error: { code: number; errors?: unknown };
+  injection: NatsInjection;
+  handler: NatsHandler<
+    NatsService<string, unknown, unknown>,
+    Record<string, unknown>
+  >;
+}) {
+  const { data, error, injection, handler } = params;
+
+  if (handler.respondError) {
+    await handler.respondError(data, error, injection);
+  }
+}
+
+async function respondUnhandledError(params: {
+  message: Msg;
+  data: NatsRequest<unknown>;
+  error: Error;
+  injection: NatsInjection;
+  handler: NatsHandler<
+    NatsService<string, unknown, unknown>,
+    Record<string, unknown>
+  >;
+}) {
+  const { message, data, error, injection, handler } = params;
+
+  if (handler.respondUnhandledError) {
+    try {
+      await handler.respondUnhandledError(data, error, injection);
+    } catch (error) {
+      console.error(`[${handler.subject}]respondUnhandledError`, error);
+    }
+  }
+
+  respond({
+    message,
+    data: responseCodec.encode({
+      ...data,
+      body: encodeBody(data?.body),
+      code: 500,
+    }),
+  });
+}
+
 function respond(params: { message: Msg; data?: Uint8Array }) {
   const { message, data } = params;
   if (message.reply) {
@@ -436,20 +826,8 @@ export default {
       getNamespaceSubject: string;
       namespaceSubjects: string[];
     };
-    sentry?: {
-      options: Pick<
-        Sentry.NodeOptions,
-        | 'dsn'
-        | 'tracesSampleRate'
-        | 'environment'
-        | 'release'
-        | 'enabled'
-        | 'serverName'
-      >;
-      getUser: (data: NatsRequest<unknown>) => Sentry.User;
-    };
   }) => {
-    const { urls, injections, user, pass, verbose, namespace, sentry } = params;
+    const { urls, injections, user, pass, verbose, namespace } = params;
 
     const client = {
       start: () =>
@@ -460,7 +838,6 @@ export default {
           pass,
           verbose,
           namespace,
-          sentry,
         }),
       stop: () => stop(urls),
       register: (

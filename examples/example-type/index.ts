@@ -26,9 +26,3 @@ export type NatsGetCareProviders = NatsService<
     name: string;
   }>
 >;
-
-export type NatsErrorFunction = NatsService<
-  'api.errorFunction',
-  undefined,
-  void
->;

@@ -1,0 +1,14 @@
+version: "3.3"
+
+services:
+  natsu_nats_test:
+    image: nats
+    container_name: "natsu_nats_test"
+    ports:
+      - "4222:4222"
+    restart: always
+    networks: ["natsu-nats-test"]
+
+networks:
+  natsu-nats-test:
+    name: natsu-nats-test

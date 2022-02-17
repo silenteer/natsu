@@ -40,18 +40,6 @@ const natsClient = NatsClient.default.setup({
   urls: [options.nats],
   verbose: options.verbose,
   namespace: namespaceConfig,
-  // TODO: Need to remove sentry in v2
-  ...(process.env.SENTRY_DSN
-    ? {
-        sentry: {
-          options: {
-            dsn: process.env.SENTRY_DSN,
-            environment: 'localhost',
-          },
-          getUser: () => ({ name: 'Example natsu runner' }),
-        },
-      }
-    : {}),
 });
 
 files.forEach((file) => {
