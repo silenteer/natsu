@@ -533,10 +533,10 @@
   resolved "https://registry.yarnpkg.com/@open-draft/until/-/until-1.0.3.tgz#db9cc719191a62e7d9200f6e7bab21c5b848adca"
   integrity sha512-Aq58f5HiWdyDlFffbbSjAlv596h/cOnt2DO1w3DOC7OJ5EHs0hd/nycJfiu9RJbT6Yk6F1knnRRXNSpxoIVZ9Q==
 
-"@silenteer/natsu-type@0.0.10":
-  version "0.0.10"
-  resolved "https://registry.yarnpkg.com/@silenteer/natsu-type/-/natsu-type-0.0.10.tgz#7b9b88b11c9a93da7ac629c372f38e2dd112347d"
-  integrity sha512-UBQin2Pw39ZpdURnM+QNxh6WsiM0HHcw6nYDemdw4qFIc92fKsiYuJ3ksW0y9LgFYNJCMFBcdHl6aOhOuKsnXw==
+"@silenteer/natsu-type@0.0.11":
+  version "0.0.11"
+  resolved "https://registry.yarnpkg.com/@silenteer/natsu-type/-/natsu-type-0.0.11.tgz#b17bb7ad96428e683e1996de44b6ef20dab8601d"
+  integrity sha512-mq7uJzCr1Wwfhx+0//0ZeVZtLIiSlpLqnsmuDFXodmgkrMHdg/Dxkhv9+qOu4XfkgbwWQD0kCyy8wnezhf7ibQ==
 
 "@sinonjs/commons@^1.7.0":
   version "1.8.3"
