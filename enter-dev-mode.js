@@ -13,6 +13,7 @@ const packagesNeedToLink = [
 ];
 const packagesUseLink = [
   'libs/natsu',
+  'libs/natsu-type',
   'libs/natsu-port-server',
   'libs/natsu-port',
   'libs/natsu-runner',

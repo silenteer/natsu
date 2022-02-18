@@ -103,7 +103,7 @@ async function start<TInjection extends Record<string, unknown>>(params: {
             if (data.body) {
               data = {
                 ...data,
-                body: decodeBody(data.body as string),
+                body: data.body,
               };
             }
 
@@ -309,9 +309,9 @@ function createNatsService(params: {
       if (shouldSetNamespace) {
         try {
           const { headers } = data || {};
-          const natsRequest: NatsRequest<string> = {
+          const natsRequest: NatsRequest<unknown> = {
             headers,
-            body: encodeBody({ subject }),
+            body: { subject },
           };
 
           const message = await client.request(
@@ -319,8 +319,8 @@ function createNatsService(params: {
             JSONCodec().encode(natsRequest)
           );
           const natsResponse = JSONCodec<NatsResponse>().decode(message.data);
-          const { namespace } = (decodeBody(natsResponse.body) ||
-            {}) as NatsGetNamespace<string>['response'];
+          const { namespace } = (natsResponse.body ||
+            {}) as NatsGetNamespace<any>['response'];
 
           if (namespace) {
             _subject = `${subject}.${namespace}`;
@@ -379,7 +379,7 @@ async function beforeValidate(params: {
           data: responseCodec.encode({
             ...validationResult.data,
             code: validationResult.code,
-            body: encodeBody(validationResult.errors),
+            body: validationResult.errors,
           }),
         });
         break;
@@ -421,7 +421,7 @@ async function validate(params: {
         data: responseCodec.encode({
           ...data,
           code: validationResult.code as number,
-          body: encodeBody(validationResult.errors),
+          body: validationResult.errors,
         }),
       });
     }
@@ -465,7 +465,7 @@ async function afterValidate(params: {
           data: responseCodec.encode({
             ...validationResult.data,
             code: validationResult.code,
-            body: encodeBody(validationResult.errors),
+            body: validationResult.errors,
           }),
         });
         break;
@@ -511,7 +511,7 @@ async function beforeAuthorize(params: {
           data: responseCodec.encode({
             ...authorizationResult.data,
             code: authorizationResult.code,
-            body: encodeBody(authorizationResult.errors),
+            body: authorizationResult.errors,
           }),
         });
         break;
@@ -552,7 +552,7 @@ async function authorize(params: {
         data: responseCodec.encode({
           ...data,
           code: authorizationResult.code as number,
-          body: encodeBody(authorizationResult.errors),
+          body: authorizationResult.errors,
         }),
       });
     }
@@ -595,7 +595,7 @@ async function afterAuthorize(params: {
           data: responseCodec.encode({
             ...authorizationResult.data,
             code: authorizationResult.code,
-            body: encodeBody(authorizationResult.errors),
+            body: authorizationResult.errors,
           }),
         });
         break;
@@ -640,7 +640,7 @@ async function beforeHandle(params: {
           data: responseCodec.encode({
             ...handleResult.data,
             code: handleResult.code,
-            body: encodeBody(handleResult.errors),
+            body: handleResult.errors,
           }),
         });
         break;
@@ -680,7 +680,7 @@ async function handle(params: {
         data: responseCodec.encode({
           ...data,
           code: handleResult.code,
-          body: encodeBody(handleResult.errors),
+          body: handleResult.errors,
         }),
       });
     }
@@ -725,7 +725,7 @@ async function afterHandle(params: {
           data: responseCodec.encode({
             ...handleResult.data,
             code: handleResult.code,
-            body: encodeBody(handleResult.errors),
+            body: handleResult.errors,
           }),
         });
         return;
@@ -747,7 +747,7 @@ async function afterHandle(params: {
           }
         : lastData?.headers,
       code: lastResult?.code || 200,
-      body: encodeBody(lastResult?.body),
+      body: lastResult?.body,
     }),
   });
 }
@@ -792,7 +792,7 @@ async function respondUnhandledError(params: {
     message,
     data: responseCodec.encode({
       ...data,
-      body: encodeBody(data?.body),
+      body: data?.body,
       code: 500,
     }),
   });
@@ -803,16 +803,6 @@ function respond(params: { message: Msg; data?: Uint8Array }) {
   if (message.reply) {
     message.respond(data);
   }
-}
-
-function encodeBody(body: unknown) {
-  return body
-    ? Buffer.from(JSONCodec().encode(body)).toString('base64')
-    : undefined;
-}
-
-function decodeBody(body: string) {
-  return body ? JSONCodec().decode(Buffer.from(body, 'base64')) : undefined;
 }
 
 export default {
