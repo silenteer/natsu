@@ -326,13 +326,13 @@ json-schema-traverse@^1.0.0:
   integrity sha512-NM8/P9n3XjXhIZn1lLhkFaACTOURQXjWhV4BA/RnOv8xvgqtqpAX9IO4mRQxSx1Rlo4tqzeqb0sOlruaOy3dug==
 
 light-my-request@^4.2.0:
-  version "4.7.1"
-  resolved "https://registry.yarnpkg.com/light-my-request/-/light-my-request-4.7.1.tgz#deb33c4485a08395760f16e5a7a044e6102bb4c4"
-  integrity sha512-7/bT6M+iHY90L9/rW7aboVYt0o0uOqzIx4yofC67d6WE9uLksecGf3mxPuZfVjMONG+i6hCq6z5NZCxqzpA2yw==
+  version "4.8.0"
+  resolved "https://registry.yarnpkg.com/light-my-request/-/light-my-request-4.8.0.tgz#b0bd074902f95814a956819bc2b6c99d8cafcefb"
+  integrity sha512-C2XESrTRsZnI59NSQigOsS6IuTxpj8OhSBvZS9fhgBMsamBsAuWN1s4hj/nCi8EeZcyAA6xbROhsZy7wKdfckg==
   dependencies:
     ajv "^8.1.0"
     cookie "^0.4.0"
-    fastify-warning "^0.2.0"
+    process-warning "^1.0.0"
     set-cookie-parser "^2.4.1"
 
 lodash-es@^4.17.15:

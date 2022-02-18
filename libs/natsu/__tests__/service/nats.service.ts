@@ -37,17 +37,11 @@ function init() {
         subject,
         responseCodec.encode({
           code: data.code,
-          body: encodeBody(data.body),
+          body: data.body,
         })
       );
     },
   };
-}
-
-function encodeBody(body: unknown) {
-  return body
-    ? Buffer.from(JSONCodec().encode(body)).toString('base64')
-    : undefined;
 }
 
 export default {

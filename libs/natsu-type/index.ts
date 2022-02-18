@@ -17,7 +17,7 @@ export type NatsRequest<TBody = unknown> = {
 
 export type NatsResponse = {
   headers: { [key: string]: unknown };
-  body?: string;
+  body?: any;
   code: number;
 };
 

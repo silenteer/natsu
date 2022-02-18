@@ -40,7 +40,7 @@ const wsRequestSchema = yup.object({
     >),
 });
 
-const requestCodec = JSONCodec<NatsRequest<string>>();
+const requestCodec = JSONCodec<NatsRequest<unknown>>();
 const responseCodec = JSONCodec<NatsResponse>();
 
 function start() {
@@ -249,11 +249,11 @@ async function getNamespace(params: {
 
   const shouldSetNamespace = config.natsNamespaceSubjects?.includes(subject);
   if (shouldSetNamespace) {
-    const natsRequest: NatsRequest<string> = {
+    const natsRequest: NatsRequest<unknown> = {
       headers: natsAuthResponse
         ? natsAuthResponse.headers
         : httpRequest.headers,
-      body: NatsService.encodeBody({ subject }),
+      body: { subject },
     };
 
     const message = await NatsService.request({
@@ -262,13 +262,7 @@ async function getNamespace(params: {
     });
     const natsResponse = responseCodec.decode(message.data);
     const namespace =
-      natsResponse.code === 200
-        ? (
-            NatsService.decodeBody(
-              natsResponse.body
-            ) as NatsGetNamespace<string>['response']
-          )?.namespace
-        : undefined;
+      natsResponse.code === 200 ? natsResponse.body?.namespace : undefined;
 
     if (namespace) {
       result = { code: 'OK', namespace };
@@ -310,9 +304,9 @@ async function sendNatsRequest(params: {
   natsAuthResponse: NatsResponse;
 }) {
   const { httpRequest, natsAuthResponse } = params;
-  const natsRequest: NatsRequest<string> = {
+  const natsRequest: NatsRequest<unknown> = {
     headers: natsAuthResponse ? natsAuthResponse.headers : httpRequest.headers,
-    body: NatsService.encodeBody((httpRequest.body as NatsPortRequest)?.data),
+    body: (httpRequest.body as NatsPortRequest)?.data,
   };
 
   const message = await NatsService.request({
@@ -324,7 +318,7 @@ async function sendNatsRequest(params: {
     code: natsResponse.code as
       | NatsPortResponse['code']
       | NatsPortErrorResponse['code'],
-    body: NatsService.decodeBody(natsResponse.body),
+    body: natsResponse.body,
   };
 
   return portResponse;

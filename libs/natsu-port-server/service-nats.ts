@@ -120,7 +120,7 @@ async function subscribe(params: {
               code: data.code as
                 | NatsPortWSResponse['code']
                 | NatsPortWSErrorResponse['code'],
-              body: decodeBody(data.body),
+              body: data.body,
             });
           });
         }
@@ -159,26 +159,6 @@ async function unsubscribe(params: {
   }
 }
 
-function encodeBody(body: unknown) {
-  try {
-    return body
-      ? Buffer.from(JSONCodec().encode(body)).toString('base64')
-      : undefined;
-  } catch (error) {
-    console.error('[encodeBody]', error);
-    return undefined;
-  }
-}
-
-function decodeBody(body: string) {
-  try {
-    return body ? JSONCodec().decode(Buffer.from(body, 'base64')) : undefined;
-  } catch (error) {
-    console.error('[decodeBody]', error);
-    return undefined;
-  }
-}
-
 const subscriptionQueue = new Queue(subscribe);
 const unsubscriptionQueue = new Queue(unsubscribe);
 
@@ -195,6 +175,4 @@ export default {
       }
     });
   },
-  encodeBody,
-  decodeBody,
 };
