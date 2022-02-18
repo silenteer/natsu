@@ -1,6 +1,6 @@
 {
   "name": "@silenteer/natsu",
-  "version": "1.0.14",
+  "version": "1.0.15",
   "license": "MIT",
   "private": false,
   "main": "dist/index.js",
