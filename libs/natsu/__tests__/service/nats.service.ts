@@ -14,9 +14,9 @@ function init() {
 
   return {
     ...natsClient,
-    stop: () => {
-      natsConnection?.drain();
-      return natsClient.stop();
+    stop: async () => {
+      await natsConnection?.drain();
+      await natsClient.stop();
     },
     request: async (params: {
       subject: string;

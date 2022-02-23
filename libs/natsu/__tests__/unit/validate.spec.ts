@@ -1,14 +1,15 @@
-import type { NatsRequest } from '@silenteer/natsu-type';
-import {
-  NatsValidationResultUtil,
-  NatsMiddlewareValidationResultUtil,
-} from '../../utility';
+import type { NatsService as NatsServiceType } from '@silenteer/natsu-type';
+import type {
+  NatsBeforeValidate,
+  NatsValidate,
+  NatsAfterValidate,
+} from '../../type';
 import NatsService from '../service/nats.service';
 
 describe('Validation stage', () => {
   let natsService: ReturnType<typeof NatsService.init>;
 
-  beforeEach(async () => {
+  beforeEach(() => {
     natsService = NatsService.init();
   });
 
@@ -16,37 +17,45 @@ describe('Validation stage', () => {
     await natsService?.stop();
   });
 
-  it('beforeValidateMiddlewares & validate & afterValidateMiddlewares will execute orderly', async () => {
+  it('beforeValidate & validate & afterValidate will execute orderly', async () => {
     const order: string[] = [];
-    const mockHandlerValidate = jest.fn(async () => {
+    const handlerValidate: NatsValidate<
+      NatsServiceType<string, unknown, unknown>,
+      Record<string, unknown>
+    > = async (data, injection) => {
       order.push('handler.validate.01');
-      return NatsValidationResultUtil.ok();
-    });
-    const mockMiddlewareBeforeValidate = jest.fn(async () => {
-      order.push('before-validate-middleware');
-      return NatsMiddlewareValidationResultUtil.ok(undefined);
-    });
-    const mockMiddlewareAfterValidate = jest.fn(async () => {
-      order.push('after-validate-middleware');
-      return NatsMiddlewareValidationResultUtil.ok(undefined);
-    });
+      return injection.ok({ data });
+    };
+    const middlewareBeforeValidate: NatsBeforeValidate<
+      NatsServiceType<string, unknown, unknown>,
+      Record<string, unknown>
+    > = async (data, injection) => {
+      order.push('middleware.validate.01.beforeValidate');
+      return injection.ok({ data, injection });
+    };
+    const middlewareAfterValidate: NatsAfterValidate<
+      NatsServiceType<string, unknown, unknown>,
+      Record<string, unknown>
+    > = async (data, injection) => {
+      order.push('middleware.validate.01.afterValidate');
+      return injection.ok({ data, injection });
+    };
 
     natsService.register([
       {
         subject: 'handler.validate.01',
-        validate: mockHandlerValidate,
+        validate: handlerValidate,
         authorize: undefined,
         handle: undefined,
-        beforeValidateMiddlewares: [
+        middlewares: [
           {
-            id: 'before-validate-middleware',
-            handle: mockMiddlewareBeforeValidate,
-          },
-        ],
-        afterValidateMiddlewares: [
-          {
-            id: 'after-validate-middleware',
-            handle: mockMiddlewareAfterValidate,
+            id: 'middleware.validate.01',
+            getActions: async () => {
+              return {
+                beforeValidate: middlewareBeforeValidate,
+                afterValidate: middlewareAfterValidate,
+              };
+            },
           },
         ],
       },
@@ -59,48 +68,56 @@ describe('Validation stage', () => {
     });
 
     expect(order).toHaveLength(3);
-    expect(order[0]).toEqual('before-validate-middleware');
+    expect(order[0]).toEqual('middleware.validate.01.beforeValidate');
     expect(order[1]).toEqual('handler.validate.01');
-    expect(order[2]).toEqual('after-validate-middleware');
+    expect(order[2]).toEqual('middleware.validate.01.afterValidate');
   });
 
-  it('beforeValidateMiddlewares failed, validate & afterValidateMiddlewares wont execute, respondError will execute', async () => {
+  it('beforeValidate failed, validate & afterValidate wont execute, respondError will execute', async () => {
     const order: string[] = [];
-    const mockHandlerValidate = jest.fn(async () => {
+    const handlerValidate: NatsValidate<
+      NatsServiceType<string, unknown, unknown>,
+      Record<string, unknown>
+    > = async (data, injection) => {
       order.push('handler.validate.01');
-      return NatsValidationResultUtil.ok();
-    });
-    const mockMiddlewareBeforeValidate = jest.fn(async () => {
-      order.push('before-validate-middleware');
-      return NatsMiddlewareValidationResultUtil.error();
-    });
-    const mockMiddlewareAfterValidate = jest.fn(async () => {
-      order.push('after-validate-middleware');
-      return NatsMiddlewareValidationResultUtil.ok(undefined);
-    });
-    const mockRespondError = jest.fn(async () => {
-      order.push('on-respond-error-middleware');
+      return injection.ok({ data });
+    };
+    const middlewareBeforeValidate: NatsBeforeValidate<
+      NatsServiceType<string, unknown, unknown>,
+      Record<string, unknown>
+    > = async (data, injection) => {
+      order.push('middleware.validate.01.beforeValidate');
+      return injection.error({ data, injection, errors: new Error() });
+    };
+    const middlewareAfterValidate: NatsAfterValidate<
+      NatsServiceType<string, unknown, unknown>,
+      Record<string, unknown>
+    > = async (data, injection) => {
+      order.push('middleware.validate.01.afterValidate');
+      return injection.ok({ data, injection });
+    };
+    const handlerRespondError = jest.fn(async () => {
+      order.push('handler.validate.01.respondError');
     });
 
     natsService.register([
       {
         subject: 'handler.validate.01',
-        validate: mockHandlerValidate,
+        validate: handlerValidate,
         authorize: undefined,
         handle: undefined,
-        beforeValidateMiddlewares: [
+        middlewares: [
           {
-            id: 'before-validate-middleware',
-            handle: mockMiddlewareBeforeValidate,
+            id: 'middleware.validate.01',
+            getActions: async () => {
+              return {
+                beforeValidate: middlewareBeforeValidate,
+                afterValidate: middlewareAfterValidate,
+              };
+            },
           },
         ],
-        afterValidateMiddlewares: [
-          {
-            id: 'after-validate-middleware',
-            handle: mockMiddlewareAfterValidate,
-          },
-        ],
-        respondError: mockRespondError,
+        respondError: handlerRespondError,
       },
     ]);
     await natsService.start();
@@ -111,47 +128,55 @@ describe('Validation stage', () => {
     });
 
     expect(order).toHaveLength(2);
-    expect(order[0]).toEqual('before-validate-middleware');
-    expect(order[1]).toEqual('on-respond-error-middleware');
+    expect(order[0]).toEqual('middleware.validate.01.beforeValidate');
+    expect(order[1]).toEqual('handler.validate.01.respondError');
   });
 
-  it('beforeValidateMiddlewares successed, validate failed, afterValidateMiddlewares wont execute, respondError will execute', async () => {
+  it('beforeValidate successed, validate failed, afterValidate wont execute, respondError will execute', async () => {
     const order: string[] = [];
-    const mockHandlerValidate = jest.fn(async () => {
+    const handlerValidate: NatsValidate<
+      NatsServiceType<string, unknown, unknown>,
+      Record<string, unknown>
+    > = async (data, injection) => {
       order.push('handler.validate.01');
-      return NatsValidationResultUtil.error();
-    });
-    const mockMiddlewareBeforeValidate = jest.fn(async () => {
-      order.push('before-validate-middleware');
-      return NatsMiddlewareValidationResultUtil.ok(undefined);
-    });
-    const mockMiddlewareAfterValidate = jest.fn(async () => {
-      order.push('after-validate-middleware');
-      return NatsMiddlewareValidationResultUtil.ok(undefined);
-    });
-    const mockRespondError = jest.fn(async () => {
-      order.push('on-respond-error-middleware');
+      return injection.error({ data, errors: new Error() });
+    };
+    const middlewareBeforeValidate: NatsBeforeValidate<
+      NatsServiceType<string, unknown, unknown>,
+      Record<string, unknown>
+    > = async (data, injection) => {
+      order.push('middleware.validate.01.beforeValidate');
+      return injection.ok({ data, injection });
+    };
+    const middlewareAfterValidate: NatsAfterValidate<
+      NatsServiceType<string, unknown, unknown>,
+      Record<string, unknown>
+    > = async (data, injection) => {
+      order.push('middleware.validate.01.afterValidate');
+      return injection.ok({ data, injection });
+    };
+    const handlerRespondError = jest.fn(async () => {
+      order.push('handler.validate.01.respondError');
     });
 
     natsService.register([
       {
         subject: 'handler.validate.01',
-        validate: mockHandlerValidate,
+        validate: handlerValidate,
         authorize: undefined,
         handle: undefined,
-        beforeValidateMiddlewares: [
+        middlewares: [
           {
-            id: 'before-validate-middleware',
-            handle: mockMiddlewareBeforeValidate,
+            id: 'middleware.validate.01',
+            getActions: async () => {
+              return {
+                beforeValidate: middlewareBeforeValidate,
+                afterValidate: middlewareAfterValidate,
+              };
+            },
           },
         ],
-        afterValidateMiddlewares: [
-          {
-            id: 'after-validate-middleware',
-            handle: mockMiddlewareAfterValidate,
-          },
-        ],
-        respondError: mockRespondError,
+        respondError: handlerRespondError,
       },
     ]);
     await natsService.start();
@@ -162,64 +187,86 @@ describe('Validation stage', () => {
     });
 
     expect(order).toHaveLength(3);
-    expect(order[0]).toEqual('before-validate-middleware');
+    expect(order[0]).toEqual('middleware.validate.01.beforeValidate');
     expect(order[1]).toEqual('handler.validate.01');
-    expect(order[2]).toEqual('on-respond-error-middleware');
+    expect(order[2]).toEqual('handler.validate.01.respondError');
   });
 
-  it('beforeValidateMiddlewares failed in middle, validate & afterValidateMiddlewares wont execute, respondError will execute', async () => {
+  it('beforeValidate failed in middle, validate & afterValidate wont execute, respondError will execute', async () => {
     const order: string[] = [];
-    const mockHandlerValidate = jest.fn(async () => {
+    const handlerValidate: NatsValidate<
+      NatsServiceType<string, unknown, unknown>,
+      Record<string, unknown>
+    > = async (data, injection) => {
       order.push('handler.validate.01');
-      return NatsValidationResultUtil.ok();
-    });
-    const mockMiddlewareBeforeValidate01 = jest.fn(async () => {
-      order.push('before-validate-middleware-01');
-      return NatsMiddlewareValidationResultUtil.ok(undefined);
-    });
-    const mockMiddlewareBeforeValidate02 = jest.fn(async () => {
-      order.push('before-validate-middleware-02');
-      return NatsMiddlewareValidationResultUtil.error();
-    });
-    const mockMiddlewareBeforeValidate03 = jest.fn(async () => {
-      order.push('before-validate-middleware-03');
-      return NatsMiddlewareValidationResultUtil.ok(undefined);
-    });
-    const mockMiddlewareAfterValidate = jest.fn(async () => {
-      order.push('after-validate-middleware');
-      return NatsMiddlewareValidationResultUtil.ok(undefined);
-    });
-    const mockRespondError = jest.fn(async () => {
-      order.push('on-respond-error-middleware');
+      return injection.ok({ data });
+    };
+    const middlewareBeforeValidate01: NatsBeforeValidate<
+      NatsServiceType<string, unknown, unknown>,
+      Record<string, unknown>
+    > = async (data, injection) => {
+      order.push('middleware.validate.01.beforeValidate');
+      return injection.ok({ data, injection });
+    };
+    const middlewareBeforeValidate02: NatsBeforeValidate<
+      NatsServiceType<string, unknown, unknown>,
+      Record<string, unknown>
+    > = async (data, injection) => {
+      order.push('middleware.validate.02.beforeValidate');
+      return injection.error({ data, injection, errors: new Error() });
+    };
+    const middlewareBeforeValidate03: NatsBeforeValidate<
+      NatsServiceType<string, unknown, unknown>,
+      Record<string, unknown>
+    > = async (data, injection) => {
+      order.push('middleware.validate.03.beforeValidate');
+      return injection.ok({ data, injection });
+    };
+    const middlewareAfterValidate: NatsAfterValidate<
+      NatsServiceType<string, unknown, unknown>,
+      Record<string, unknown>
+    > = async (data, injection) => {
+      order.push('middleware.validate.01.afterValidate');
+      return injection.ok({ data, injection });
+    };
+    const handlerRespondError = jest.fn(async () => {
+      order.push('handler.validate.01.respondError');
     });
 
     natsService.register([
       {
         subject: 'handler.validate.01',
-        validate: mockHandlerValidate,
+        validate: handlerValidate,
         authorize: undefined,
         handle: undefined,
-        beforeValidateMiddlewares: [
+        middlewares: [
           {
-            id: 'before-validate-middleware-01',
-            handle: mockMiddlewareBeforeValidate01,
+            id: 'middleware.validate.01',
+            getActions: async () => {
+              return {
+                beforeValidate: middlewareBeforeValidate01,
+                afterValidate: middlewareAfterValidate,
+              };
+            },
           },
           {
-            id: 'before-validate-middleware-02',
-            handle: mockMiddlewareBeforeValidate02,
+            id: 'middleware.validate.02',
+            getActions: async () => {
+              return {
+                beforeValidate: middlewareBeforeValidate02,
+              };
+            },
           },
           {
-            id: 'before-validate-middleware-03',
-            handle: mockMiddlewareBeforeValidate03,
+            id: 'middleware.validate.03',
+            getActions: async () => {
+              return {
+                beforeValidate: middlewareBeforeValidate03,
+              };
+            },
           },
         ],
-        afterValidateMiddlewares: [
-          {
-            id: 'after-validate-middleware',
-            handle: mockMiddlewareAfterValidate,
-          },
-        ],
-        respondError: mockRespondError,
+        respondError: handlerRespondError,
       },
     ]);
     await natsService.start();
@@ -230,64 +277,86 @@ describe('Validation stage', () => {
     });
 
     expect(order).toHaveLength(3);
-    expect(order[0]).toEqual('before-validate-middleware-01');
-    expect(order[1]).toEqual('before-validate-middleware-02');
-    expect(order[2]).toEqual('on-respond-error-middleware');
+    expect(order[0]).toEqual('middleware.validate.01.beforeValidate');
+    expect(order[1]).toEqual('middleware.validate.02.beforeValidate');
+    expect(order[2]).toEqual('handler.validate.01.respondError');
   });
 
-  it('beforeValidateMiddlewares & validate successed, afterValidateMiddlewares failed in middle, respondError will execute', async () => {
+  it('beforeValidate & validate successed, afterValidate failed in middle, respondError will execute', async () => {
     const order: string[] = [];
-    const mockHandlerValidate = jest.fn(async () => {
+    const handlerValidate: NatsValidate<
+      NatsServiceType<string, unknown, unknown>,
+      Record<string, unknown>
+    > = async (data, injection) => {
       order.push('handler.validate.01');
-      return NatsValidationResultUtil.ok();
-    });
-    const mockMiddlewareBeforeValidate = jest.fn(async () => {
-      order.push('before-validate-middleware');
-      return NatsMiddlewareValidationResultUtil.ok(undefined);
-    });
-    const mockMiddlewareAfterValidate01 = jest.fn(async () => {
-      order.push('after-validate-middleware-01');
-      return NatsMiddlewareValidationResultUtil.ok(undefined);
-    });
-    const mockMiddlewareAfterValidate02 = jest.fn(async () => {
-      order.push('after-validate-middleware-02');
-      return NatsMiddlewareValidationResultUtil.error();
-    });
-    const mockMiddlewareAfterValidate03 = jest.fn(async () => {
-      order.push('after-validate-middleware-03');
-      return NatsMiddlewareValidationResultUtil.ok(undefined);
-    });
-    const mockRespondError = jest.fn(async () => {
-      order.push('on-respond-error-middleware');
+      return injection.ok({ data });
+    };
+    const middlewareBeforeValidate: NatsBeforeValidate<
+      NatsServiceType<string, unknown, unknown>,
+      Record<string, unknown>
+    > = async (data, injection) => {
+      order.push('middleware.validate.01.beforeValidate');
+      return injection.ok({ data, injection });
+    };
+    const middlewareAfterValidate01: NatsAfterValidate<
+      NatsServiceType<string, unknown, unknown>,
+      Record<string, unknown>
+    > = async (data, injection) => {
+      order.push('middleware.validate.01.afterValidate');
+      return injection.ok({ data, injection });
+    };
+    const middlewareAfterValidate02: NatsAfterValidate<
+      NatsServiceType<string, unknown, unknown>,
+      Record<string, unknown>
+    > = async (data, injection) => {
+      order.push('middleware.validate.02.afterValidate');
+      return injection.error({ data, injection, errors: new Error() });
+    };
+    const middlewareAfterValidate03: NatsAfterValidate<
+      NatsServiceType<string, unknown, unknown>,
+      Record<string, unknown>
+    > = async (data, injection) => {
+      order.push('middleware.validate.03.afterValidate');
+      return injection.ok({ data, injection });
+    };
+    const handlerRespondError = jest.fn(async () => {
+      order.push('handler.validate.01.respondError');
     });
 
     natsService.register([
       {
         subject: 'handler.validate.01',
-        validate: mockHandlerValidate,
+        validate: handlerValidate,
         authorize: undefined,
         handle: undefined,
-        beforeValidateMiddlewares: [
+        middlewares: [
           {
-            id: 'before-validate-middleware',
-            handle: mockMiddlewareBeforeValidate,
+            id: 'middleware.validate.01',
+            getActions: async () => {
+              return {
+                beforeValidate: middlewareBeforeValidate,
+                afterValidate: middlewareAfterValidate01,
+              };
+            },
+          },
+          {
+            id: 'middleware.validate.02',
+            getActions: async () => {
+              return {
+                afterValidate: middlewareAfterValidate02,
+              };
+            },
+          },
+          {
+            id: 'middleware.validate.03',
+            getActions: async () => {
+              return {
+                afterValidate: middlewareAfterValidate03,
+              };
+            },
           },
         ],
-        afterValidateMiddlewares: [
-          {
-            id: 'after-validate-middleware-01',
-            handle: mockMiddlewareAfterValidate01,
-          },
-          {
-            id: 'after-validate-middleware-02',
-            handle: mockMiddlewareAfterValidate02,
-          },
-          {
-            id: 'after-validate-middleware-03',
-            handle: mockMiddlewareAfterValidate03,
-          },
-        ],
-        respondError: mockRespondError,
+        respondError: handlerRespondError,
       },
     ]);
     await natsService.start();
@@ -298,72 +367,91 @@ describe('Validation stage', () => {
     });
 
     expect(order).toHaveLength(5);
-    expect(order[0]).toEqual('before-validate-middleware');
+    expect(order[0]).toEqual('middleware.validate.01.beforeValidate');
     expect(order[1]).toEqual('handler.validate.01');
-    expect(order[2]).toEqual('after-validate-middleware-01');
-    expect(order[3]).toEqual('after-validate-middleware-02');
-    expect(order[4]).toEqual('on-respond-error-middleware');
+    expect(order[2]).toEqual('middleware.validate.01.afterValidate');
+    expect(order[3]).toEqual('middleware.validate.02.afterValidate');
+    expect(order[4]).toEqual('handler.validate.01.respondError');
   });
 
-  it('Data will be changed while go through beforeValidateMiddlewares, afterValidateMiddlewares', async () => {
-    const changes: Array<{ input: string; output: string }> = [];
-    const mockValidate = jest.fn(async (data: NatsRequest<string>) => {
+  it('Data will be changed while go through beforeValidate, afterValidate', async () => {
+    const changes: Array<{ input: unknown; output: unknown }> = [];
+    const handlerValidate: NatsValidate<
+      NatsServiceType<string, unknown, unknown>,
+      Record<string, unknown>
+    > = async (data, injection) => {
       changes.push({ input: data.body, output: data.body });
-      return NatsValidationResultUtil.ok();
-    });
-    const mockMiddlewareBeforeValidate01 = jest.fn(
-      async (data: NatsRequest<string>) => {
-        const changedData = { ...data, body: 'before-validate-middleware-01' };
-        changes.push({ input: data.body, output: changedData.body });
-        return NatsMiddlewareValidationResultUtil.ok(changedData);
-      }
-    );
-    const mockMiddlewareBeforeValidate02 = jest.fn(
-      async (data: NatsRequest<string>) => {
-        const changedData = { ...data, body: 'before-validate-middleware-02' };
-        changes.push({ input: data.body, output: changedData.body });
-        return NatsMiddlewareValidationResultUtil.ok(changedData);
-      }
-    );
-    const mockMiddlewareAfterValidate01 = jest.fn(
-      async (data: NatsRequest<string>) => {
-        const changedData = { ...data, body: 'after-validate-middleware-01' };
-        changes.push({ input: data.body, output: changedData.body });
-        return NatsMiddlewareValidationResultUtil.ok(changedData);
-      }
-    );
-    const mockMiddlewareAfterValidate02 = jest.fn(
-      async (data: NatsRequest<string>) => {
-        const changedData = { ...data, body: 'after-validate-middleware-02' };
-        changes.push({ input: data.body, output: changedData.body });
-        return NatsMiddlewareValidationResultUtil.ok(changedData);
-      }
-    );
+      return injection.ok({ data });
+    };
+    const middlewareBeforeValidate01: NatsBeforeValidate<
+      NatsServiceType<string, unknown, unknown>,
+      Record<string, unknown>
+    > = async (data, injection) => {
+      const changedData = {
+        ...data,
+        body: 'middleware.validate.01.beforeValidate',
+      };
+      changes.push({ input: data.body, output: changedData.body });
+      return injection.ok({ data: changedData, injection });
+    };
+    const middlewareBeforeValidate02: NatsBeforeValidate<
+      NatsServiceType<string, unknown, unknown>,
+      Record<string, unknown>
+    > = async (data, injection) => {
+      const changedData = {
+        ...data,
+        body: 'middleware.validate.02.beforeValidate',
+      };
+      changes.push({ input: data.body, output: changedData.body });
+      return injection.ok({ data: changedData, injection });
+    };
+    const middlewareAfterValidate01: NatsAfterValidate<
+      NatsServiceType<string, unknown, unknown>,
+      Record<string, unknown>
+    > = async (data, injection) => {
+      const changedData = {
+        ...data,
+        body: 'middleware.validate.01.afterValidate',
+      };
+      changes.push({ input: data.body, output: changedData.body });
+      return injection.ok({ data: changedData, injection });
+    };
+    const middlewareAfterValidate02: NatsAfterValidate<
+      NatsServiceType<string, unknown, unknown>,
+      Record<string, unknown>
+    > = async (data, injection) => {
+      const changedData = {
+        ...data,
+        body: 'middleware.validate.02.afterValidate',
+      };
+      changes.push({ input: data.body, output: changedData.body });
+      return injection.ok({ data: changedData, injection });
+    };
 
     natsService.register([
       {
         subject: 'handler.validate.01',
-        validate: mockValidate,
+        validate: handlerValidate,
         authorize: undefined,
         handle: undefined,
-        beforeValidateMiddlewares: [
+        middlewares: [
           {
-            id: 'before-validate-middleware-01',
-            handle: mockMiddlewareBeforeValidate01,
+            id: 'middleware.validate.01',
+            getActions: async () => {
+              return {
+                beforeValidate: middlewareBeforeValidate01,
+                afterValidate: middlewareAfterValidate01,
+              };
+            },
           },
           {
-            id: 'before-validate-middleware-02',
-            handle: mockMiddlewareBeforeValidate02,
-          },
-        ],
-        afterValidateMiddlewares: [
-          {
-            id: 'after-validate-middleware-01',
-            handle: mockMiddlewareAfterValidate01,
-          },
-          {
-            id: 'after-validate-middleware-02',
-            handle: mockMiddlewareAfterValidate02,
+            id: 'middleware.validate.02',
+            getActions: async () => {
+              return {
+                beforeValidate: middlewareBeforeValidate02,
+                afterValidate: middlewareAfterValidate02,
+              };
+            },
           },
         ],
       },
@@ -378,23 +466,23 @@ describe('Validation stage', () => {
     expect(changes).toHaveLength(5);
     expect(changes[0]).toMatchObject({
       input: 'data',
-      output: 'before-validate-middleware-01',
+      output: 'middleware.validate.01.beforeValidate',
     });
     expect(changes[1]).toMatchObject({
-      input: 'before-validate-middleware-01',
-      output: 'before-validate-middleware-02',
+      input: 'middleware.validate.01.beforeValidate',
+      output: 'middleware.validate.02.beforeValidate',
     });
     expect(changes[2]).toMatchObject({
-      input: 'before-validate-middleware-02',
-      output: 'before-validate-middleware-02',
+      input: 'middleware.validate.02.beforeValidate',
+      output: 'middleware.validate.02.beforeValidate',
     });
     expect(changes[3]).toMatchObject({
-      input: 'before-validate-middleware-02',
-      output: 'after-validate-middleware-01',
+      input: 'middleware.validate.02.beforeValidate',
+      output: 'middleware.validate.01.afterValidate',
     });
     expect(changes[4]).toMatchObject({
-      input: 'after-validate-middleware-01',
-      output: 'after-validate-middleware-02',
+      input: 'middleware.validate.01.afterValidate',
+      output: 'middleware.validate.02.afterValidate',
     });
   });
 });

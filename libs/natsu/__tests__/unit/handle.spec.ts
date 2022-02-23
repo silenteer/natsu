@@ -1,15 +1,11 @@
-import type { NatsRequest } from '@silenteer/natsu-type';
-import type { NatsHandleResult } from '../../type';
-import {
-  NatsHandleResultUtil,
-  NatsMiddlewareHandleResultUtil,
-} from '../../utility';
+import type { NatsService as NatsServiceType } from '@silenteer/natsu-type';
+import type { NatsBeforeHandle, NatsHandle, NatsAfterHandle } from '../../type';
 import NatsService from '../service/nats.service';
 
 describe('Handle stage', () => {
   let natsService: ReturnType<typeof NatsService.init>;
 
-  beforeEach(async () => {
+  beforeEach(() => {
     natsService = NatsService.init();
   });
 
@@ -17,37 +13,45 @@ describe('Handle stage', () => {
     await natsService?.stop();
   });
 
-  it('beforeHandleMiddlewares & handle & afterHandleMiddlewares will execute orderly', async () => {
+  it('beforeHandle & handle & afterHandle will execute orderly', async () => {
     const order: string[] = [];
-    const mockHandlerHandle = jest.fn(async () => {
+    const handlerHandle: NatsHandle<
+      NatsServiceType<string, unknown, unknown>,
+      Record<string, unknown>
+    > = async (data, injection) => {
       order.push('handler.handle.01');
-      return NatsHandleResultUtil.ok();
-    });
-    const mockMiddlewareBeforeHandle = jest.fn(async () => {
-      order.push('before-handle-middleware');
-      return NatsMiddlewareHandleResultUtil.ok(undefined);
-    });
-    const mockMiddlewareAfterHandle = jest.fn(async () => {
-      order.push('after-handle-middleware');
-      return NatsMiddlewareHandleResultUtil.ok(undefined);
-    });
+      return injection.ok({ data });
+    };
+    const middlewareBeforeHandle: NatsBeforeHandle<
+      NatsServiceType<string, unknown, unknown>,
+      Record<string, unknown>
+    > = async (data, injection) => {
+      order.push('middleware.handle.01.beforeHandle');
+      return injection.ok({ data, injection });
+    };
+    const middlewareAfterHandle: NatsAfterHandle<
+      NatsServiceType<string, unknown, unknown>,
+      Record<string, unknown>
+    > = async (data, result, injection) => {
+      order.push('middleware.handle.01.afterHandle');
+      return injection.ok({ data, result, injection });
+    };
 
     natsService.register([
       {
         subject: 'handler.handle.01',
         validate: undefined,
         authorize: undefined,
-        handle: mockHandlerHandle,
-        beforeHandleMiddlewares: [
+        handle: handlerHandle,
+        middlewares: [
           {
-            id: 'before-handle-middleware',
-            handle: mockMiddlewareBeforeHandle,
-          },
-        ],
-        afterHandleMiddlewares: [
-          {
-            id: 'after-handle-middleware',
-            handle: mockMiddlewareAfterHandle,
+            id: 'middleware.handle.01',
+            getActions: async () => {
+              return {
+                beforeHandle: middlewareBeforeHandle,
+                afterHandle: middlewareAfterHandle,
+              };
+            },
           },
         ],
       },
@@ -60,27 +64,36 @@ describe('Handle stage', () => {
     });
 
     expect(order).toHaveLength(3);
-    expect(order[0]).toEqual('before-handle-middleware');
+    expect(order[0]).toEqual('middleware.handle.01.beforeHandle');
     expect(order[1]).toEqual('handler.handle.01');
-    expect(order[2]).toEqual('after-handle-middleware');
+    expect(order[2]).toEqual('middleware.handle.01.afterHandle');
   });
 
-  it('beforeHandleMiddlewares failed, handle & afterHandleMiddlewares wont execute, respondError will execute', async () => {
+  it('beforeHandle failed, handle & afterHandle wont execute, respondError will execute', async () => {
     const order: string[] = [];
-    const mockHandlerHandle = jest.fn(async () => {
+    const handlerHandle: NatsHandle<
+      NatsServiceType<string, unknown, unknown>,
+      Record<string, unknown>
+    > = async (data, injection) => {
       order.push('handler.handle.01');
-      return NatsHandleResultUtil.ok();
-    });
-    const mockMiddlewareBeforeHandle = jest.fn(async () => {
-      order.push('before-handle-middleware');
-      return NatsMiddlewareHandleResultUtil.error();
-    });
-    const mockMiddlewareAfterHandle = jest.fn(async () => {
-      order.push('after-handle-middleware');
-      return NatsMiddlewareHandleResultUtil.ok(undefined);
-    });
-    const mockRespondError = jest.fn(async () => {
-      order.push('on-respond-error-middleware');
+      return injection.ok({ data });
+    };
+    const middlewareBeforeHandle: NatsBeforeHandle<
+      NatsServiceType<string, unknown, unknown>,
+      Record<string, unknown>
+    > = async (data, injection) => {
+      order.push('middleware.handle.01.beforeHandle');
+      return injection.error({ data, injection, errors: new Error() });
+    };
+    const middlewareAfterHandle: NatsAfterHandle<
+      NatsServiceType<string, unknown, unknown>,
+      Record<string, unknown>
+    > = async (data, result, injection) => {
+      order.push('middleware.handle.01.afterHandle');
+      return injection.ok({ data, result, injection });
+    };
+    const handlerRespondError = jest.fn(async () => {
+      order.push('handler.handle.01.respondError');
     });
 
     natsService.register([
@@ -88,20 +101,19 @@ describe('Handle stage', () => {
         subject: 'handler.handle.01',
         validate: undefined,
         authorize: undefined,
-        handle: mockHandlerHandle,
-        beforeHandleMiddlewares: [
+        handle: handlerHandle,
+        middlewares: [
           {
-            id: 'before-handle-middleware',
-            handle: mockMiddlewareBeforeHandle,
+            id: 'middleware.handle.01',
+            getActions: async () => {
+              return {
+                beforeHandle: middlewareBeforeHandle,
+                afterHandle: middlewareAfterHandle,
+              };
+            },
           },
         ],
-        afterHandleMiddlewares: [
-          {
-            id: 'after-handle-middleware',
-            handle: mockMiddlewareAfterHandle,
-          },
-        ],
-        respondError: mockRespondError,
+        respondError: handlerRespondError,
       },
     ]);
     await natsService.start();
@@ -112,26 +124,35 @@ describe('Handle stage', () => {
     });
 
     expect(order).toHaveLength(2);
-    expect(order[0]).toEqual('before-handle-middleware');
-    expect(order[1]).toEqual('on-respond-error-middleware');
+    expect(order[0]).toEqual('middleware.handle.01.beforeHandle');
+    expect(order[1]).toEqual('handler.handle.01.respondError');
   });
 
-  it('beforeHandleMiddlewares successed, handle failed, afterHandleMiddlewares wont execute, respondError will execute', async () => {
+  it('beforeHandle successed, handle failed, afterHandle wont execute, respondError will execute', async () => {
     const order: string[] = [];
-    const mockHandlerHandle = jest.fn(async () => {
+    const handlerHandle: NatsHandle<
+      NatsServiceType<string, unknown, unknown>,
+      Record<string, unknown>
+    > = async (data, injection) => {
       order.push('handler.handle.01');
-      return NatsHandleResultUtil.error();
-    });
-    const mockMiddlewareBeforeHandle = jest.fn(async () => {
-      order.push('before-handle-middleware');
-      return NatsMiddlewareHandleResultUtil.ok(undefined);
-    });
-    const mockMiddlewareAfterHandle = jest.fn(async () => {
-      order.push('after-handle-middleware');
-      return NatsMiddlewareHandleResultUtil.ok(undefined);
-    });
-    const mockRespondError = jest.fn(async () => {
-      order.push('on-respond-error-middleware');
+      return injection.error({ data, errors: new Error() });
+    };
+    const middlewareBeforeHandle: NatsBeforeHandle<
+      NatsServiceType<string, unknown, unknown>,
+      Record<string, unknown>
+    > = async (data, injection) => {
+      order.push('middleware.handle.01.beforeHandle');
+      return injection.ok({ data, injection });
+    };
+    const middlewareAfterHandle: NatsAfterHandle<
+      NatsServiceType<string, unknown, unknown>,
+      Record<string, unknown>
+    > = async (data, result, injection) => {
+      order.push('middleware.handle.01.afterHandle');
+      return injection.ok({ data, result, injection });
+    };
+    const handlerRespondError = jest.fn(async () => {
+      order.push('handler.handle.01.respondError');
     });
 
     natsService.register([
@@ -139,20 +160,19 @@ describe('Handle stage', () => {
         subject: 'handler.handle.01',
         validate: undefined,
         authorize: undefined,
-        handle: mockHandlerHandle,
-        beforeHandleMiddlewares: [
+        handle: handlerHandle,
+        middlewares: [
           {
-            id: 'before-handle-middleware',
-            handle: mockMiddlewareBeforeHandle,
+            id: 'middleware.handle.01',
+            getActions: async () => {
+              return {
+                beforeHandle: middlewareBeforeHandle,
+                afterHandle: middlewareAfterHandle,
+              };
+            },
           },
         ],
-        afterHandleMiddlewares: [
-          {
-            id: 'after-handle-middleware',
-            handle: mockMiddlewareAfterHandle,
-          },
-        ],
-        respondError: mockRespondError,
+        respondError: handlerRespondError,
       },
     ]);
     await natsService.start();
@@ -163,35 +183,50 @@ describe('Handle stage', () => {
     });
 
     expect(order).toHaveLength(3);
-    expect(order[0]).toEqual('before-handle-middleware');
+    expect(order[0]).toEqual('middleware.handle.01.beforeHandle');
     expect(order[1]).toEqual('handler.handle.01');
-    expect(order[2]).toEqual('on-respond-error-middleware');
+    expect(order[2]).toEqual('handler.handle.01.respondError');
   });
 
-  it('beforeHandleMiddlewares failed in middle, handle & afterHandleMiddlewares wont execute, respondError will execute', async () => {
+  it('beforeHandle failed in middle, handle & afterHandle wont execute, respondError will execute', async () => {
     const order: string[] = [];
-    const mockHandlerHandle = jest.fn(async () => {
+    const handlerHandle: NatsHandle<
+      NatsServiceType<string, unknown, unknown>,
+      Record<string, unknown>
+    > = async (data, injection) => {
       order.push('handler.handle.01');
-      return NatsHandleResultUtil.ok();
-    });
-    const mockMiddlewareBeforeHandle01 = jest.fn(async () => {
-      order.push('before-handle-middleware-01');
-      return NatsMiddlewareHandleResultUtil.ok(undefined);
-    });
-    const mockMiddlewareBeforeHandle02 = jest.fn(async () => {
-      order.push('before-handle-middleware-02');
-      return NatsMiddlewareHandleResultUtil.error();
-    });
-    const mockMiddlewareBeforeHandle03 = jest.fn(async () => {
-      order.push('before-handle-middleware-03');
-      return NatsMiddlewareHandleResultUtil.ok(undefined);
-    });
-    const mockMiddlewareAfterHandle = jest.fn(async () => {
-      order.push('after-handle-middleware');
-      return NatsMiddlewareHandleResultUtil.ok(undefined);
-    });
-    const mockRespondError = jest.fn(async () => {
-      order.push('on-respond-error-middleware');
+      return injection.ok({ data });
+    };
+    const middlewareBeforeHandle01: NatsBeforeHandle<
+      NatsServiceType<string, unknown, unknown>,
+      Record<string, unknown>
+    > = async (data, injection) => {
+      order.push('middleware.handle.01.beforeHandle');
+      return injection.ok({ data, injection });
+    };
+    const middlewareBeforeHandle02: NatsBeforeHandle<
+      NatsServiceType<string, unknown, unknown>,
+      Record<string, unknown>
+    > = async (data, injection) => {
+      order.push('middleware.handle.02.beforeHandle');
+      return injection.error({ data, injection, errors: new Error() });
+    };
+    const middlewareBeforeHandle03: NatsBeforeHandle<
+      NatsServiceType<string, unknown, unknown>,
+      Record<string, unknown>
+    > = async (data, injection) => {
+      order.push('middleware.handle.03.beforeHandle');
+      return injection.ok({ data, injection });
+    };
+    const middlewareAfterHandle: NatsAfterHandle<
+      NatsServiceType<string, unknown, unknown>,
+      Record<string, unknown>
+    > = async (data, result, injection) => {
+      order.push('middleware.handle.01.afterHandle');
+      return injection.ok({ data, result, injection });
+    };
+    const handlerRespondError = jest.fn(async () => {
+      order.push('handler.handle.01.respondError');
     });
 
     natsService.register([
@@ -199,28 +234,35 @@ describe('Handle stage', () => {
         subject: 'handler.handle.01',
         validate: undefined,
         authorize: undefined,
-        handle: mockHandlerHandle,
-        beforeHandleMiddlewares: [
+        handle: handlerHandle,
+        middlewares: [
           {
-            id: 'before-handle-middleware-01',
-            handle: mockMiddlewareBeforeHandle01,
+            id: 'middleware.handle.01',
+            getActions: async () => {
+              return {
+                beforeHandle: middlewareBeforeHandle01,
+                afterHandle: middlewareAfterHandle,
+              };
+            },
           },
           {
-            id: 'before-handle-middleware-02',
-            handle: mockMiddlewareBeforeHandle02,
+            id: 'middleware.handle.02',
+            getActions: async () => {
+              return {
+                beforeHandle: middlewareBeforeHandle02,
+              };
+            },
           },
           {
-            id: 'before-handle-middleware-03',
-            handle: mockMiddlewareBeforeHandle03,
+            id: 'middleware.handle.03',
+            getActions: async () => {
+              return {
+                beforeHandle: middlewareBeforeHandle03,
+              };
+            },
           },
         ],
-        afterHandleMiddlewares: [
-          {
-            id: 'after-handle-middleware',
-            handle: mockMiddlewareAfterHandle,
-          },
-        ],
-        respondError: mockRespondError,
+        respondError: handlerRespondError,
       },
     ]);
     await natsService.start();
@@ -231,35 +273,50 @@ describe('Handle stage', () => {
     });
 
     expect(order).toHaveLength(3);
-    expect(order[0]).toEqual('before-handle-middleware-01');
-    expect(order[1]).toEqual('before-handle-middleware-02');
-    expect(order[2]).toEqual('on-respond-error-middleware');
+    expect(order[0]).toEqual('middleware.handle.01.beforeHandle');
+    expect(order[1]).toEqual('middleware.handle.02.beforeHandle');
+    expect(order[2]).toEqual('handler.handle.01.respondError');
   });
 
-  it('beforeHandleMiddlewares & handle successed, afterHandleMiddlewares failed in middle, respondError will execute', async () => {
+  it('beforeHandle & handle successed, afterHandle failed in middle, respondError will execute', async () => {
     const order: string[] = [];
-    const mockHandlerHandle = jest.fn(async () => {
+    const handlerHandle: NatsHandle<
+      NatsServiceType<string, unknown, unknown>,
+      Record<string, unknown>
+    > = async (data, injection) => {
       order.push('handler.handle.01');
-      return NatsHandleResultUtil.ok();
-    });
-    const mockMiddlewareBeforeHandle = jest.fn(async () => {
-      order.push('before-handle-middleware');
-      return NatsMiddlewareHandleResultUtil.ok(undefined);
-    });
-    const mockMiddlewareAfterHandle01 = jest.fn(async () => {
-      order.push('after-handle-middleware-01');
-      return NatsMiddlewareHandleResultUtil.ok(undefined);
-    });
-    const mockMiddlewareAfterHandle02 = jest.fn(async () => {
-      order.push('after-handle-middleware-02');
-      return NatsMiddlewareHandleResultUtil.error();
-    });
-    const mockMiddlewareAfterHandle03 = jest.fn(async () => {
-      order.push('after-handle-middleware-03');
-      return NatsMiddlewareHandleResultUtil.ok(undefined);
-    });
-    const mockRespondError = jest.fn(async () => {
-      order.push('on-respond-error-middleware');
+      return injection.ok({ data });
+    };
+    const middlewareBeforeHandle: NatsBeforeHandle<
+      NatsServiceType<string, unknown, unknown>,
+      Record<string, unknown>
+    > = async (data, injection) => {
+      order.push('middleware.handle.01.beforeHandle');
+      return injection.ok({ data, injection });
+    };
+    const middlewareAfterHandle01: NatsAfterHandle<
+      NatsServiceType<string, unknown, unknown>,
+      Record<string, unknown>
+    > = async (data, result, injection) => {
+      order.push('middleware.handle.01.afterHandle');
+      return injection.ok({ data, result, injection });
+    };
+    const middlewareAfterHandle02: NatsAfterHandle<
+      NatsServiceType<string, unknown, unknown>,
+      Record<string, unknown>
+    > = async (data, result, injection) => {
+      order.push('middleware.handle.02.afterHandle');
+      return injection.error({ data, result, injection, errors: new Error() });
+    };
+    const middlewareAfterHandle03: NatsAfterHandle<
+      NatsServiceType<string, unknown, unknown>,
+      Record<string, unknown>
+    > = async (data, result, injection) => {
+      order.push('middleware.handle.03.afterHandle');
+      return injection.ok({ data, result, injection });
+    };
+    const handlerRespondError = jest.fn(async () => {
+      order.push('handler.handle.01.respondError');
     });
 
     natsService.register([
@@ -267,28 +324,35 @@ describe('Handle stage', () => {
         subject: 'handler.handle.01',
         validate: undefined,
         authorize: undefined,
-        handle: mockHandlerHandle,
-        beforeHandleMiddlewares: [
+        handle: handlerHandle,
+        middlewares: [
           {
-            id: 'before-handle-middleware',
-            handle: mockMiddlewareBeforeHandle,
+            id: 'middleware.handle.01',
+            getActions: async () => {
+              return {
+                beforeHandle: middlewareBeforeHandle,
+                afterHandle: middlewareAfterHandle01,
+              };
+            },
+          },
+          {
+            id: 'middleware.handle.02',
+            getActions: async () => {
+              return {
+                afterHandle: middlewareAfterHandle02,
+              };
+            },
+          },
+          {
+            id: 'middleware.handle.03',
+            getActions: async () => {
+              return {
+                afterHandle: middlewareAfterHandle03,
+              };
+            },
           },
         ],
-        afterHandleMiddlewares: [
-          {
-            id: 'after-handle-middleware-01',
-            handle: mockMiddlewareAfterHandle01,
-          },
-          {
-            id: 'after-handle-middleware-02',
-            handle: mockMiddlewareAfterHandle02,
-          },
-          {
-            id: 'after-handle-middleware-03',
-            handle: mockMiddlewareAfterHandle03,
-          },
-        ],
-        respondError: mockRespondError,
+        respondError: handlerRespondError,
       },
     ]);
     await natsService.start();
@@ -299,84 +363,105 @@ describe('Handle stage', () => {
     });
 
     expect(order).toHaveLength(5);
-    expect(order[0]).toEqual('before-handle-middleware');
+    expect(order[0]).toEqual('middleware.handle.01.beforeHandle');
     expect(order[1]).toEqual('handler.handle.01');
-    expect(order[2]).toEqual('after-handle-middleware-01');
-    expect(order[3]).toEqual('after-handle-middleware-02');
-    expect(order[4]).toEqual('on-respond-error-middleware');
+    expect(order[2]).toEqual('middleware.handle.01.afterHandle');
+    expect(order[3]).toEqual('middleware.handle.02.afterHandle');
+    expect(order[4]).toEqual('handler.handle.01.respondError');
   });
 
-  it('Data & result will be changed while go through beforeHandleMiddlewares, afterHandleMiddlewares', async () => {
-    const dataChanges: Array<{ input: string; output: string }> = [];
-    const resultChanges: Array<{ input: string; output: string }> = [];
-    const mockHandlerHandle = jest.fn(async (data: NatsRequest<string>) => {
-      dataChanges.push({ input: data.body, output: data.body });
-      return NatsHandleResultUtil.ok(data.body);
-    });
-    const mockMiddlewareBeforeHandle01 = jest.fn(
-      async (data: NatsRequest<string>) => {
-        const changedData = { ...data, body: 'before-handle-middleware-01' };
-        dataChanges.push({ input: data.body, output: changedData.body });
-        return NatsMiddlewareHandleResultUtil.ok({ data: changedData });
-      }
-    );
-    const mockMiddlewareBeforeHandle02 = jest.fn(
-      async (data: NatsRequest<string>) => {
-        const changedData = { ...data, body: 'before-handle-middleware-02' };
-        dataChanges.push({ input: data.body, output: changedData.body });
-        return NatsMiddlewareHandleResultUtil.ok({ data: changedData });
-      }
-    );
-    const mockMiddlewareAfterHandle01 = jest.fn(
-      async (data: NatsRequest<string>, result: NatsHandleResult<string>) => {
-        const changedData = { ...data, body: 'after-handle-middleware-01' };
-        const changedResult = { ...result, body: 'after-handle-middleware-01' };
-        dataChanges.push({ input: data.body, output: changedData.body });
-        resultChanges.push({ input: result.body, output: changedResult.body });
+  it('Data & result will be changed while go through beforeHandle, afterHandle', async () => {
+    const changes: Array<{ input: unknown; output: unknown }> = [];
+    const resultChanges: Array<{ input: unknown; output: unknown }> = [];
 
-        return NatsMiddlewareHandleResultUtil.ok({
-          data: changedData,
-          result: changedResult,
-        });
-      }
-    );
-    const mockMiddlewareAfterHandle02 = jest.fn(
-      async (data: NatsRequest<string>, result: NatsHandleResult<string>) => {
-        const changedData = { ...data, body: 'after-handle-middleware-02' };
-        const changedResult = { ...result, body: 'after-handle-middleware-02' };
-        dataChanges.push({ input: data.body, output: changedData.body });
-        resultChanges.push({ input: result.body, output: changedResult.body });
-        return NatsMiddlewareHandleResultUtil.ok({
-          data: changedData,
-          result: changedResult,
-        });
-      }
-    );
+    const handlerHandle: NatsHandle<
+      NatsServiceType<string, unknown, unknown>,
+      Record<string, unknown>
+    > = async (data, injection) => {
+      changes.push({ input: data.body, output: data.body });
+      return injection.ok({ data });
+    };
+    const middlewareBeforeHandle01: NatsBeforeHandle<
+      NatsServiceType<string, unknown, unknown>,
+      Record<string, unknown>
+    > = async (data, injection) => {
+      const changedData = {
+        ...data,
+        body: 'middleware.handle.01.beforeHandle',
+      };
+      changes.push({ input: data.body, output: changedData.body });
+      return injection.ok({ data: changedData, injection });
+    };
+    const middlewareBeforeHandle02: NatsBeforeHandle<
+      NatsServiceType<string, unknown, unknown>,
+      Record<string, unknown>
+    > = async (data, injection) => {
+      const changedData = {
+        ...data,
+        body: 'middleware.handle.02.beforeHandle',
+      };
+      changes.push({ input: data.body, output: changedData.body });
+      return injection.ok({ data: changedData, injection });
+    };
+    const middlewareAfterHandle01: NatsAfterHandle<
+      NatsServiceType<string, unknown, unknown>,
+      Record<string, unknown>
+    > = async (data, result, injection) => {
+      const changedData = {
+        ...data,
+        body: 'middleware.handle.01.afterHandle',
+      };
+      const changedResult = {
+        ...result,
+        body: 'middleware.handle.01.afterHandle',
+      };
+      changes.push({ input: data.body, output: changedData.body });
+      resultChanges.push({ input: data.body, output: changedResult.body });
+
+      return injection.ok({ data: changedData, result, injection });
+    };
+    const middlewareAfterHandle02: NatsAfterHandle<
+      NatsServiceType<string, unknown, unknown>,
+      Record<string, unknown>
+    > = async (data, result, injection) => {
+      const changedData = {
+        ...data,
+        body: 'middleware.handle.02.afterHandle',
+      };
+      const changedResult = {
+        ...result,
+        body: 'middleware.handle.02.afterHandle',
+      };
+      changes.push({ input: data.body, output: changedData.body });
+      resultChanges.push({ input: data.body, output: changedResult.body });
+
+      return injection.ok({ data: changedData, result, injection });
+    };
 
     natsService.register([
       {
         subject: 'handler.handle.01',
         validate: undefined,
         authorize: undefined,
-        handle: mockHandlerHandle,
-        beforeHandleMiddlewares: [
+        handle: handlerHandle,
+        middlewares: [
           {
-            id: 'before-handle-middleware-01',
-            handle: mockMiddlewareBeforeHandle01,
+            id: 'middleware.handle.01',
+            getActions: async () => {
+              return {
+                beforeHandle: middlewareBeforeHandle01,
+                afterHandle: middlewareAfterHandle01,
+              };
+            },
           },
           {
-            id: 'before-handle-middleware-02',
-            handle: mockMiddlewareBeforeHandle02,
-          },
-        ],
-        afterHandleMiddlewares: [
-          {
-            id: 'after-handle-middleware-01',
-            handle: mockMiddlewareAfterHandle01,
-          },
-          {
-            id: 'after-handle-middleware-02',
-            handle: mockMiddlewareAfterHandle02,
+            id: 'middleware.handle.02',
+            getActions: async () => {
+              return {
+                beforeHandle: middlewareBeforeHandle02,
+                afterHandle: middlewareAfterHandle02,
+              };
+            },
           },
         ],
       },
@@ -388,36 +473,36 @@ describe('Handle stage', () => {
       data: { code: 200, body: 'data' },
     });
 
-    expect(dataChanges).toHaveLength(5);
-    expect(dataChanges[0]).toMatchObject({
+    expect(changes).toHaveLength(5);
+    expect(changes[0]).toMatchObject({
       input: 'data',
-      output: 'before-handle-middleware-01',
+      output: 'middleware.handle.01.beforeHandle',
     });
-    expect(dataChanges[1]).toMatchObject({
-      input: 'before-handle-middleware-01',
-      output: 'before-handle-middleware-02',
+    expect(changes[1]).toMatchObject({
+      input: 'middleware.handle.01.beforeHandle',
+      output: 'middleware.handle.02.beforeHandle',
     });
-    expect(dataChanges[2]).toMatchObject({
-      input: 'before-handle-middleware-02',
-      output: 'before-handle-middleware-02',
+    expect(changes[2]).toMatchObject({
+      input: 'middleware.handle.02.beforeHandle',
+      output: 'middleware.handle.02.beforeHandle',
     });
-    expect(dataChanges[3]).toMatchObject({
-      input: 'before-handle-middleware-02',
-      output: 'after-handle-middleware-01',
+    expect(changes[3]).toMatchObject({
+      input: 'middleware.handle.02.beforeHandle',
+      output: 'middleware.handle.01.afterHandle',
     });
-    expect(dataChanges[4]).toMatchObject({
-      input: 'after-handle-middleware-01',
-      output: 'after-handle-middleware-02',
+    expect(changes[4]).toMatchObject({
+      input: 'middleware.handle.01.afterHandle',
+      output: 'middleware.handle.02.afterHandle',
     });
 
     expect(resultChanges).toHaveLength(2);
     expect(resultChanges[0]).toMatchObject({
-      input: 'before-handle-middleware-02',
-      output: 'after-handle-middleware-01',
+      input: 'middleware.handle.02.beforeHandle',
+      output: 'middleware.handle.01.afterHandle',
     });
     expect(resultChanges[1]).toMatchObject({
-      input: 'after-handle-middleware-01',
-      output: 'after-handle-middleware-02',
+      input: 'middleware.handle.01.afterHandle',
+      output: 'middleware.handle.02.afterHandle',
     });
   });
 });

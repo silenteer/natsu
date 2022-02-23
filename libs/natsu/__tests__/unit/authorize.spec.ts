@@ -1,14 +1,15 @@
-import type { NatsRequest } from '@silenteer/natsu-type';
-import {
-  NatsAuthorizationResultUtil,
-  NatsMiddlewareAuthorizationResultUtil,
-} from '../../utility';
+import type { NatsService as NatsServiceType } from '@silenteer/natsu-type';
+import type {
+  NatsBeforeAuthorize,
+  NatsAuthorize,
+  NatsAfterAuthorize,
+} from '../../type';
 import NatsService from '../service/nats.service';
 
 describe('Authorization stage', () => {
   let natsService: ReturnType<typeof NatsService.init>;
 
-  beforeEach(async () => {
+  beforeEach(() => {
     natsService = NatsService.init();
   });
 
@@ -16,37 +17,45 @@ describe('Authorization stage', () => {
     await natsService?.stop();
   });
 
-  it('beforeAuthorizeMiddlewares & authorize & afterAuthorizeMiddlewares will execute orderly', async () => {
+  it('beforeAuthorize & authorize & afterAuthorize will execute orderly', async () => {
     const order: string[] = [];
-    const mockHandlerAuthorize = jest.fn(async () => {
+    const handlerAuthorize: NatsAuthorize<
+      NatsServiceType<string, unknown, unknown>,
+      Record<string, unknown>
+    > = async (data, injection) => {
       order.push('handler.authorize.01');
-      return NatsAuthorizationResultUtil.ok();
-    });
-    const mockMiddlewareBeforeAuthorize = jest.fn(async () => {
-      order.push('before-authorize-middleware');
-      return NatsMiddlewareAuthorizationResultUtil.ok(undefined);
-    });
-    const mockMiddlewareAfterAuthorize = jest.fn(async () => {
-      order.push('after-authorize-middleware');
-      return NatsMiddlewareAuthorizationResultUtil.ok(undefined);
-    });
+      return injection.ok({ data });
+    };
+    const middlewareBeforeAuthorize: NatsBeforeAuthorize<
+      NatsServiceType<string, unknown, unknown>,
+      Record<string, unknown>
+    > = async (data, injection) => {
+      order.push('middleware.authorize.01.beforeAuthorize');
+      return injection.ok({ data, injection });
+    };
+    const middlewareAfterAuthorize: NatsAfterAuthorize<
+      NatsServiceType<string, unknown, unknown>,
+      Record<string, unknown>
+    > = async (data, injection) => {
+      order.push('middleware.authorize.01.afterAuthorize');
+      return injection.ok({ data, injection });
+    };
 
     natsService.register([
       {
         subject: 'handler.authorize.01',
         validate: undefined,
-        authorize: mockHandlerAuthorize,
+        authorize: handlerAuthorize,
         handle: undefined,
-        beforeAuthorizeMiddlewares: [
+        middlewares: [
           {
-            id: 'before-authorize-middleware',
-            handle: mockMiddlewareBeforeAuthorize,
-          },
-        ],
-        afterAuthorizeMiddlewares: [
-          {
-            id: 'after-authorize-middleware',
-            handle: mockMiddlewareAfterAuthorize,
+            id: 'middleware.authorize.01',
+            getActions: async () => {
+              return {
+                beforeAuthorize: middlewareBeforeAuthorize,
+                afterAuthorize: middlewareAfterAuthorize,
+              };
+            },
           },
         ],
       },
@@ -59,48 +68,56 @@ describe('Authorization stage', () => {
     });
 
     expect(order).toHaveLength(3);
-    expect(order[0]).toEqual('before-authorize-middleware');
+    expect(order[0]).toEqual('middleware.authorize.01.beforeAuthorize');
     expect(order[1]).toEqual('handler.authorize.01');
-    expect(order[2]).toEqual('after-authorize-middleware');
+    expect(order[2]).toEqual('middleware.authorize.01.afterAuthorize');
   });
 
-  it('beforeAuthorizeMiddlewares failed, authorize & afterAuthorizeMiddlewares wont execute, respondError will execute', async () => {
+  it('beforeAuthorize failed, authorize & afterAuthorize wont execute, respondError will execute', async () => {
     const order: string[] = [];
-    const mockHandlerAuthorize = jest.fn(async () => {
+    const handlerAuthorize: NatsAuthorize<
+      NatsServiceType<string, unknown, unknown>,
+      Record<string, unknown>
+    > = async (data, injection) => {
       order.push('handler.authorize.01');
-      return NatsAuthorizationResultUtil.ok();
-    });
-    const mockMiddlewareBeforeAuthorize = jest.fn(async () => {
-      order.push('before-authorize-middleware');
-      return NatsMiddlewareAuthorizationResultUtil.error();
-    });
-    const mockMiddlewareAfterAuthorize = jest.fn(async () => {
-      order.push('after-authorize-middleware');
-      return NatsMiddlewareAuthorizationResultUtil.ok(undefined);
-    });
-    const mockRespondError = jest.fn(async () => {
-      order.push('on-respond-error-middleware');
+      return injection.ok({ data });
+    };
+    const middlewareBeforeAuthorize: NatsBeforeAuthorize<
+      NatsServiceType<string, unknown, unknown>,
+      Record<string, unknown>
+    > = async (data, injection) => {
+      order.push('middleware.authorize.01.beforeAuthorize');
+      return injection.error({ data, injection, errors: new Error() });
+    };
+    const middlewareAfterAuthorize: NatsAfterAuthorize<
+      NatsServiceType<string, unknown, unknown>,
+      Record<string, unknown>
+    > = async (data, injection) => {
+      order.push('middleware.authorize.01.afterAuthorize');
+      return injection.ok({ data, injection });
+    };
+    const handlerRespondError = jest.fn(async () => {
+      order.push('handler.authorize.01.respondError');
     });
 
     natsService.register([
       {
         subject: 'handler.authorize.01',
         validate: undefined,
-        authorize: mockHandlerAuthorize,
+        authorize: handlerAuthorize,
         handle: undefined,
-        beforeAuthorizeMiddlewares: [
+        middlewares: [
           {
-            id: 'before-authorize-middleware',
-            handle: mockMiddlewareBeforeAuthorize,
+            id: 'middleware.authorize.01',
+            getActions: async () => {
+              return {
+                beforeAuthorize: middlewareBeforeAuthorize,
+                afterAuthorize: middlewareAfterAuthorize,
+              };
+            },
           },
         ],
-        afterAuthorizeMiddlewares: [
-          {
-            id: 'after-authorize-middleware',
-            handle: mockMiddlewareAfterAuthorize,
-          },
-        ],
-        respondError: mockRespondError,
+        respondError: handlerRespondError,
       },
     ]);
     await natsService.start();
@@ -111,47 +128,55 @@ describe('Authorization stage', () => {
     });
 
     expect(order).toHaveLength(2);
-    expect(order[0]).toEqual('before-authorize-middleware');
-    expect(order[1]).toEqual('on-respond-error-middleware');
+    expect(order[0]).toEqual('middleware.authorize.01.beforeAuthorize');
+    expect(order[1]).toEqual('handler.authorize.01.respondError');
   });
 
-  it('beforeAuthorizeMiddlewares successed, authorize failed, afterAuthorizeMiddlewares wont execute, respondError will execute', async () => {
+  it('beforeAuthorize successed, authorize failed, afterAuthorize wont execute, respondError will execute', async () => {
     const order: string[] = [];
-    const mockHandlerAuthorize = jest.fn(async () => {
+    const handlerAuthorize: NatsAuthorize<
+      NatsServiceType<string, unknown, unknown>,
+      Record<string, unknown>
+    > = async (data, injection) => {
       order.push('handler.authorize.01');
-      return NatsAuthorizationResultUtil.error();
-    });
-    const mockMiddlewareBeforeAuthorize = jest.fn(async () => {
-      order.push('before-authorize-middleware');
-      return NatsMiddlewareAuthorizationResultUtil.ok(undefined);
-    });
-    const mockMiddlewareAfterAuthorize = jest.fn(async () => {
-      order.push('after-authorize-middleware');
-      return NatsMiddlewareAuthorizationResultUtil.ok(undefined);
-    });
-    const mockRespondError = jest.fn(async () => {
-      order.push('on-respond-error-middleware');
+      return injection.error({ data, errors: new Error() });
+    };
+    const middlewareBeforeAuthorize: NatsBeforeAuthorize<
+      NatsServiceType<string, unknown, unknown>,
+      Record<string, unknown>
+    > = async (data, injection) => {
+      order.push('middleware.authorize.01.beforeAuthorize');
+      return injection.ok({ data, injection });
+    };
+    const middlewareAfterAuthorize: NatsAfterAuthorize<
+      NatsServiceType<string, unknown, unknown>,
+      Record<string, unknown>
+    > = async (data, injection) => {
+      order.push('middleware.authorize.01.afterAuthorize');
+      return injection.ok({ data, injection });
+    };
+    const handlerRespondError = jest.fn(async () => {
+      order.push('handler.authorize.01.respondError');
     });
 
     natsService.register([
       {
         subject: 'handler.authorize.01',
         validate: undefined,
-        authorize: mockHandlerAuthorize,
+        authorize: handlerAuthorize,
         handle: undefined,
-        beforeAuthorizeMiddlewares: [
+        middlewares: [
           {
-            id: 'before-authorize-middleware',
-            handle: mockMiddlewareBeforeAuthorize,
+            id: 'middleware.authorize.01',
+            getActions: async () => {
+              return {
+                beforeAuthorize: middlewareBeforeAuthorize,
+                afterAuthorize: middlewareAfterAuthorize,
+              };
+            },
           },
         ],
-        afterAuthorizeMiddlewares: [
-          {
-            id: 'after-authorize-middleware',
-            handle: mockMiddlewareAfterAuthorize,
-          },
-        ],
-        respondError: mockRespondError,
+        respondError: handlerRespondError,
       },
     ]);
     await natsService.start();
@@ -162,64 +187,86 @@ describe('Authorization stage', () => {
     });
 
     expect(order).toHaveLength(3);
-    expect(order[0]).toEqual('before-authorize-middleware');
+    expect(order[0]).toEqual('middleware.authorize.01.beforeAuthorize');
     expect(order[1]).toEqual('handler.authorize.01');
-    expect(order[2]).toEqual('on-respond-error-middleware');
+    expect(order[2]).toEqual('handler.authorize.01.respondError');
   });
 
-  it('beforeAuthorizeMiddlewares failed in middle, authorize & afterAuthorizeMiddlewares wont execute, respondError will execute', async () => {
+  it('beforeAuthorize failed in middle, authorize & afterAuthorize wont execute, respondError will execute', async () => {
     const order: string[] = [];
-    const mockHandlerAuthorize = jest.fn(async () => {
+    const handlerAuthorize: NatsAuthorize<
+      NatsServiceType<string, unknown, unknown>,
+      Record<string, unknown>
+    > = async (data, injection) => {
       order.push('handler.authorize.01');
-      return NatsAuthorizationResultUtil.ok();
-    });
-    const mockMiddlewareBeforeAuthorize01 = jest.fn(async () => {
-      order.push('before-authorize-middleware-01');
-      return NatsMiddlewareAuthorizationResultUtil.ok(undefined);
-    });
-    const mockMiddlewareBeforeAuthorize02 = jest.fn(async () => {
-      order.push('before-authorize-middleware-02');
-      return NatsMiddlewareAuthorizationResultUtil.error();
-    });
-    const mockMiddlewareBeforeAuthorize03 = jest.fn(async () => {
-      order.push('before-authorize-middleware-03');
-      return NatsMiddlewareAuthorizationResultUtil.ok(undefined);
-    });
-    const mockMiddlewareAfterAuthorize = jest.fn(async () => {
-      order.push('after-authorize-middleware');
-      return NatsMiddlewareAuthorizationResultUtil.ok(undefined);
-    });
-    const mockRespondError = jest.fn(async () => {
-      order.push('on-respond-error-middleware');
+      return injection.ok({ data });
+    };
+    const middlewareBeforeAuthorize01: NatsBeforeAuthorize<
+      NatsServiceType<string, unknown, unknown>,
+      Record<string, unknown>
+    > = async (data, injection) => {
+      order.push('middleware.authorize.01.beforeAuthorize');
+      return injection.ok({ data, injection });
+    };
+    const middlewareBeforeAuthorize02: NatsBeforeAuthorize<
+      NatsServiceType<string, unknown, unknown>,
+      Record<string, unknown>
+    > = async (data, injection) => {
+      order.push('middleware.authorize.02.beforeAuthorize');
+      return injection.error({ data, injection, errors: new Error() });
+    };
+    const middlewareBeforeAuthorize03: NatsBeforeAuthorize<
+      NatsServiceType<string, unknown, unknown>,
+      Record<string, unknown>
+    > = async (data, injection) => {
+      order.push('middleware.authorize.03.beforeAuthorize');
+      return injection.ok({ data, injection });
+    };
+    const middlewareAfterAuthorize: NatsAfterAuthorize<
+      NatsServiceType<string, unknown, unknown>,
+      Record<string, unknown>
+    > = async (data, injection) => {
+      order.push('middleware.authorize.01.afterAuthorize');
+      return injection.ok({ data, injection });
+    };
+    const handlerRespondError = jest.fn(async () => {
+      order.push('handler.authorize.01.respondError');
     });
 
     natsService.register([
       {
         subject: 'handler.authorize.01',
         validate: undefined,
-        authorize: mockHandlerAuthorize,
+        authorize: handlerAuthorize,
         handle: undefined,
-        beforeAuthorizeMiddlewares: [
+        middlewares: [
           {
-            id: 'before-authorize-middleware-01',
-            handle: mockMiddlewareBeforeAuthorize01,
+            id: 'middleware.authorize.01',
+            getActions: async () => {
+              return {
+                beforeAuthorize: middlewareBeforeAuthorize01,
+                afterAuthorize: middlewareAfterAuthorize,
+              };
+            },
           },
           {
-            id: 'before-authorize-middleware-02',
-            handle: mockMiddlewareBeforeAuthorize02,
+            id: 'middleware.authorize.02',
+            getActions: async () => {
+              return {
+                beforeAuthorize: middlewareBeforeAuthorize02,
+              };
+            },
           },
           {
-            id: 'before-authorize-middleware-03',
-            handle: mockMiddlewareBeforeAuthorize03,
+            id: 'middleware.authorize.03',
+            getActions: async () => {
+              return {
+                beforeAuthorize: middlewareBeforeAuthorize03,
+              };
+            },
           },
         ],
-        afterAuthorizeMiddlewares: [
-          {
-            id: 'after-authorize-middleware',
-            handle: mockMiddlewareAfterAuthorize,
-          },
-        ],
-        respondError: mockRespondError,
+        respondError: handlerRespondError,
       },
     ]);
     await natsService.start();
@@ -230,64 +277,86 @@ describe('Authorization stage', () => {
     });
 
     expect(order).toHaveLength(3);
-    expect(order[0]).toEqual('before-authorize-middleware-01');
-    expect(order[1]).toEqual('before-authorize-middleware-02');
-    expect(order[2]).toEqual('on-respond-error-middleware');
+    expect(order[0]).toEqual('middleware.authorize.01.beforeAuthorize');
+    expect(order[1]).toEqual('middleware.authorize.02.beforeAuthorize');
+    expect(order[2]).toEqual('handler.authorize.01.respondError');
   });
 
-  it('beforeAuthorizeMiddlewares & authorize successed, afterAuthorizeMiddlewares failed in middle, respondError will execute', async () => {
+  it('beforeAuthorize & authorize successed, afterAuthorize failed in middle, respondError will execute', async () => {
     const order: string[] = [];
-    const mockHandlerAuthorize = jest.fn(async () => {
+    const handlerAuthorize: NatsAuthorize<
+      NatsServiceType<string, unknown, unknown>,
+      Record<string, unknown>
+    > = async (data, injection) => {
       order.push('handler.authorize.01');
-      return NatsAuthorizationResultUtil.ok();
-    });
-    const mockMiddlewareBeforeAuthorize = jest.fn(async () => {
-      order.push('before-authorize-middleware');
-      return NatsMiddlewareAuthorizationResultUtil.ok(undefined);
-    });
-    const mockMiddlewareAfterAuthorize01 = jest.fn(async () => {
-      order.push('after-authorize-middleware-01');
-      return NatsMiddlewareAuthorizationResultUtil.ok(undefined);
-    });
-    const mockMiddlewareAfterAuthorize02 = jest.fn(async () => {
-      order.push('after-authorize-middleware-02');
-      return NatsMiddlewareAuthorizationResultUtil.error();
-    });
-    const mockMiddlewareAfterAuthorize03 = jest.fn(async () => {
-      order.push('after-authorize-middleware-03');
-      return NatsMiddlewareAuthorizationResultUtil.ok(undefined);
-    });
-    const mockRespondError = jest.fn(async () => {
-      order.push('on-respond-error-middleware');
+      return injection.ok({ data });
+    };
+    const middlewareBeforeAuthorize: NatsBeforeAuthorize<
+      NatsServiceType<string, unknown, unknown>,
+      Record<string, unknown>
+    > = async (data, injection) => {
+      order.push('middleware.authorize.01.beforeAuthorize');
+      return injection.ok({ data, injection });
+    };
+    const middlewareAfterAuthorize01: NatsAfterAuthorize<
+      NatsServiceType<string, unknown, unknown>,
+      Record<string, unknown>
+    > = async (data, injection) => {
+      order.push('middleware.authorize.01.afterAuthorize');
+      return injection.ok({ data, injection });
+    };
+    const middlewareAfterAuthorize02: NatsAfterAuthorize<
+      NatsServiceType<string, unknown, unknown>,
+      Record<string, unknown>
+    > = async (data, injection) => {
+      order.push('middleware.authorize.02.afterAuthorize');
+      return injection.error({ data, injection, errors: new Error() });
+    };
+    const middlewareAfterAuthorize03: NatsAfterAuthorize<
+      NatsServiceType<string, unknown, unknown>,
+      Record<string, unknown>
+    > = async (data, injection) => {
+      order.push('middleware.authorize.03.afterAuthorize');
+      return injection.ok({ data, injection });
+    };
+    const handlerRespondError = jest.fn(async () => {
+      order.push('handler.authorize.01.respondError');
     });
 
     natsService.register([
       {
         subject: 'handler.authorize.01',
         validate: undefined,
-        authorize: mockHandlerAuthorize,
+        authorize: handlerAuthorize,
         handle: undefined,
-        beforeAuthorizeMiddlewares: [
+        middlewares: [
           {
-            id: 'before-authorize-middleware',
-            handle: mockMiddlewareBeforeAuthorize,
+            id: 'middleware.authorize.01',
+            getActions: async () => {
+              return {
+                beforeAuthorize: middlewareBeforeAuthorize,
+                afterAuthorize: middlewareAfterAuthorize01,
+              };
+            },
+          },
+          {
+            id: 'middleware.authorize.02',
+            getActions: async () => {
+              return {
+                afterAuthorize: middlewareAfterAuthorize02,
+              };
+            },
+          },
+          {
+            id: 'middleware.authorize.03',
+            getActions: async () => {
+              return {
+                afterAuthorize: middlewareAfterAuthorize03,
+              };
+            },
           },
         ],
-        afterAuthorizeMiddlewares: [
-          {
-            id: 'after-authorize-middleware-01',
-            handle: mockMiddlewareAfterAuthorize01,
-          },
-          {
-            id: 'after-authorize-middleware-02',
-            handle: mockMiddlewareAfterAuthorize02,
-          },
-          {
-            id: 'after-authorize-middleware-03',
-            handle: mockMiddlewareAfterAuthorize03,
-          },
-        ],
-        respondError: mockRespondError,
+        respondError: handlerRespondError,
       },
     ]);
     await natsService.start();
@@ -298,72 +367,91 @@ describe('Authorization stage', () => {
     });
 
     expect(order).toHaveLength(5);
-    expect(order[0]).toEqual('before-authorize-middleware');
+    expect(order[0]).toEqual('middleware.authorize.01.beforeAuthorize');
     expect(order[1]).toEqual('handler.authorize.01');
-    expect(order[2]).toEqual('after-authorize-middleware-01');
-    expect(order[3]).toEqual('after-authorize-middleware-02');
-    expect(order[4]).toEqual('on-respond-error-middleware');
+    expect(order[2]).toEqual('middleware.authorize.01.afterAuthorize');
+    expect(order[3]).toEqual('middleware.authorize.02.afterAuthorize');
+    expect(order[4]).toEqual('handler.authorize.01.respondError');
   });
 
-  it('Data will be changed while go through beforeAuthorizeMiddlewares, afterAuthorizeMiddlewares', async () => {
-    const changes: Array<{ input: string; output: string }> = [];
-    const mockAuthorize = jest.fn(async (data: NatsRequest<string>) => {
+  it('Data will be changed while go through beforeAuthorize, afterAuthorize', async () => {
+    const changes: Array<{ input: unknown; output: unknown }> = [];
+    const handlerAuthorize: NatsAuthorize<
+      NatsServiceType<string, unknown, unknown>,
+      Record<string, unknown>
+    > = async (data, injection) => {
       changes.push({ input: data.body, output: data.body });
-      return NatsAuthorizationResultUtil.ok();
-    });
-    const mockMiddlewareBeforeAuthorize01 = jest.fn(
-      async (data: NatsRequest<string>) => {
-        const changedData = { ...data, body: 'before-authorize-middleware-01' };
-        changes.push({ input: data.body, output: changedData.body });
-        return NatsMiddlewareAuthorizationResultUtil.ok(changedData);
-      }
-    );
-    const mockMiddlewareBeforeAuthorize02 = jest.fn(
-      async (data: NatsRequest<string>) => {
-        const changedData = { ...data, body: 'before-authorize-middleware-02' };
-        changes.push({ input: data.body, output: changedData.body });
-        return NatsMiddlewareAuthorizationResultUtil.ok(changedData);
-      }
-    );
-    const mockMiddlewareAfterAuthorize01 = jest.fn(
-      async (data: NatsRequest<string>) => {
-        const changedData = { ...data, body: 'after-authorize-middleware-01' };
-        changes.push({ input: data.body, output: changedData.body });
-        return NatsMiddlewareAuthorizationResultUtil.ok(changedData);
-      }
-    );
-    const mockMiddlewareAfterAuthorize02 = jest.fn(
-      async (data: NatsRequest<string>) => {
-        const changedData = { ...data, body: 'after-authorize-middleware-02' };
-        changes.push({ input: data.body, output: changedData.body });
-        return NatsMiddlewareAuthorizationResultUtil.ok(changedData);
-      }
-    );
+      return injection.ok({ data });
+    };
+    const middlewareBeforeAuthorize01: NatsBeforeAuthorize<
+      NatsServiceType<string, unknown, unknown>,
+      Record<string, unknown>
+    > = async (data, injection) => {
+      const changedData = {
+        ...data,
+        body: 'middleware.authorize.01.beforeAuthorize',
+      };
+      changes.push({ input: data.body, output: changedData.body });
+      return injection.ok({ data: changedData, injection });
+    };
+    const middlewareBeforeAuthorize02: NatsBeforeAuthorize<
+      NatsServiceType<string, unknown, unknown>,
+      Record<string, unknown>
+    > = async (data, injection) => {
+      const changedData = {
+        ...data,
+        body: 'middleware.authorize.02.beforeAuthorize',
+      };
+      changes.push({ input: data.body, output: changedData.body });
+      return injection.ok({ data: changedData, injection });
+    };
+    const middlewareAfterAuthorize01: NatsAfterAuthorize<
+      NatsServiceType<string, unknown, unknown>,
+      Record<string, unknown>
+    > = async (data, injection) => {
+      const changedData = {
+        ...data,
+        body: 'middleware.authorize.01.afterAuthorize',
+      };
+      changes.push({ input: data.body, output: changedData.body });
+      return injection.ok({ data: changedData, injection });
+    };
+    const middlewareAfterAuthorize02: NatsAfterAuthorize<
+      NatsServiceType<string, unknown, unknown>,
+      Record<string, unknown>
+    > = async (data, injection) => {
+      const changedData = {
+        ...data,
+        body: 'middleware.authorize.02.afterAuthorize',
+      };
+      changes.push({ input: data.body, output: changedData.body });
+      return injection.ok({ data: changedData, injection });
+    };
 
     natsService.register([
       {
         subject: 'handler.authorize.01',
         validate: undefined,
-        authorize: mockAuthorize,
+        authorize: handlerAuthorize,
         handle: undefined,
-        beforeAuthorizeMiddlewares: [
+        middlewares: [
           {
-            id: 'before-authorize-middleware-01',
-            handle: mockMiddlewareBeforeAuthorize01,
+            id: 'middleware.authorize.01',
+            getActions: async () => {
+              return {
+                beforeAuthorize: middlewareBeforeAuthorize01,
+                afterAuthorize: middlewareAfterAuthorize01,
+              };
+            },
           },
           {
-            id: 'before-authorize-middleware-02',
-            handle: mockMiddlewareBeforeAuthorize02,
-          },
-        ],
-        afterAuthorizeMiddlewares: [
-          {
-            id: 'after-authorize-middleware-01',
-            handle: mockMiddlewareAfterAuthorize01,
-          },
-          {
-            id: 'after-authorize-middleware-02',
-            handle: mockMiddlewareAfterAuthorize02,
+            id: 'middleware.authorize.02',
+            getActions: async () => {
+              return {
+                beforeAuthorize: middlewareBeforeAuthorize02,
+                afterAuthorize: middlewareAfterAuthorize02,
+              };
+            },
           },
         ],
       },
@@ -378,23 +466,23 @@ describe('Authorization stage', () => {
     expect(changes).toHaveLength(5);
     expect(changes[0]).toMatchObject({
       input: 'data',
-      output: 'before-authorize-middleware-01',
+      output: 'middleware.authorize.01.beforeAuthorize',
     });
     expect(changes[1]).toMatchObject({
-      input: 'before-authorize-middleware-01',
-      output: 'before-authorize-middleware-02',
+      input: 'middleware.authorize.01.beforeAuthorize',
+      output: 'middleware.authorize.02.beforeAuthorize',
     });
     expect(changes[2]).toMatchObject({
-      input: 'before-authorize-middleware-02',
-      output: 'before-authorize-middleware-02',
+      input: 'middleware.authorize.02.beforeAuthorize',
+      output: 'middleware.authorize.02.beforeAuthorize',
     });
     expect(changes[3]).toMatchObject({
-      input: 'before-authorize-middleware-02',
-      output: 'after-authorize-middleware-01',
+      input: 'middleware.authorize.02.beforeAuthorize',
+      output: 'middleware.authorize.01.afterAuthorize',
     });
     expect(changes[4]).toMatchObject({
-      input: 'after-authorize-middleware-01',
-      output: 'after-authorize-middleware-02',
+      input: 'middleware.authorize.01.afterAuthorize',
+      output: 'middleware.authorize.02.afterAuthorize',
     });
   });
 });
