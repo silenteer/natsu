@@ -42,7 +42,7 @@ describe('Before all stage', () => {
         middlewares: [
           {
             id: 'middleware.validate.01',
-            getActions: async () => {
+            init: async () => {
               return {
                 beforeAll: middlewareBeforeAll,
                 beforeValidate: middlewareBeforeValidate,
@@ -108,7 +108,7 @@ describe('Before all stage', () => {
         middlewares: [
           {
             id: 'middleware.validate.01',
-            getActions: async () => {
+            init: async () => {
               return {
                 beforeAll: middlewareBeforeAll01,
                 beforeValidate: middlewareBeforeValidate01,
@@ -117,7 +117,7 @@ describe('Before all stage', () => {
           },
           {
             id: 'middleware.validate.02',
-            getActions: async () => {
+            init: async () => {
               return {
                 beforeAll: middlewareBeforeAll02,
               };
@@ -125,7 +125,7 @@ describe('Before all stage', () => {
           },
           {
             id: 'middleware.validate.03',
-            getActions: async () => {
+            init: async () => {
               return {
                 beforeAll: middlewareBeforeAll03,
               };
@@ -174,7 +174,7 @@ describe('Before all stage', () => {
         middlewares: [
           {
             id: 'middleware.validate.01',
-            getActions: async () => {
+            init: async () => {
               return {
                 beforeAll: middlewareBeforeAll,
                 beforeValidate: middlewareBeforeValidate,

@@ -350,7 +350,7 @@ type NatsMiddleware<
   TInjection extends Record<string, unknown> = Record<string, unknown>
 > = {
   id: string;
-  getActions: (injection: TInjection & NatsInjection) => Promise<{
+  init: (injection: TInjection & NatsInjection) => Promise<{
     beforeAll?: NatsBeforeAll<TService, TInjection>;
     beforeValidate?: NatsBeforeValidate<TService, TInjection>;
     afterValidate?: NatsAfterValidate<TService, TInjection>;
@@ -381,40 +381,6 @@ type NatsHandler<
     error: Error,
     injection: TInjection & NatsInjection
   ) => Promise<void>;
-  sortMiddlewareActions?: (params: {}) => {
-    beforeAll: Array<{
-      middlewareId: string;
-      handle: NatsBeforeAll<TService, TInjection>;
-    }>;
-    beforeValidate: Array<{
-      middlewareId: string;
-      handle: NatsBeforeValidate<TService, TInjection>;
-    }>;
-    afterValidate: Array<{
-      middlewareId: string;
-      handle: NatsAfterValidate<TService, TInjection>;
-    }>;
-    beforeAuthorize: Array<{
-      middlewareId: string;
-      handle: NatsBeforeAuthorize<TService, TInjection>;
-    }>;
-    afterAuthorize: Array<{
-      middlewareId: string;
-      handle: NatsAfterAuthorize<TService, TInjection>;
-    }>;
-    beforeHandle: Array<{
-      middlewareId: string;
-      handle: NatsBeforeHandle<TService, TInjection>;
-    }>;
-    afterHandle: Array<{
-      middlewareId: string;
-      handle: NatsAfterHandle<TService, TInjection>;
-    }>;
-    afterAll: Array<{
-      middlewareId: string;
-      handle: NatsAfterAll<TService, TInjection>;
-    }>;
-  };
 };
 
 export type {

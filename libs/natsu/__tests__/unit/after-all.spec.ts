@@ -35,7 +35,7 @@ describe('After all stage', () => {
         middlewares: [
           {
             id: 'middleware.validate.01',
-            getActions: async () => {
+            init: async () => {
               return {
                 afterAll: middlewareAfterAll,
               };
@@ -93,7 +93,7 @@ describe('After all stage', () => {
         middlewares: [
           {
             id: 'middleware.validate.01',
-            getActions: async () => {
+            init: async () => {
               return {
                 afterAll: middlewareAfterAll01,
               };
@@ -101,7 +101,7 @@ describe('After all stage', () => {
           },
           {
             id: 'middleware.validate.02',
-            getActions: async () => {
+            init: async () => {
               return {
                 afterAll: middlewareAfterAll02,
               };
@@ -109,7 +109,7 @@ describe('After all stage', () => {
           },
           {
             id: 'middleware.validate.03',
-            getActions: async () => {
+            init: async () => {
               return {
                 afterAll: middlewareAfterAll03,
               };

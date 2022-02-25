@@ -46,7 +46,7 @@ describe('Handle stage', () => {
         middlewares: [
           {
             id: 'middleware.handle.01',
-            getActions: async () => {
+            init: async () => {
               return {
                 beforeHandle: middlewareBeforeHandle,
                 afterHandle: middlewareAfterHandle,
@@ -105,7 +105,7 @@ describe('Handle stage', () => {
         middlewares: [
           {
             id: 'middleware.handle.01',
-            getActions: async () => {
+            init: async () => {
               return {
                 beforeHandle: middlewareBeforeHandle,
                 afterHandle: middlewareAfterHandle,
@@ -164,7 +164,7 @@ describe('Handle stage', () => {
         middlewares: [
           {
             id: 'middleware.handle.01',
-            getActions: async () => {
+            init: async () => {
               return {
                 beforeHandle: middlewareBeforeHandle,
                 afterHandle: middlewareAfterHandle,
@@ -238,7 +238,7 @@ describe('Handle stage', () => {
         middlewares: [
           {
             id: 'middleware.handle.01',
-            getActions: async () => {
+            init: async () => {
               return {
                 beforeHandle: middlewareBeforeHandle01,
                 afterHandle: middlewareAfterHandle,
@@ -247,7 +247,7 @@ describe('Handle stage', () => {
           },
           {
             id: 'middleware.handle.02',
-            getActions: async () => {
+            init: async () => {
               return {
                 beforeHandle: middlewareBeforeHandle02,
               };
@@ -255,7 +255,7 @@ describe('Handle stage', () => {
           },
           {
             id: 'middleware.handle.03',
-            getActions: async () => {
+            init: async () => {
               return {
                 beforeHandle: middlewareBeforeHandle03,
               };
@@ -328,7 +328,7 @@ describe('Handle stage', () => {
         middlewares: [
           {
             id: 'middleware.handle.01',
-            getActions: async () => {
+            init: async () => {
               return {
                 beforeHandle: middlewareBeforeHandle,
                 afterHandle: middlewareAfterHandle01,
@@ -337,7 +337,7 @@ describe('Handle stage', () => {
           },
           {
             id: 'middleware.handle.02',
-            getActions: async () => {
+            init: async () => {
               return {
                 afterHandle: middlewareAfterHandle02,
               };
@@ -345,7 +345,7 @@ describe('Handle stage', () => {
           },
           {
             id: 'middleware.handle.03',
-            getActions: async () => {
+            init: async () => {
               return {
                 afterHandle: middlewareAfterHandle03,
               };
@@ -447,7 +447,7 @@ describe('Handle stage', () => {
         middlewares: [
           {
             id: 'middleware.handle.01',
-            getActions: async () => {
+            init: async () => {
               return {
                 beforeHandle: middlewareBeforeHandle01,
                 afterHandle: middlewareAfterHandle01,
@@ -456,7 +456,7 @@ describe('Handle stage', () => {
           },
           {
             id: 'middleware.handle.02',
-            getActions: async () => {
+            init: async () => {
               return {
                 beforeHandle: middlewareBeforeHandle02,
                 afterHandle: middlewareAfterHandle02,

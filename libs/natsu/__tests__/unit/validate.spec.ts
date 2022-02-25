@@ -50,7 +50,7 @@ describe('Validation stage', () => {
         middlewares: [
           {
             id: 'middleware.validate.01',
-            getActions: async () => {
+            init: async () => {
               return {
                 beforeValidate: middlewareBeforeValidate,
                 afterValidate: middlewareAfterValidate,
@@ -109,7 +109,7 @@ describe('Validation stage', () => {
         middlewares: [
           {
             id: 'middleware.validate.01',
-            getActions: async () => {
+            init: async () => {
               return {
                 beforeValidate: middlewareBeforeValidate,
                 afterValidate: middlewareAfterValidate,
@@ -168,7 +168,7 @@ describe('Validation stage', () => {
         middlewares: [
           {
             id: 'middleware.validate.01',
-            getActions: async () => {
+            init: async () => {
               return {
                 beforeValidate: middlewareBeforeValidate,
                 afterValidate: middlewareAfterValidate,
@@ -242,7 +242,7 @@ describe('Validation stage', () => {
         middlewares: [
           {
             id: 'middleware.validate.01',
-            getActions: async () => {
+            init: async () => {
               return {
                 beforeValidate: middlewareBeforeValidate01,
                 afterValidate: middlewareAfterValidate,
@@ -251,7 +251,7 @@ describe('Validation stage', () => {
           },
           {
             id: 'middleware.validate.02',
-            getActions: async () => {
+            init: async () => {
               return {
                 beforeValidate: middlewareBeforeValidate02,
               };
@@ -259,7 +259,7 @@ describe('Validation stage', () => {
           },
           {
             id: 'middleware.validate.03',
-            getActions: async () => {
+            init: async () => {
               return {
                 beforeValidate: middlewareBeforeValidate03,
               };
@@ -332,7 +332,7 @@ describe('Validation stage', () => {
         middlewares: [
           {
             id: 'middleware.validate.01',
-            getActions: async () => {
+            init: async () => {
               return {
                 beforeValidate: middlewareBeforeValidate,
                 afterValidate: middlewareAfterValidate01,
@@ -341,7 +341,7 @@ describe('Validation stage', () => {
           },
           {
             id: 'middleware.validate.02',
-            getActions: async () => {
+            init: async () => {
               return {
                 afterValidate: middlewareAfterValidate02,
               };
@@ -349,7 +349,7 @@ describe('Validation stage', () => {
           },
           {
             id: 'middleware.validate.03',
-            getActions: async () => {
+            init: async () => {
               return {
                 afterValidate: middlewareAfterValidate03,
               };
@@ -437,7 +437,7 @@ describe('Validation stage', () => {
         middlewares: [
           {
             id: 'middleware.validate.01',
-            getActions: async () => {
+            init: async () => {
               return {
                 beforeValidate: middlewareBeforeValidate01,
                 afterValidate: middlewareAfterValidate01,
@@ -446,7 +446,7 @@ describe('Validation stage', () => {
           },
           {
             id: 'middleware.validate.02',
-            getActions: async () => {
+            init: async () => {
               return {
                 beforeValidate: middlewareBeforeValidate02,
                 afterValidate: middlewareAfterValidate02,

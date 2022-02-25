@@ -127,8 +127,8 @@ async function start<
             subject,
             message,
             natsService,
-            logService: createHandlerLogService({
-              subject,
+            logService: createLogService({
+              prefix: subject,
               logService: params.injections?.logService || console,
             }),
           };
@@ -423,39 +423,21 @@ function createNatsService(params: {
   };
 }
 
-function createHandlerLogService(params: {
-  subject: string;
+function createLogService(params: {
+  prefix: string;
   logService: NatsInjection['logService'];
 }): NatsInjection['logService'] {
-  const { subject, logService } = params;
+  const { prefix, logService } = params;
 
   return {
     log: (message?: any, ...optionalParams: any[]) =>
-      logService.log(subject, message, optionalParams),
+      logService.log(prefix, message, optionalParams),
     info: (message?: any, ...optionalParams: any[]) =>
-      logService.info(subject, message, optionalParams),
+      logService.info(prefix, message, optionalParams),
     warn: (message?: any, ...optionalParams: any[]) =>
-      logService.warn(subject, message, optionalParams),
+      logService.warn(prefix, message, optionalParams),
     error: (message?: any, ...optionalParams: any[]) =>
-      logService.error(subject, message, optionalParams),
-  };
-}
-
-function createMiddlewareLogService(params: {
-  middlewareId: string;
-  logService: NatsInjection['logService'];
-}): NatsInjection['logService'] {
-  const { middlewareId, logService } = params;
-
-  return {
-    log: (message?: any, ...optionalParams: any[]) =>
-      logService.log(middlewareId, message, optionalParams),
-    info: (message?: any, ...optionalParams: any[]) =>
-      logService.info(middlewareId, message, optionalParams),
-    warn: (message?: any, ...optionalParams: any[]) =>
-      logService.warn(middlewareId, message, optionalParams),
-    error: (message?: any, ...optionalParams: any[]) =>
-      logService.error(middlewareId, message, optionalParams),
+      logService.error(prefix, message, optionalParams),
   };
 }
 
@@ -883,42 +865,48 @@ async function loadMiddlewareActions<
   if (handler.middlewares?.length > 0) {
     for (const middleware of handler.middlewares) {
       const middlewareId = middleware.id;
-      const actions = await middleware.getActions({
+      const instance = await middleware.init({
         ...injection,
-        logService: createMiddlewareLogService({
-          middlewareId: middleware.id,
+        logService: createLogService({
+          prefix: middleware.id,
           logService: injection.logService || console,
         }),
       });
 
-      if (actions.beforeAll) {
-        beforeAll.push({ middlewareId, handle: actions.beforeAll });
+      if (instance.beforeAll) {
+        beforeAll.push({ middlewareId, handle: instance.beforeAll });
       }
-      if (actions.beforeValidate) {
-        beforeValidate.push({ middlewareId, handle: actions.beforeValidate });
+      if (instance.beforeValidate) {
+        beforeValidate.push({ middlewareId, handle: instance.beforeValidate });
       }
-      if (actions.afterValidate) {
-        afterValidate.push({ middlewareId, handle: actions.afterValidate });
+      if (instance.afterValidate) {
+        afterValidate.unshift({ middlewareId, handle: instance.afterValidate });
       }
-      if (actions.beforeAuthorize) {
-        beforeAuthorize.push({ middlewareId, handle: actions.beforeAuthorize });
+      if (instance.beforeAuthorize) {
+        beforeAuthorize.push({
+          middlewareId,
+          handle: instance.beforeAuthorize,
+        });
       }
-      if (actions.afterAuthorize) {
-        afterAuthorize.push({ middlewareId, handle: actions.afterAuthorize });
+      if (instance.afterAuthorize) {
+        afterAuthorize.unshift({
+          middlewareId,
+          handle: instance.afterAuthorize,
+        });
       }
-      if (actions.beforeHandle) {
-        beforeHandle.push({ middlewareId, handle: actions.beforeHandle });
+      if (instance.beforeHandle) {
+        beforeHandle.push({ middlewareId, handle: instance.beforeHandle });
       }
-      if (actions.afterHandle) {
-        afterHandle.push({ middlewareId, handle: actions.afterHandle });
+      if (instance.afterHandle) {
+        afterHandle.unshift({ middlewareId, handle: instance.afterHandle });
       }
-      if (actions.afterAll) {
-        afterAll.push({ middlewareId, handle: actions.afterAll });
+      if (instance.afterAll) {
+        afterAll.unshift({ middlewareId, handle: instance.afterAll });
       }
     }
   }
 
-  let middlewareActions = {
+  return {
     beforeAll,
     beforeValidate,
     afterValidate,
@@ -928,11 +916,6 @@ async function loadMiddlewareActions<
     afterHandle,
     afterAll,
   };
-  if (handler.sortMiddlewareActions) {
-    middlewareActions = handler.sortMiddlewareActions(middlewareActions);
-  }
-
-  return middlewareActions;
 }
 
 async function beforeAll<

@@ -50,7 +50,7 @@ describe('Authorization stage', () => {
         middlewares: [
           {
             id: 'middleware.authorize.01',
-            getActions: async () => {
+            init: async () => {
               return {
                 beforeAuthorize: middlewareBeforeAuthorize,
                 afterAuthorize: middlewareAfterAuthorize,
@@ -109,7 +109,7 @@ describe('Authorization stage', () => {
         middlewares: [
           {
             id: 'middleware.authorize.01',
-            getActions: async () => {
+            init: async () => {
               return {
                 beforeAuthorize: middlewareBeforeAuthorize,
                 afterAuthorize: middlewareAfterAuthorize,
@@ -168,7 +168,7 @@ describe('Authorization stage', () => {
         middlewares: [
           {
             id: 'middleware.authorize.01',
-            getActions: async () => {
+            init: async () => {
               return {
                 beforeAuthorize: middlewareBeforeAuthorize,
                 afterAuthorize: middlewareAfterAuthorize,
@@ -242,7 +242,7 @@ describe('Authorization stage', () => {
         middlewares: [
           {
             id: 'middleware.authorize.01',
-            getActions: async () => {
+            init: async () => {
               return {
                 beforeAuthorize: middlewareBeforeAuthorize01,
                 afterAuthorize: middlewareAfterAuthorize,
@@ -251,7 +251,7 @@ describe('Authorization stage', () => {
           },
           {
             id: 'middleware.authorize.02',
-            getActions: async () => {
+            init: async () => {
               return {
                 beforeAuthorize: middlewareBeforeAuthorize02,
               };
@@ -259,7 +259,7 @@ describe('Authorization stage', () => {
           },
           {
             id: 'middleware.authorize.03',
-            getActions: async () => {
+            init: async () => {
               return {
                 beforeAuthorize: middlewareBeforeAuthorize03,
               };
@@ -332,7 +332,7 @@ describe('Authorization stage', () => {
         middlewares: [
           {
             id: 'middleware.authorize.01',
-            getActions: async () => {
+            init: async () => {
               return {
                 beforeAuthorize: middlewareBeforeAuthorize,
                 afterAuthorize: middlewareAfterAuthorize01,
@@ -341,7 +341,7 @@ describe('Authorization stage', () => {
           },
           {
             id: 'middleware.authorize.02',
-            getActions: async () => {
+            init: async () => {
               return {
                 afterAuthorize: middlewareAfterAuthorize02,
               };
@@ -349,7 +349,7 @@ describe('Authorization stage', () => {
           },
           {
             id: 'middleware.authorize.03',
-            getActions: async () => {
+            init: async () => {
               return {
                 afterAuthorize: middlewareAfterAuthorize03,
               };
@@ -437,7 +437,7 @@ describe('Authorization stage', () => {
         middlewares: [
           {
             id: 'middleware.authorize.01',
-            getActions: async () => {
+            init: async () => {
               return {
                 beforeAuthorize: middlewareBeforeAuthorize01,
                 afterAuthorize: middlewareAfterAuthorize01,
@@ -446,7 +446,7 @@ describe('Authorization stage', () => {
           },
           {
             id: 'middleware.authorize.02',
-            getActions: async () => {
+            init: async () => {
               return {
                 beforeAuthorize: middlewareBeforeAuthorize02,
                 afterAuthorize: middlewareAfterAuthorize02,
