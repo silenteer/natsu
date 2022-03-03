@@ -508,10 +508,10 @@
     "@jridgewell/resolve-uri" "^3.0.3"
     "@jridgewell/sourcemap-codec" "^1.4.10"
 
-"@silenteer/natsu-type@0.0.11":
-  version "0.0.11"
-  resolved "https://registry.yarnpkg.com/@silenteer/natsu-type/-/natsu-type-0.0.11.tgz#b17bb7ad96428e683e1996de44b6ef20dab8601d"
-  integrity sha512-mq7uJzCr1Wwfhx+0//0ZeVZtLIiSlpLqnsmuDFXodmgkrMHdg/Dxkhv9+qOu4XfkgbwWQD0kCyy8wnezhf7ibQ==
+"@silenteer/natsu-type@0.0.12":
+  version "0.0.12"
+  resolved "https://registry.yarnpkg.com/@silenteer/natsu-type/-/natsu-type-0.0.12.tgz#49e0f8ec1a649bcd2e4bc218d4f108334b4ab78e"
+  integrity sha512-9Q3hdPFU3tXKGA3Lr8X3pQRKW2iUrnO9v/qPILXOk/3+rW1iJhELy2+rMensYxAreKZKNd3+dujLu0hHC6BFjQ==
 
 "@sinonjs/commons@^1.7.0":
   version "1.8.3"
