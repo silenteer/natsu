@@ -5,9 +5,16 @@ import type {
   NatsResponse,
 } from '@silenteer/natsu-type';
 
-type NatsInjection = {
+type NatsInjection<
+  TService extends NatsService<string, unknown, unknown>,
+  TInjection extends Record<string, unknown> = Record<string, unknown>
+> = {
   subject: string;
   message: Msg;
+  handler: Pick<
+    NatsHandler<TService, TInjection>,
+    'validate' | 'authorize' | 'handle'
+  >;
   natsService: {
     request: (
       subject: string,
@@ -22,163 +29,182 @@ type NatsInjection = {
     subscribe: NatsConnection['subscribe'];
     drain: NatsConnection['drain'];
   };
+  logService: {
+    log: (message?: any, ...optionalParams: any[]) => void;
+    info: (message?: any, ...optionalParams: any[]) => void;
+    warn: (message?: any, ...optionalParams: any[]) => void;
+    error: (message?: any, ...optionalParams: any[]) => void;
+  };
 };
 
 type NatsValidationResult = {
-  code: 'OK' | 400 | 404;
+  code: 'OK' | number;
   errors?: unknown;
 };
 
 type NatsAuthorizationResult = {
-  code: 'OK' | 403;
-  errors?: unknown;
-};
-
-type NatsHandleResult<TBody> = {
-  code: number;
-  headers?: { [key: string]: unknown };
-  body?: TBody;
-  errors?: unknown;
-};
-
-type NatsMiddlewareValidationResult<TRequest = unknown> = {
   code: 'OK' | number;
-  data?: NatsRequest<TRequest>;
   errors?: unknown;
 };
 
-type NatsMiddlewareAuthorizationResult<TRequest = unknown> = {
-  code: 'OK' | number;
-  data?: NatsRequest<TRequest>;
-  errors?: unknown;
-};
+type NatsHandleResult<TService extends NatsService<string, unknown, unknown>> =
+  {
+    code: 'OK' | number;
+    headers?: { [key: string]: unknown };
+    body?: TService['response'];
+    errors?: unknown;
+  };
 
-type NatsMiddlewareHandleResult<TRequest = unknown, TResponse = unknown> = {
-  code: 'OK' | number;
-  data?: NatsRequest<TRequest>;
-  result?: NatsHandleResult<TResponse>;
-  errors?: unknown;
-};
-
-type NatsBeforeValidate<
+type NatsMiddlewareBeforeResult<
   TService extends NatsService<string, unknown, unknown>,
   TInjection extends Record<string, unknown> = Record<string, unknown>
-> = (
-  data: NatsRequest<TService['request']>,
-  injection: TInjection & NatsInjection
-) => Promise<NatsMiddlewareValidationResult>;
+> = {
+  code: 'OK' | number;
+  data: NatsRequest<TService['request']>;
+  injection: TInjection & NatsInjection<TService, TInjection>;
+  errors?: unknown;
+};
+
+type NatsMiddlewareAfterResult<
+  TService extends NatsService<string, unknown, unknown>,
+  TInjection extends Record<string, unknown> = Record<string, unknown>
+> = {
+  code: 'OK' | number;
+  data: NatsRequest<TService['request']>;
+  injection: TInjection & NatsInjection<TService, TInjection>;
+  result: NatsHandleResult<TService>;
+  errors?: unknown;
+};
+
+type NatsMiddlewareBeforeInjection<
+  TService extends NatsService<string, unknown, unknown>,
+  TInjection extends Record<string, unknown> = Record<string, unknown>
+> = NatsInjection<TService, TInjection> & {
+  ok: (params: {
+    data: NatsRequest<TService['request']>;
+    injection: NatsMiddlewareBeforeInjection<TService, TInjection>;
+  }) => NatsMiddlewareBeforeResult<TService, TInjection>;
+  error: (params: {
+    data: NatsRequest<TService['request']>;
+    injection: NatsMiddlewareBeforeInjection<TService, TInjection>;
+    code?: number;
+    errors: unknown;
+  }) => NatsMiddlewareBeforeResult<TService, TInjection>;
+};
+
+type NatsMiddlewareAfterInjection<
+  TService extends NatsService<string, unknown, unknown>,
+  TInjection extends Record<string, unknown> = Record<string, unknown>
+> = NatsInjection<TService, TInjection> & {
+  ok: (params: {
+    data: NatsRequest<TService['request']>;
+    result: NatsHandleResult<TService>;
+    injection: NatsMiddlewareAfterInjection<TService, TInjection>;
+  }) => NatsMiddlewareAfterResult<TService, TInjection>;
+  error: (params: {
+    data: NatsRequest<TService['request']>;
+    result: NatsHandleResult<TService>;
+    injection: NatsMiddlewareAfterInjection<TService, TInjection>;
+    code?: number;
+    errors: unknown;
+  }) => NatsMiddlewareAfterResult<TService, TInjection>;
+};
+
+type NatsValidationInjection<
+  TService extends NatsService<string, unknown, unknown>,
+  TInjection extends Record<string, unknown> = Record<string, unknown>
+> = TInjection &
+  NatsInjection<TService, TInjection> & {
+    ok: (params: {
+      data: NatsRequest<TService['request']>;
+    }) => NatsValidationResult;
+    error: (params: {
+      data: NatsRequest<TService['request']>;
+      code?: number;
+      errors: unknown;
+    }) => NatsValidationResult;
+  };
+
+type NatsAuthorizationInjection<
+  TService extends NatsService<string, unknown, unknown>,
+  TInjection extends Record<string, unknown> = Record<string, unknown>
+> = TInjection &
+  NatsInjection<TService, TInjection> & {
+    ok: (params: {
+      data: NatsRequest<TService['request']>;
+    }) => NatsAuthorizationResult;
+    error: (params: {
+      data: NatsRequest<TService['request']>;
+      code?: number;
+      errors: unknown;
+    }) => NatsAuthorizationResult;
+  };
+
+type NatsHandleInjection<
+  TService extends NatsService<string, unknown, unknown>,
+  TInjection extends Record<string, unknown> = Record<string, unknown>
+> = TInjection &
+  NatsInjection<TService, TInjection> & {
+    ok: (
+      params: Pick<NatsHandleResult<TService>, 'headers' | 'body'>
+    ) => NatsHandleResult<TService>;
+    error: (params: {
+      data: NatsRequest<TService['request']>;
+      code?: number;
+      errors: unknown;
+    }) => NatsHandleResult<TService>;
+  };
+
+type NatsBefore<
+  TService extends NatsService<string, unknown, unknown>,
+  TInjection extends Record<string, unknown> = Record<string, unknown>
+> = (params: {
+  data: NatsRequest<TService['request']>;
+  injection: NatsMiddlewareBeforeInjection<TService, TInjection>;
+}) => Promise<NatsMiddlewareBeforeResult<TService, TInjection>>;
+
+type NatsAfter<
+  TService extends NatsService<string, unknown, unknown>,
+  TInjection extends Record<string, unknown> = Record<string, unknown>
+> = (params: {
+  data: NatsRequest<TService['request']>;
+  result: NatsHandleResult<TService>;
+  injection: NatsMiddlewareAfterInjection<TService, TInjection>;
+}) => Promise<NatsMiddlewareAfterResult<TService, TInjection>>;
 
 type NatsValidate<
   TService extends NatsService<string, unknown, unknown>,
   TInjection extends Record<string, unknown> = Record<string, unknown>
 > = (
   data: NatsRequest<TService['request']>,
-  injection: TInjection & NatsInjection
+  injection: NatsValidationInjection<TService, TInjection>
 ) => Promise<NatsValidationResult>;
-
-type NatsAfterValidate<
-  TService extends NatsService<string, unknown, unknown>,
-  TInjection extends Record<string, unknown> = Record<string, unknown>
-> = (
-  data: NatsRequest<TService['request']>,
-  injection: TInjection & NatsInjection
-) => Promise<NatsMiddlewareValidationResult>;
-
-type NatsBeforeAuthorize<
-  TService extends NatsService<string, unknown, unknown>,
-  TInjection extends Record<string, unknown> = Record<string, unknown>
-> = (
-  data: NatsRequest<TService['request']>,
-  injection: TInjection & NatsInjection
-) => Promise<NatsMiddlewareAuthorizationResult>;
 
 type NatsAuthorize<
   TService extends NatsService<string, unknown, unknown>,
   TInjection extends Record<string, unknown> = Record<string, unknown>
 > = (
   data: NatsRequest<TService['request']>,
-  injection: TInjection & NatsInjection
+  injection: NatsAuthorizationInjection<TService, TInjection>
 ) => Promise<NatsAuthorizationResult>;
-
-type NatsAfterAuthorize<
-  TService extends NatsService<string, unknown, unknown>,
-  TInjection extends Record<string, unknown> = Record<string, unknown>
-> = (
-  data: NatsRequest<TService['request']>,
-  injection: TInjection & NatsInjection
-) => Promise<NatsMiddlewareAuthorizationResult>;
-
-type NatsBeforeHandle<
-  TService extends NatsService<string, unknown, unknown>,
-  TInjection extends Record<string, unknown> = Record<string, unknown>
-> = (
-  data: NatsRequest<TService['request']>,
-  injection: TInjection & NatsInjection
-) => Promise<NatsMiddlewareHandleResult>;
 
 type NatsHandle<
   TService extends NatsService<string, unknown, unknown>,
   TInjection extends Record<string, unknown> = Record<string, unknown>
 > = (
   data: NatsRequest<TService['request']>,
-  injection: TInjection & NatsInjection
-) => Promise<NatsHandleResult<TService['response']>>;
+  injection: NatsHandleInjection<TService, TInjection>
+) => Promise<NatsHandleResult<TService>>;
 
-type NatsAfterHandle<
-  TService extends NatsService<string, unknown, unknown>,
-  TInjection extends Record<string, unknown> = Record<string, unknown>
-> = (
-  data: NatsRequest<TService['request']>,
-  result: NatsHandleResult<TService['response']>,
-  injection: TInjection & NatsInjection
-) => Promise<NatsMiddlewareHandleResult>;
-
-type NatsBeforeValidateMiddleware<
+type NatsMiddleware<
   TService extends NatsService<string, unknown, unknown>,
   TInjection extends Record<string, unknown> = Record<string, unknown>
 > = {
   id: string;
-  handle: NatsBeforeValidate<TService, TInjection>;
-};
-
-type NatsAfterValidateMiddleware<
-  TService extends NatsService<string, unknown, unknown>,
-  TInjection extends Record<string, unknown> = Record<string, unknown>
-> = {
-  id: string;
-  handle: NatsAfterValidate<TService, TInjection>;
-};
-
-type NatsBeforeAuthorizeMiddleware<
-  TService extends NatsService<string, unknown, unknown>,
-  TInjection extends Record<string, unknown> = Record<string, unknown>
-> = {
-  id: string;
-  handle: NatsBeforeAuthorize<TService, TInjection>;
-};
-
-type NatsAfterAuthorizeMiddleware<
-  TService extends NatsService<string, unknown, unknown>,
-  TInjection extends Record<string, unknown> = Record<string, unknown>
-> = {
-  id: string;
-  handle: NatsAfterAuthorize<TService, TInjection>;
-};
-
-type NatsBeforeHandleMiddleware<
-  TService extends NatsService<string, unknown, unknown>,
-  TInjection extends Record<string, unknown> = Record<string, unknown>
-> = {
-  id: string;
-  handle: NatsBeforeHandle<TService, TInjection>;
-};
-
-type NatsAfterHandleMiddleware<
-  TService extends NatsService<string, unknown, unknown>,
-  TInjection extends Record<string, unknown> = Record<string, unknown>
-> = {
-  id: string;
-  handle: NatsAfterHandle<TService, TInjection>;
+  init: (params: { injection: TInjection }) => Promise<{
+    before?: NatsBefore<TService, TInjection>;
+    after?: NatsAfter<TService, TInjection>;
+  }>;
 };
 
 type NatsHandler<
@@ -189,61 +215,39 @@ type NatsHandler<
   validate: NatsValidate<TService, TInjection>;
   authorize: NatsAuthorize<TService, TInjection>;
   handle: NatsHandle<TService, TInjection>;
-  beforeValidateMiddlewares?: Array<
-    NatsBeforeValidateMiddleware<TService, TInjection>
-  >;
-  afterValidateMiddlewares?: Array<
-    NatsAfterValidateMiddleware<TService, TInjection>
-  >;
-  beforeAuthorizeMiddlewares?: Array<
-    NatsBeforeAuthorizeMiddleware<TService, TInjection>
-  >;
-  afterAuthorizeMiddlewares?: Array<
-    NatsAfterAuthorizeMiddleware<TService, TInjection>
-  >;
-  beforeHandleMiddlewares?: Array<
-    NatsBeforeHandleMiddleware<TService, TInjection>
-  >;
-  afterHandleMiddlewares?: Array<
-    NatsAfterHandleMiddleware<TService, TInjection>
-  >;
+  middlewares?: Array<NatsMiddleware<TService, TInjection>>;
   respondError?: (
     data: NatsRequest<TService['request']>,
-    error: { code: number; errors?: unknown },
-    injection: TInjection & NatsInjection
+    error: {
+      code: number;
+      errors?: unknown;
+    },
+    injection: TInjection & NatsInjection<TService, TInjection>
   ) => Promise<void>;
   respondUnhandledError?: (
     data: NatsRequest<TService['request']>,
     error: Error,
-    injection: TInjection & NatsInjection
+    injection: TInjection & NatsInjection<TService, TInjection>
   ) => Promise<void>;
 };
 
 export type {
-  NatsService,
-  NatsRequest,
-  NatsResponse,
   NatsInjection,
+  NatsValidationInjection,
+  NatsAuthorizationInjection,
+  NatsHandleInjection,
+  NatsMiddlewareBeforeInjection,
+  NatsMiddlewareAfterInjection,
   NatsValidationResult,
   NatsAuthorizationResult,
   NatsHandleResult,
-  NatsMiddlewareValidationResult,
-  NatsMiddlewareAuthorizationResult,
-  NatsMiddlewareHandleResult,
-  NatsBeforeValidate,
+  NatsMiddlewareBeforeResult,
+  NatsMiddlewareAfterResult,
+  NatsBefore,
+  NatsAfter,
   NatsValidate,
-  NatsAfterValidate,
-  NatsBeforeAuthorize,
   NatsAuthorize,
-  NatsAfterAuthorize,
-  NatsBeforeHandle,
   NatsHandle,
-  NatsAfterHandle,
+  NatsMiddleware,
   NatsHandler,
-  NatsBeforeValidateMiddleware,
-  NatsAfterValidateMiddleware,
-  NatsBeforeAuthorizeMiddleware,
-  NatsAfterAuthorizeMiddleware,
-  NatsBeforeHandleMiddleware,
-  NatsAfterHandleMiddleware,
 };

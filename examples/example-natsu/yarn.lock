@@ -25,9 +25,9 @@
   version "0.0.1"
   dependencies:
     "@silenteer/natsu" "^1.0.9"
-    "@silenteer/natsu-type" "^0.0.10"
+    "@silenteer/natsu-type" "^0.0.11"
 
-"@silenteer/natsu-runner@^1.0.2":
+"@silenteer/natsu-runner@^1.0.3":
   version "1.0.3"
   resolved "https://registry.yarnpkg.com/@silenteer/natsu-runner/-/natsu-runner-1.0.3.tgz#1dfd3087bd374f35df66d16227af488d07cb41d4"
   integrity sha512-V+/AHFH/l82Db3jIXZa8mAkKgtOP6KHuYyWrOuyVzw6zQcleV/+PlOf/fjOx4aXzVLC/E+jt3dNAfqMwFhowKw==
@@ -37,17 +37,17 @@
     esbuild "^0.12.29"
     matched "^5.0.1"
 
-"@silenteer/natsu-type@0.0.10", "@silenteer/natsu-type@^0.0.10":
-  version "0.0.10"
-  resolved "https://registry.yarnpkg.com/@silenteer/natsu-type/-/natsu-type-0.0.10.tgz#7b9b88b11c9a93da7ac629c372f38e2dd112347d"
-  integrity sha512-UBQin2Pw39ZpdURnM+QNxh6WsiM0HHcw6nYDemdw4qFIc92fKsiYuJ3ksW0y9LgFYNJCMFBcdHl6aOhOuKsnXw==
+"@silenteer/natsu-type@0.0.11", "@silenteer/natsu-type@^0.0.11":
+  version "0.0.11"
+  resolved "https://registry.yarnpkg.com/@silenteer/natsu-type/-/natsu-type-0.0.11.tgz#b17bb7ad96428e683e1996de44b6ef20dab8601d"
+  integrity sha512-mq7uJzCr1Wwfhx+0//0ZeVZtLIiSlpLqnsmuDFXodmgkrMHdg/Dxkhv9+qOu4XfkgbwWQD0kCyy8wnezhf7ibQ==
 
-"@silenteer/natsu@^1.0.9":
-  version "1.0.14"
-  resolved "https://registry.yarnpkg.com/@silenteer/natsu/-/natsu-1.0.14.tgz#f8d2524970d0719049c5454f3617fe4adeaad31f"
-  integrity sha512-UwTlEvgbGbIgT9Q8oJUj+4lP5DJtGyxG7Xtg5X2QdQcUxWbmaWoDlX9d3ryDKLA673Kf2PX+KnOXhjR7gNlCqA==
+"@silenteer/natsu@^1.0.15", "@silenteer/natsu@^1.0.9":
+  version "1.0.15"
+  resolved "https://registry.yarnpkg.com/@silenteer/natsu/-/natsu-1.0.15.tgz#e6cc38267faba2460cd3b5ac318926c940e4d1c3"
+  integrity sha512-C0Lu0fS7N7wRCJzgRGbTHX8fXoPC9j5RXM0sUGBbYBMfr4dok4NetF6yoOzrE3g5E7U1mgVQ6Wj+ppfgp9+d7g==
   dependencies:
-    "@silenteer/natsu-type" "0.0.10"
+    "@silenteer/natsu-type" "0.0.11"
     nats "^2.2.0"
 
 "@sindresorhus/is@^0.14.0":
@@ -83,9 +83,9 @@
   integrity sha512-eZxlbI8GZscaGS7kkc/trHTT5xgrjH3/1n2JDwusC9iahPKWMRvRjJSAN5mCXviuTGQ/lHnhvv8Q1YTpnfz9gA==
 
 "@types/lodash@^4.14.165":
-  version "4.14.178"
-  resolved "https://registry.yarnpkg.com/@types/lodash/-/lodash-4.14.178.tgz#341f6d2247db528d4a13ddbb374bcdc80406f4f8"
-  integrity sha512-0d5Wd09ItQWH1qFbEyQ7oTQ3GZrMfth5JkbN3EvTKLXcHLRDSXeLnlvlOn0wvxVIwK5o2M8JzP/OWz7T3NRsbw==
+  version "4.14.179"
+  resolved "https://registry.yarnpkg.com/@types/lodash/-/lodash-4.14.179.tgz#490ec3288088c91295780237d2497a3aa9dfb5c5"
+  integrity sha512-uwc1x90yCKqGcIOAT6DwOSuxnrAbpkdPsUOZtwrXb4D/6wZs+6qG7QnIawDuZWg0sWpxl+ltIKCaLoMlna678w==
 
 "@types/node@16.9.6":
   version "16.9.6"
@@ -645,7 +645,7 @@ nanoclone@^0.2.1:
   resolved "https://registry.yarnpkg.com/nanoclone/-/nanoclone-0.2.1.tgz#dd4090f8f1a110d26bb32c49ed2f5b9235209ed4"
   integrity sha512-wynEP02LmIbLpcYw8uBKpcfF6dmg2vcpKqxeH5UcoKEYdExslsdUA4ugFauuaeYdTB76ez6gJW8XAZ6CgkXYxA==
 
-nats@^2.2.0:
+nats@2.6.1, nats@^2.2.0:
   version "2.6.1"
   resolved "https://registry.yarnpkg.com/nats/-/nats-2.6.1.tgz#70cf96be48058028411fef48cdb5bae7ced88f1e"
   integrity sha512-PwcSZgWS2+JDoiU1Nd25eiV6wdvZbsCrBjyGyhqcJ72+SP2mJw0A0Sz4FKiSehx3mm2A61vwvC9rhkrNAMPpAw==

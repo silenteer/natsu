@@ -17,7 +17,6 @@ import type {
   NatsPortWSErrorResponse,
   NatsRequest,
   NatsResponse,
-  NatsGetNamespace,
 } from '@silenteer/natsu-type';
 import config from './configuration';
 import NatsService from './service-nats';

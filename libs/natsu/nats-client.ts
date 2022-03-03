@@ -7,89 +7,123 @@ import type {
   SubscriptionOptions,
 } from 'nats';
 import { connect, JSONCodec } from 'nats';
-import type { NatsGetNamespace } from '@silenteer/natsu-type';
 import type {
   NatsService,
   NatsRequest,
   NatsResponse,
+} from '@silenteer/natsu-type';
+import type {
   NatsInjection,
+  NatsHandleInjection,
   NatsHandler,
-  NatsValidationResult,
-  NatsAuthorizationResult,
   NatsHandleResult,
-  NatsMiddlewareValidationResult,
-  NatsMiddlewareAuthorizationResult,
-  NatsMiddlewareHandleResult,
+  NatsMiddlewareBeforeInjection,
+  NatsMiddlewareAfterInjection,
+  NatsMiddlewareBeforeResult,
+  NatsMiddlewareAfterResult,
 } from './type';
+
+class UnhandledMiddlewareError extends Error {}
+class UnhandledHandleError extends Error {}
+
+type registeredHandlers = {
+  [subject: string]: {
+    handler: NatsHandler<
+      NatsService<string, unknown, unknown>,
+      Record<string, unknown>
+    >;
+    middlewares: {
+      before: Array<{
+        middlewareId: string;
+        handle: (params: {
+          data: NatsRequest<NatsService<string, unknown, unknown>['request']>;
+          injection: Record<string, unknown> &
+            NatsInjection<
+              NatsService<string, unknown, unknown>,
+              Record<string, unknown>
+            >;
+        }) => Promise<
+          NatsMiddlewareBeforeResult<
+            NatsService<string, unknown, unknown>,
+            Record<string, unknown>
+          >
+        >;
+      }>;
+      after: Array<{
+        middlewareId: string;
+        handle: (params: {
+          data: NatsRequest<NatsService<string, unknown, unknown>['request']>;
+          injection: Record<string, unknown> &
+            NatsInjection<
+              NatsService<string, unknown, unknown>,
+              Record<string, unknown>
+            >;
+        }) => Promise<
+          NatsMiddlewareAfterResult<
+            NatsService<string, unknown, unknown>,
+            Record<string, unknown>
+          >
+        >;
+      }>;
+    };
+    injection: Record<string, unknown> &
+      Omit<
+        NatsInjection<NatsService<string, unknown, unknown>>,
+        'message' | 'natsService'
+      >;
+  };
+};
 
 const requestCodec = JSONCodec<NatsRequest>();
 const responseCodec = JSONCodec<NatsResponse>();
 
-const clients: {
-  [urls: string]: {
-    natsService: NatsInjection['natsService'];
-    handlers: {
-      [subject: string]: NatsHandler<
-        NatsService<string, unknown, unknown>,
-        Record<string, unknown>
-      >;
-    };
-  };
-} = {};
-
-async function start<TInjection extends Record<string, unknown>>(params: {
+async function start(params: {
   urls: string[];
-  injections?: TInjection;
+  handlers: registeredHandlers;
   user?: string;
   pass?: string;
   verbose?: boolean;
-  namespace?: {
-    getNamespaceSubject: string;
-    namespaceSubjects: string[];
-  };
 }) {
-  if (
-    params.namespace &&
-    (!params.namespace.getNamespaceSubject ||
-      params.namespace.namespaceSubjects?.length === 0)
-  ) {
-    throw new Error(`Wrong config for 'namespace' `);
-  }
+  const { urls, handlers = {}, user, pass, verbose } = params;
 
-  const { urls, user, pass, verbose } = params;
-  const key = getClientKey(urls);
-
-  if (!clients[key]) {
+  if (Object.keys(handlers).length === 0) {
     throw new Error(`Must register handlers before starting client`);
   }
 
-  if (!clients[key].natsService) {
-    const client = await connect({
-      servers: urls,
-      user,
-      pass,
-      pingInterval: 30 * 1000,
-      maxPingOut: 10,
-      verbose,
-    });
+  const client = await connect({
+    servers: urls,
+    user,
+    pass,
+    pingInterval: 30 * 1000,
+    maxPingOut: 10,
+    verbose,
+  });
+  const natsService = createNatsService(client);
 
-    clients[key] = {
-      ...clients[key],
-      natsService: createNatsService({ client, namespace: params.namespace }),
-    };
-
-    Object.entries(clients[key].handlers).forEach(([subject, handler]) => {
-      const natsService = clients[key].natsService;
+  Object.entries(handlers).forEach(
+    ([subject, { handler, injection: registeredInjection, middlewares }]) => {
       const subcription = natsService.subscribe(subject);
       (async () => {
         for await (const message of subcription) {
           let data = message.data
             ? requestCodec.decode(message.data)
             : undefined;
-          let injection: TInjection & NatsInjection;
+          const handlerLogService = registeredInjection.logService;
+          let injection: Record<string, unknown> &
+            NatsInjection<NatsService<string, unknown, unknown>>;
 
           try {
+            injection = {
+              ...registeredInjection,
+              message,
+              natsService,
+            };
+
+            handlerLogService.info('Begin');
+
             if (!data) {
+              handlerLogService.error('Incoming message has no data');
+
               respond({
                 message,
                 data: responseCodec.encode({
@@ -98,6 +132,8 @@ async function start<TInjection extends Record<string, unknown>>(params: {
                   code: 400,
                 }),
               });
+
+              handlerLogService.info('End');
               continue;
             }
             if (data.body) {
@@ -107,122 +143,69 @@ async function start<TInjection extends Record<string, unknown>>(params: {
               };
             }
 
-            injection = {
-              ...params.injections,
-              subject,
-              message,
-              natsService,
-            };
-
-            //#region Validate
-            const beforeValidateResult = await beforeValidate({
+            //#region Before
+            const beforeResult = await before({
               message,
               data,
               injection,
-              handler,
+              middlewares: middlewares.before,
             });
-            if (beforeValidateResult && beforeValidateResult.code !== 'OK') {
+            if (beforeResult && beforeResult.code !== 'OK') {
+              handlerLogService.info('End');
               continue;
-            } else if (beforeValidateResult) {
-              data = beforeValidateResult.data;
-            }
-
-            const validateResult = await validate({
-              message,
-              data,
-              injection,
-              handler,
-            });
-            if (validateResult && validateResult.code !== 'OK') {
-              continue;
-            }
-
-            const afterValidateResult = await afterValidate({
-              message,
-              data,
-              injection,
-              handler,
-            });
-            if (afterValidateResult && afterValidateResult.code !== 'OK') {
-              continue;
-            } else if (afterValidateResult) {
-              data = afterValidateResult.data;
-            }
-            //#endregion
-
-            //#region Authorize
-            const beforeAuthorizeResult = await beforeAuthorize({
-              message,
-              data,
-              injection,
-              handler,
-            });
-            if (beforeAuthorizeResult && beforeAuthorizeResult.code !== 'OK') {
-              continue;
-            } else if (beforeAuthorizeResult) {
-              data = beforeAuthorizeResult.data;
-            }
-
-            const authorizeResult = await authorize({
-              message,
-              data,
-              injection,
-              handler,
-            });
-            if (authorizeResult && authorizeResult.code !== 'OK') {
-              continue;
-            }
-
-            const afterAuthorizeResult = await afterAuthorize({
-              message,
-              data,
-              injection,
-              handler,
-            });
-            if (afterAuthorizeResult && afterAuthorizeResult.code !== 'OK') {
-              continue;
-            } else if (afterAuthorizeResult) {
-              data = afterAuthorizeResult.data;
+            } else if (beforeResult) {
+              data = beforeResult.data;
+              injection = beforeResult.injection;
             }
             //#endregion
 
             //#region Handle
-            const beforeHandleResult = await beforeHandle({
+            let handleResult = await handle({
               message,
               data,
               injection,
               handler,
             });
-            if (beforeHandleResult && beforeHandleResult.code !== 'OK') {
-              continue;
-            } else if (beforeHandleResult) {
-              data = beforeHandleResult.data;
-            }
-
-            const handleResult = await handle({
-              message,
-              data,
-              injection,
-              handler,
-            });
-            if (handleResult) {
-              if (handleResult.code === 200) {
-                await afterHandle({
-                  message,
-                  data,
-                  result: handleResult,
-                  injection,
-                  handler,
-                });
-              }
+            if (handleResult && handleResult.code !== 'OK') {
+              handlerLogService.info('End');
               continue;
             }
             //#endregion
 
-            respond({ message });
-          } catch (error) {
-            console.error(error);
+            //#region After
+            const afterResult = await after({
+              message,
+              data,
+              result: handleResult,
+              injection,
+              middlewares: middlewares.after,
+            });
+            if (afterResult && afterResult.code !== 'OK') {
+              handlerLogService.info('End');
+              continue;
+            } else if (afterResult) {
+              data = afterResult.data;
+              handleResult = afterResult.result;
+              injection = afterResult.injection;
+            }
+            //#endregion
 
+            respond({
+              message,
+              data: responseCodec.encode({
+                ...data,
+                headers: handleResult?.headers
+                  ? {
+                      ...data?.headers,
+                      ...handleResult?.headers,
+                    }
+                  : data?.headers,
+                code: handleResult?.code === 'OK' ? 200 : handleResult?.code,
+                body: handleResult?.body,
+              }),
+            });
+            handlerLogService.info('End');
+          } catch (error) {
             await respondUnhandledError({
               message,
               data,
@@ -230,65 +213,72 @@ async function start<TInjection extends Record<string, unknown>>(params: {
               injection,
               handler,
             });
+            handlerLogService.info('End');
           }
         }
       })();
-    });
-  }
-}
-
-async function stop(urls: string[]) {
-  const key = getClientKey(urls);
-
-  if (clients[key]) {
-    await clients[key].natsService.drain();
-    delete clients[key];
-  }
-}
-
-function register<TInjection extends Record<string, unknown>>(params: {
-  urls: string[];
-  handlers: Array<
-    NatsHandler<NatsService<string, unknown, unknown>, TInjection>
-  >;
-}) {
-  const { urls, handlers } = params;
-  const key = getClientKey(urls);
-  const isStarted = !!clients[key]?.natsService;
-
-  if (isStarted) {
-    throw new Error(`Can't register more handler after nats client started`);
-  }
-
-  if (!clients[key]) {
-    clients[key] = {
-      natsService: undefined,
-      handlers: {},
-    };
-  }
-
-  handlers.forEach((handler) => {
-    const { subject } = handler;
-    if (!clients[key].handlers[subject]) {
-      clients[key].handlers[subject] = handler;
     }
-  });
+  );
+
+  return natsService;
 }
 
-function getClientKey(urls: string[]) {
-  return urls.sort().join('|');
+async function stop(natsService: ReturnType<typeof createNatsService>) {
+  await natsService?.drain();
 }
 
-function createNatsService(params: {
-  client: NatsConnection;
-  namespace?: {
-    getNamespaceSubject: string;
-    namespaceSubjects: string[];
-  };
-}): NatsInjection['natsService'] {
-  const { client } = params;
-  const { getNamespaceSubject, namespaceSubjects } = params.namespace || {};
+async function register(params: {
+  handlers: Array<
+    NatsHandler<NatsService<string, unknown, unknown>, Record<string, unknown>>
+  >;
+  logService: NatsInjection<
+    NatsService<string, unknown, unknown>
+  >['logService'];
+  logLevels?: Array<'log' | 'info' | 'warn' | 'error'> | 'all' | 'none';
+}) {
+  const { logService, handlers, logLevels } = params;
+  const result: registeredHandlers = {};
 
+  for (const handler of handlers) {
+    const { subject } = handler;
+
+    if (!result[subject]) {
+      const handlerLogService = createLogService({
+        prefix: `[${subject}]`,
+        logService,
+        logLevels,
+      });
+
+      const injection = {
+        subject,
+        handler: {
+          validate: handler.validate,
+          authorize: handler.authorize,
+          handle: handler.handle,
+        },
+        logService: handlerLogService,
+      };
+
+      const middlewares = await loadMiddlewares({
+        handler,
+        injection,
+      });
+
+      result[subject] = {
+        handler,
+        middlewares,
+        injection,
+      };
+    }
+  }
+
+  return result;
+}
+
+function createNatsService<
+  TService extends NatsService<string, unknown, unknown>,
+  TInjection extends Record<string, unknown> = Record<string, unknown>
+>(client: NatsConnection): NatsInjection<TService, TInjection>['natsService'] {
   return {
     request: async (
       subject: string,
@@ -302,38 +292,7 @@ function createNatsService(params: {
       data?: NatsResponse,
       opts?: PublishOptions
     ) => {
-      const shouldSetNamespace =
-        getNamespaceSubject && namespaceSubjects?.includes(subject);
-
-      let _subject = subject;
-      if (shouldSetNamespace) {
-        try {
-          const { headers } = data || {};
-          const natsRequest: NatsRequest<unknown> = {
-            headers,
-            body: { subject },
-          };
-
-          const message = await client.request(
-            getNamespaceSubject,
-            JSONCodec().encode(natsRequest)
-          );
-          const natsResponse = JSONCodec<NatsResponse>().decode(message.data);
-          const { namespace } = (natsResponse.body ||
-            {}) as NatsGetNamespace<any>['response'];
-
-          if (namespace) {
-            _subject = `${subject}.${namespace}`;
-          } else {
-            throw new Error(`Namespace is required for subject: ${subject}`);
-          }
-        } catch (error) {
-          console.error(`Get namespace failed for subject: ${subject}`);
-          throw error;
-        }
-      }
-
-      return client.publish(_subject, JSONCodec().encode(data), opts);
+      return client.publish(subject, JSONCodec().encode(data), opts);
     },
     subscribe: (subject: string, opts?: SubscriptionOptions) => {
       return client.subscribe(subject, opts);
@@ -344,447 +303,462 @@ function createNatsService(params: {
   };
 }
 
-async function beforeValidate(params: {
-  message: Msg;
-  data: NatsRequest<unknown>;
-  injection: NatsInjection;
-  handler: NatsHandler<
-    NatsService<string, unknown, unknown>,
-    Record<string, unknown>
-  >;
-}) {
-  const { message, data, injection, handler } = params;
-  let validationResult: NatsMiddlewareValidationResult;
+function createLogService<
+  TService extends NatsService<string, unknown, unknown>,
+  TInjection extends Record<string, unknown> = Record<string, unknown>
+>(params: {
+  prefix: string;
+  logService: NatsInjection<TService, TInjection>['logService'];
+  logLevels?: Array<'log' | 'info' | 'warn' | 'error'> | 'all' | 'none';
+}): NatsInjection<TService, TInjection>['logService'] {
+  const { prefix, logService = console, logLevels = 'all' } = params;
+  let levels: Array<'log' | 'info' | 'warn' | 'error'> = [];
 
-  if (handler.beforeValidateMiddlewares?.length > 0) {
-    for (const validateMiddleware of handler.beforeValidateMiddlewares) {
-      validationResult = await validateMiddleware.handle(
-        validationResult ? validationResult.data : data,
-        injection
-      );
-
-      if (validationResult.code !== 'OK') {
-        await handleErrorResponse({
-          data: validationResult.data,
-          error: {
-            code: validationResult.code,
-            errors: validationResult.errors,
-          },
-          injection,
-          handler,
-        });
-
-        respond({
-          message,
-          data: responseCodec.encode({
-            ...validationResult.data,
-            code: validationResult.code,
-            body: validationResult.errors,
-          }),
-        });
-        break;
-      }
-    }
+  if (Array.isArray(logLevels)) {
+    levels = [...logLevels];
+  } else if (logLevels === 'all') {
+    levels = ['log', 'info', 'warn', 'error'];
   }
 
-  return validationResult;
+  return {
+    log: (message?: any, ...optionalParams: any[]) => {
+      if (levels.includes('log')) {
+        logService.log(prefix, message, ...optionalParams);
+      }
+    },
+    info: (message?: any, ...optionalParams: any[]) => {
+      if (levels.includes('info')) {
+        logService.info(prefix, message, ...optionalParams);
+      }
+    },
+    warn: (message?: any, ...optionalParams: any[]) => {
+      if (levels.includes('warn')) {
+        logService.warn(prefix, message, ...optionalParams);
+      }
+    },
+    error: (message?: any, ...optionalParams: any[]) => {
+      if (levels.includes('error')) {
+        logService.error(prefix, message, ...optionalParams);
+      }
+    },
+  };
 }
 
-async function validate(params: {
-  message: Msg;
-  data: NatsRequest<unknown>;
-  injection: NatsInjection;
-  handler: NatsHandler<
-    NatsService<string, unknown, unknown>,
-    Record<string, unknown>
-  >;
-}) {
-  const { message, data, injection, handler } = params;
-  let validationResult: NatsValidationResult;
+function createHandleInjection<
+  TService extends NatsService<string, unknown, unknown>,
+  TInjection extends Record<string, unknown>
+>(injection: TInjection & NatsInjection<TService, TInjection>) {
+  const handleInjection: NatsHandleInjection<TService, TInjection> = {
+    ...injection,
+    ok: (
+      params: Parameters<NatsHandleInjection<TService, TInjection>['ok']>[0]
+    ) => {
+      const { headers, body } = params;
 
-  if (handler.validate) {
-    validationResult = await handler.validate(data, injection);
+      return {
+        code: 'OK',
+        headers,
+        body,
+      };
+    },
+    error: (
+      params: Parameters<NatsHandleInjection<TService, TInjection>['error']>[0]
+    ) => {
+      const { data, code = 500, errors } = params;
 
-    if (validationResult.code !== 'OK') {
-      await handleErrorResponse({
+      return {
+        code,
         data,
-        error: {
-          code: validationResult.code,
-          errors: validationResult.errors,
-        },
-        injection,
-        handler,
-      });
+        errors,
+      };
+    },
+  };
 
-      respond({
-        message,
-        data: responseCodec.encode({
-          ...data,
-          code: validationResult.code as number,
-          body: validationResult.errors,
-        }),
-      });
-    }
-  }
-
-  return validationResult;
+  return handleInjection;
 }
 
-async function afterValidate(params: {
-  message: Msg;
-  data: NatsRequest<unknown>;
-  injection: NatsInjection;
-  handler: NatsHandler<
-    NatsService<string, unknown, unknown>,
-    Record<string, unknown>
-  >;
-}) {
-  const { message, data, injection, handler } = params;
-  let validationResult: NatsMiddlewareValidationResult;
+function createMiddlewareBeforeInjection<
+  TService extends NatsService<string, unknown, unknown>,
+  TInjection extends Record<string, unknown>
+>(injection: TInjection & NatsInjection<TService, TInjection>) {
+  const beforeInjection: NatsMiddlewareBeforeInjection<TService, TInjection> = {
+    ...injection,
+    ok: (
+      params: Parameters<
+        NatsMiddlewareBeforeInjection<TService, TInjection>['ok']
+      >[0]
+    ) => {
+      const { data, injection } = params;
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { ok, error, ...rest } = injection;
 
-  if (handler.afterValidateMiddlewares?.length > 0) {
-    for (const validateMiddleware of handler.afterValidateMiddlewares) {
-      validationResult = await validateMiddleware.handle(
-        validationResult ? validationResult.data : data,
-        injection
-      );
-
-      if (validationResult.code !== 'OK') {
-        await handleErrorResponse({
-          data: validationResult.data,
-          error: {
-            code: validationResult.code,
-            errors: validationResult.errors,
-          },
-          injection,
-          handler,
-        });
-
-        respond({
-          message,
-          data: responseCodec.encode({
-            ...validationResult.data,
-            code: validationResult.code,
-            body: validationResult.errors,
-          }),
-        });
-        break;
-      }
-    }
-  }
-
-  return validationResult;
-}
-
-async function beforeAuthorize(params: {
-  message: Msg;
-  data: NatsRequest<unknown>;
-  injection: NatsInjection;
-  handler: NatsHandler<
-    NatsService<string, unknown, unknown>,
-    Record<string, unknown>
-  >;
-}) {
-  const { message, data, injection, handler } = params;
-  let authorizationResult: NatsMiddlewareAuthorizationResult;
-
-  if (handler.beforeAuthorizeMiddlewares?.length > 0) {
-    for (const authorizeMiddleware of handler.beforeAuthorizeMiddlewares) {
-      authorizationResult = await authorizeMiddleware.handle(
-        authorizationResult ? authorizationResult.data : data,
-        injection
-      );
-
-      if (authorizationResult.code !== 'OK') {
-        await handleErrorResponse({
-          data: authorizationResult.data,
-          error: {
-            code: authorizationResult.code,
-            errors: authorizationResult.errors,
-          },
-          injection,
-          handler,
-        });
-
-        respond({
-          message,
-          data: responseCodec.encode({
-            ...authorizationResult.data,
-            code: authorizationResult.code,
-            body: authorizationResult.errors,
-          }),
-        });
-        break;
-      }
-    }
-  }
-  return authorizationResult;
-}
-
-async function authorize(params: {
-  message: Msg;
-  data: NatsRequest<unknown>;
-  injection: NatsInjection;
-  handler: NatsHandler<
-    NatsService<string, unknown, unknown>,
-    Record<string, unknown>
-  >;
-}) {
-  const { message, data, injection, handler } = params;
-  let authorizationResult: NatsAuthorizationResult;
-
-  if (handler.authorize) {
-    authorizationResult = await handler.authorize(data, injection);
-
-    if (authorizationResult.code !== 'OK') {
-      await handleErrorResponse({
+      return {
+        code: 'OK',
         data,
-        error: {
-          code: authorizationResult.code,
-          errors: authorizationResult.errors,
-        },
+        injection: rest as TInjection & NatsInjection<TService, TInjection>,
+      };
+    },
+    error: (
+      params: Parameters<
+        NatsMiddlewareBeforeInjection<TService, TInjection>['error']
+      >[0]
+    ) => {
+      const { data, injection, code = 400, errors } = params;
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { ok, error, ...rest } = injection;
+
+      return {
+        code,
+        data,
+        errors,
+        injection: rest as TInjection & NatsInjection<TService, TInjection>,
+      };
+    },
+  };
+
+  return beforeInjection;
+}
+
+function createMiddlewareAfterInjection<
+  TService extends NatsService<string, unknown, unknown>,
+  TInjection extends Record<string, unknown>
+>(injection: TInjection & NatsInjection<TService, TInjection>) {
+  const afterInjection: NatsMiddlewareAfterInjection<TService, TInjection> = {
+    ...injection,
+    ok: (
+      params: Parameters<
+        NatsMiddlewareAfterInjection<TService, TInjection>['ok']
+      >[0]
+    ) => {
+      const { data, result, injection } = params;
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { ok, error, ...rest } = injection;
+
+      return {
+        code: 'OK',
+        data,
+        result,
+        injection: rest as TInjection & NatsInjection<TService, TInjection>,
+      };
+    },
+    error: (
+      params: Parameters<
+        NatsMiddlewareAfterInjection<TService, TInjection>['error']
+      >[0]
+    ) => {
+      const { data, result, injection, code = 500, errors } = params;
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { ok, error, ...rest } = injection;
+
+      return {
+        code,
+        data,
+        result,
+        errors,
+        injection: rest as TInjection & NatsInjection<TService, TInjection>,
+      };
+    },
+  };
+
+  return afterInjection;
+}
+
+async function loadMiddlewares<
+  TService extends NatsService<string, unknown, unknown>,
+  TInjection extends Record<string, unknown>
+>(params: {
+  injection: TInjection &
+    Omit<
+      NatsInjection<NatsService<string, unknown, unknown>>,
+      'message' | 'natsService'
+    >;
+  handler: NatsHandler<TService, TInjection>;
+}) {
+  const { injection, handler } = params;
+
+  const before: Array<{
+    middlewareId: string;
+    handle: (params: {
+      data: NatsRequest<TService['request']>;
+      injection: TInjection & NatsInjection<TService, TInjection>;
+    }) => Promise<NatsMiddlewareBeforeResult<TService, TInjection>>;
+  }> = [];
+  const after: Array<{
+    middlewareId: string;
+    handle: (params: {
+      data: NatsRequest<TService['request']>;
+      injection: TInjection & NatsInjection<TService, TInjection>;
+    }) => Promise<NatsMiddlewareAfterResult<TService, TInjection>>;
+  }> = [];
+
+  if (handler.middlewares?.length > 0) {
+    for (const middleware of handler.middlewares) {
+      const middlewareId = middleware.id;
+      const instance = await middleware.init({ injection });
+
+      if (instance.before) {
+        before.push({
+          middlewareId,
+          handle: async (params: {
+            data: NatsRequest<TService['request']>;
+            injection: TInjection & NatsInjection<TService, TInjection>;
+          }) => {
+            const { injection, ...rest } = params;
+            const middlewareLogService = createLogService({
+              prefix: `[${middleware.id}][before]`,
+              logService: injection.logService,
+            });
+            const middlewareInjection = createMiddlewareBeforeInjection({
+              ...injection,
+              logService: middlewareLogService,
+            });
+
+            middlewareLogService.info('Handling');
+
+            try {
+              const result = await instance.before({
+                injection: middlewareInjection,
+                ...rest,
+              });
+
+              if (result.code !== 'OK') {
+                middlewareLogService.error(result);
+              }
+
+              return {
+                ...result,
+                injection: {
+                  ...result.injection,
+                  logService: injection.logService,
+                },
+              };
+            } catch (error) {
+              middlewareLogService.error(error);
+              throw new UnhandledMiddlewareError();
+            }
+          },
+        });
+      }
+      if (instance.after) {
+        after.unshift({
+          middlewareId,
+          handle: async (params: {
+            data: NatsRequest<TService['request']>;
+            result: NatsHandleResult<TService>;
+            injection: TInjection & NatsInjection<TService, TInjection>;
+          }) => {
+            const { injection, ...rest } = params;
+            const middlewareLogService = createLogService({
+              prefix: `[${middleware.id}][after]`,
+              logService: injection.logService,
+            });
+            const middlewareInjection = createMiddlewareAfterInjection({
+              ...injection,
+              logService: middlewareLogService,
+            });
+
+            middlewareLogService.info('Handling');
+
+            try {
+              const result = await instance.after({
+                injection: middlewareInjection,
+                ...rest,
+              });
+
+              if (result.code !== 'OK') {
+                middlewareLogService.error(result);
+              }
+
+              return {
+                ...result,
+                injection: {
+                  ...result.injection,
+                  logService: injection.logService,
+                },
+              };
+            } catch (error) {
+              middlewareLogService.error(error);
+              throw new UnhandledMiddlewareError();
+            }
+          },
+        });
+      }
+    }
+  }
+
+  return {
+    before,
+    after,
+  };
+}
+
+async function before<
+  TService extends NatsService<string, unknown, unknown>,
+  TInjection extends Record<string, unknown>
+>(params: {
+  message: Msg;
+  data: NatsRequest<TService['request']>;
+  injection: TInjection & NatsInjection<TService, TInjection>;
+  middlewares: Array<{
+    middlewareId: string;
+    handle: (params: {
+      data: NatsRequest<TService['request']>;
+      injection: TInjection & NatsInjection<TService, TInjection>;
+    }) => Promise<NatsMiddlewareBeforeResult<TService, TInjection>>;
+  }>;
+}) {
+  const { message, data, injection, middlewares } = params;
+  let beforeResult: NatsMiddlewareBeforeResult<TService, TInjection>;
+
+  if (middlewares.length > 0) {
+    for (const middleware of middlewares) {
+      beforeResult = await middleware.handle({
+        data: beforeResult ? beforeResult.data : data,
         injection,
-        handler,
       });
 
-      respond({
-        message,
-        data: responseCodec.encode({
-          ...data,
-          code: authorizationResult.code as number,
-          body: authorizationResult.errors,
-        }),
-      });
-    }
-  }
-  return authorizationResult;
-}
-
-async function afterAuthorize(params: {
-  message: Msg;
-  data: NatsRequest<unknown>;
-  injection: NatsInjection;
-  handler: NatsHandler<
-    NatsService<string, unknown, unknown>,
-    Record<string, unknown>
-  >;
-}) {
-  const { message, data, injection, handler } = params;
-  let authorizationResult: NatsMiddlewareAuthorizationResult;
-
-  if (handler.afterAuthorizeMiddlewares?.length > 0) {
-    for (const authorizeMiddleware of handler.afterAuthorizeMiddlewares) {
-      authorizationResult = await authorizeMiddleware.handle(
-        authorizationResult ? authorizationResult.data : data,
-        injection
-      );
-
-      if (authorizationResult.code !== 'OK') {
-        await handleErrorResponse({
-          data: authorizationResult.data,
-          error: {
-            code: authorizationResult.code,
-            errors: authorizationResult.errors,
-          },
-          injection,
-          handler,
-        });
-
+      if (beforeResult.code !== 'OK') {
         respond({
           message,
           data: responseCodec.encode({
-            ...authorizationResult.data,
-            code: authorizationResult.code,
-            body: authorizationResult.errors,
+            ...beforeResult.data,
+            code: beforeResult.code,
+            body: beforeResult.errors,
           }),
         });
         break;
       }
     }
   }
-  return authorizationResult;
+
+  return beforeResult;
 }
 
-async function beforeHandle(params: {
+async function handle<
+  TService extends NatsService<string, unknown, unknown>,
+  TInjection extends Record<string, unknown>
+>(params: {
   message: Msg;
-  data: NatsRequest<unknown>;
-  injection: NatsInjection;
-  handler: NatsHandler<
-    NatsService<string, unknown, unknown>,
-    Record<string, unknown>
-  >;
+  data: NatsRequest<TService['request']>;
+  injection: TInjection & NatsInjection<TService, TInjection>;
+  handler: NatsHandler<TService, TInjection>;
 }) {
   const { message, data, injection, handler } = params;
-  let handleResult: NatsMiddlewareHandleResult;
-
-  if (handler.beforeHandleMiddlewares?.length > 0) {
-    for (const handleMiddleware of handler.beforeHandleMiddlewares) {
-      handleResult = await handleMiddleware.handle(
-        handleResult ? handleResult.data : data,
-        injection
-      );
-
-      if (handleResult.code != 'OK') {
-        await handleErrorResponse({
-          data: handleResult.data,
-          error: {
-            code: handleResult.code,
-            errors: handleResult.errors,
-          },
-          injection,
-          handler,
-        });
-
-        respond({
-          message,
-          data: responseCodec.encode({
-            ...handleResult.data,
-            code: handleResult.code,
-            body: handleResult.errors,
-          }),
-        });
-        break;
-      }
-    }
-  }
-  return handleResult;
-}
-
-async function handle(params: {
-  message: Msg;
-  data: NatsRequest<unknown>;
-  injection: NatsInjection;
-  handler: NatsHandler<
-    NatsService<string, unknown, unknown>,
-    Record<string, unknown>
-  >;
-}) {
-  const { message, data, injection, handler } = params;
-  let handleResult: NatsHandleResult<unknown>;
+  let handleResult: NatsHandleResult<TService>;
 
   if (handler.handle) {
-    handleResult = await handler.handle(data, injection);
-    if (handleResult.code !== 200) {
-      await handleErrorResponse({
-        data,
-        error: {
-          code: handleResult.code,
-          errors: handleResult.errors,
-        },
-        injection,
-        handler,
-      });
+    const handleLogService = createLogService({
+      prefix: `[handle]`,
+      logService: injection.logService,
+    });
+    const handleInjection = createHandleInjection<TService, TInjection>({
+      ...injection,
+      logService: handleLogService,
+    });
 
-      respond({
-        message,
-        data: responseCodec.encode({
-          ...data,
-          code: handleResult.code,
-          body: handleResult.errors,
-        }),
-      });
-    }
-  }
-  return handleResult;
-}
-
-async function afterHandle(params: {
-  message: Msg;
-  data: NatsRequest<unknown>;
-  result: NatsHandleResult<unknown>;
-  injection: NatsInjection;
-  handler: NatsHandler<
-    NatsService<string, unknown, unknown>,
-    Record<string, unknown>
-  >;
-}) {
-  const { message, data, result, injection, handler } = params;
-  let handleResult: NatsMiddlewareHandleResult;
-
-  if (handler.afterHandleMiddlewares?.length > 0) {
-    for (const handleMiddleware of handler.afterHandleMiddlewares) {
-      handleResult = await handleMiddleware.handle(
-        handleResult ? handleResult.data : data,
-        handleResult ? handleResult.result : result,
-        injection
-      );
+    try {
+      handleLogService.info('Handling');
+      handleResult = await handler.handle(data, handleInjection);
 
       if (handleResult.code !== 'OK') {
-        await handleErrorResponse({
-          data: handleResult.data,
-          error: {
-            code: handleResult.code,
-            errors: handleResult.errors,
-          },
-          injection,
-          handler,
-        });
+        handleLogService.error(handleResult);
+
+        if (handler.respondError) {
+          handleLogService.info('Handling error response');
+
+          await handler.respondError(
+            data,
+            { code: handleResult.code, errors: handleResult.errors },
+            injection
+          );
+        }
 
         respond({
           message,
           data: responseCodec.encode({
-            ...handleResult.data,
+            ...data,
             code: handleResult.code,
             body: handleResult.errors,
           }),
         });
-        return;
+      }
+    } catch (error) {
+      handleLogService.error(error);
+      throw new UnhandledHandleError();
+    }
+  }
+
+  return handleResult;
+}
+
+async function after<
+  TService extends NatsService<string, unknown, unknown>,
+  TInjection extends Record<string, unknown>
+>(params: {
+  message: Msg;
+  data: NatsRequest<TService['request']>;
+  result: NatsHandleResult<TService>;
+  injection: TInjection & NatsInjection<TService, TInjection>;
+  middlewares: Array<{
+    middlewareId: string;
+    handle: (params: {
+      data: NatsRequest<TService['request']>;
+      result: NatsHandleResult<TService>;
+      injection: TInjection & NatsInjection<TService, TInjection>;
+    }) => Promise<NatsMiddlewareAfterResult<TService, TInjection>>;
+  }>;
+}) {
+  const { message, data, result, injection, middlewares } = params;
+  let afterResult: NatsMiddlewareAfterResult<TService, TInjection>;
+
+  if (middlewares.length > 0) {
+    for (const middleware of middlewares) {
+      afterResult = await middleware.handle({
+        data: afterResult ? afterResult.data : data,
+        result: afterResult ? afterResult.result : result,
+        injection,
+      });
+
+      if (afterResult.code !== 'OK') {
+        respond({
+          message,
+          data: responseCodec.encode({
+            ...afterResult.data,
+            code: afterResult.code,
+            body: afterResult.errors,
+          }),
+        });
+        break;
       }
     }
   }
 
-  const lastData = handleResult ? handleResult.data : data;
-  const lastResult = handleResult ? handleResult.result : result;
-
-  respond({
-    message,
-    data: responseCodec.encode({
-      ...lastData,
-      headers: lastResult?.headers
-        ? {
-            ...lastData?.headers,
-            ...lastResult?.headers,
-          }
-        : lastData?.headers,
-      code: lastResult?.code || 200,
-      body: lastResult?.body,
-    }),
-  });
+  return afterResult;
 }
 
-async function handleErrorResponse(params: {
-  data: NatsRequest<unknown>;
-  error: { code: number; errors?: unknown };
-  injection: NatsInjection;
-  handler: NatsHandler<
-    NatsService<string, unknown, unknown>,
-    Record<string, unknown>
-  >;
-}) {
-  const { data, error, injection, handler } = params;
-
-  if (handler.respondError) {
-    await handler.respondError(data, error, injection);
-  }
-}
-
-async function respondUnhandledError(params: {
+async function respondUnhandledError<
+  TService extends NatsService<string, unknown, unknown>,
+  TInjection extends Record<string, unknown>
+>(params: {
   message: Msg;
-  data: NatsRequest<unknown>;
+  data: NatsRequest<TService['request']>;
   error: Error;
-  injection: NatsInjection;
-  handler: NatsHandler<
-    NatsService<string, unknown, unknown>,
-    Record<string, unknown>
-  >;
+  injection: TInjection & NatsInjection<TService, TInjection>;
+  handler: NatsHandler<TService, TInjection>;
 }) {
   const { message, data, error, injection, handler } = params;
+  const isUnhandledMiddlewareError = error instanceof UnhandledMiddlewareError;
+  const isUnhandledHandleError = error instanceof UnhandledHandleError;
+
+  if (!isUnhandledMiddlewareError && !isUnhandledHandleError) {
+    injection?.logService?.error(error);
+  }
 
   if (handler.respondUnhandledError) {
     try {
       await handler.respondUnhandledError(data, error, injection);
     } catch (error) {
-      console.error(`[${handler.subject}]respondUnhandledError`, error);
+      injection?.logService?.error('respondUnhandledError', error);
     }
   }
 
@@ -806,35 +780,61 @@ function respond(params: { message: Msg; data?: Uint8Array }) {
 }
 
 export default {
-  setup: <TInjection extends Record<string, unknown>>(params: {
+  setup: <
+    TInjection extends Partial<
+      Pick<NatsInjection<NatsService<string, unknown, unknown>>, 'logService'> &
+        Record<string, unknown>
+    >
+  >(params: {
     urls: string[];
     injections?: TInjection;
     user?: string;
     pass?: string;
     verbose?: boolean;
-    namespace?: {
-      getNamespaceSubject: string;
-      namespaceSubjects: string[];
-    };
+    logLevels?: Array<'log' | 'info' | 'warn' | 'error'> | 'all' | 'none';
   }) => {
-    const { urls, injections, user, pass, verbose, namespace } = params;
+    const { urls, injections, user, pass, verbose, logLevels } = params;
+    let natsHandlers: registeredHandlers;
+    let natsService: ReturnType<typeof createNatsService>;
 
     const client = {
-      start: () =>
-        start({
+      start: async () => {
+        natsService = await start({
           urls,
-          injections,
+          handlers: natsHandlers,
           user,
           pass,
           verbose,
-          namespace,
-        }),
-      stop: () => stop(urls),
-      register: (
+        });
+      },
+      stop: async () => {
+        await stop(natsService);
+        natsService = undefined;
+        natsHandlers = undefined;
+      },
+      register: async (
         handlers: Array<
           NatsHandler<NatsService<string, unknown, unknown>, TInjection>
         >
-      ) => register({ urls, handlers }),
+      ) => {
+        const isStarted = !!natsService;
+        if (isStarted) {
+          throw new Error(
+            `Can't register more handler after nats client started`
+          );
+        }
+
+        const result = await register({
+          handlers,
+          logService: injections?.logService,
+          logLevels,
+        });
+
+        natsHandlers = {
+          ...natsHandlers,
+          ...result,
+        };
+      },
     };
 
     return client;

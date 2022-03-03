@@ -10,13 +10,13 @@ const userId01 = Date.now().toString();
 const userId02 = (Date.now() + 60000).toString();
 
 const request01 = connect({
-  serverURL: new URL('http://localhost:8080'),
+  serverURL: new URL('http://0.0.0.0:8080'),
   headers: {
     'user-id': userId01,
   },
 });
 const request02 = connect({
-  serverURL: new URL('http://localhost:8080'),
+  serverURL: new URL('http://0.0.0.0:8080'),
   headers: {
     'user-id': userId02,
   },
@@ -33,13 +33,13 @@ export function Index() {
   useEffect(() => {
     // Create socket in useEffect to avoid error when Nextjs generate page in server side
     socketRef01.current = connectWS({
-      serverURL: new URL('ws://localhost:8080'),
+      serverURL: new URL('ws://0.0.0.0:8080'),
       headers: {
         'user-id': userId01,
       },
     });
     socketRef02.current = connectWS({
-      serverURL: new URL('ws://localhost:8080'),
+      serverURL: new URL('ws://0.0.0.0:8080'),
       headers: {
         'user-id': userId02,
       },

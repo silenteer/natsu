@@ -1,6 +1,7 @@
 import type { NatsHelloNamespace } from '@silenteer/example-type';
-import type { NatsHandle, NatsResponse } from '@silenteer/natsu';
-import { NatsHandleResultUtil } from '@silenteer/natsu';
+import type { NatsResponse } from '@silenteer/natsu-type';
+import type { NatsHandle } from '@silenteer/natsu';
+import NatsServiceMiddleware from './middlewares/middleware-nats-service';
 
 const handle: NatsHandle<NatsHelloNamespace> = async (data, injection) => {
   const message = `Hello ${data.headers['user-id']}`;
@@ -12,7 +13,11 @@ const handle: NatsHandle<NatsHelloNamespace> = async (data, injection) => {
 
   await injection.natsService.publish('ws.helloNamespace', natsResponse);
 
-  return NatsHandleResultUtil.ok();
+  return injection.ok({ headers: data.headers, body: data.body });
 };
 
-export default { subject: 'api.helloNamespace', handle };
+export default {
+  subject: 'api.helloNamespace',
+  handle,
+  middlewares: [NatsServiceMiddleware],
+};

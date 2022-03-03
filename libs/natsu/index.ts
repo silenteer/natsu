@@ -1,39 +1,24 @@
 import NatsClient from './nats-client';
 
 export type {
-  NatsRequest,
-  NatsResponse,
   NatsInjection,
+  NatsValidationInjection,
+  NatsAuthorizationInjection,
+  NatsHandleInjection,
+  NatsMiddlewareBeforeInjection,
+  NatsMiddlewareAfterInjection,
   NatsValidationResult,
   NatsAuthorizationResult,
   NatsHandleResult,
-  NatsMiddlewareValidationResult,
-  NatsMiddlewareAuthorizationResult,
-  NatsMiddlewareHandleResult,
+  NatsMiddlewareBeforeResult,
+  NatsMiddlewareAfterResult,
+  NatsBefore,
+  NatsAfter,
   NatsValidate,
-  NatsAfterValidate,
-  NatsBeforeAuthorize,
   NatsAuthorize,
-  NatsAfterAuthorize,
-  NatsBeforeHandle,
   NatsHandle,
-  NatsAfterHandle,
+  NatsMiddleware,
   NatsHandler,
-  NatsBeforeValidateMiddleware,
-  NatsAfterValidateMiddleware,
-  NatsBeforeAuthorizeMiddleware,
-  NatsAfterAuthorizeMiddleware,
-  NatsBeforeHandleMiddleware,
-  NatsAfterHandleMiddleware,
 } from './type';
-
-export {
-  NatsValidationResultUtil,
-  NatsAuthorizationResultUtil,
-  NatsHandleResultUtil,
-  NatsMiddlewareValidationResultUtil,
-  NatsMiddlewareAuthorizationResultUtil,
-  NatsMiddlewareHandleResultUtil,
-} from './utility';
 
 export default NatsClient;

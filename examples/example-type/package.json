@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "license": "MIT",
   "dependencies": {
-    "@silenteer/natsu-type": "^0.0.10",
+    "@silenteer/natsu-type": "^0.0.11",
     "@silenteer/natsu": "^1.0.9"
   },
   "devDependencies": {
