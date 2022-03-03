@@ -3,7 +3,7 @@ import { connect } from '@silenteer/natsu-port';
 import type { NatsGetCareProviders } from 'example-type';
 
 const request = connect({
-  serverURL: new URL('http://localhost:8080'),
+  serverURL: new URL('http://0.0.0.0:8080'),
 });
 
 export function Index() {

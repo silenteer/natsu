@@ -13,16 +13,8 @@ const buildDir = path.join(process.cwd(), '.natsu', 'build');
 fs.mkdirSync('.natsu/build', { recursive: true });
 
 const envPath = path.join(process.cwd(), '.env.natsu');
-let namespaceConfig;
 if (fs.existsSync(envPath)) {
   require('dotenv').config({ path: envPath });
-  const { NATS_GET_NAMESPACE_SUBJECT, NATS_NAMESPACE_SUBJECTS } = process.env;
-  if (NATS_GET_NAMESPACE_SUBJECT && NATS_NAMESPACE_SUBJECTS) {
-    namespaceConfig = {
-      getNamespaceSubject: NATS_GET_NAMESPACE_SUBJECT,
-      namespaceSubjects: NATS_NAMESPACE_SUBJECTS,
-    };
-  }
 }
 
 esbuild.buildSync({
@@ -39,22 +31,24 @@ const NatsClient = require('@silenteer/natsu');
 const natsClient = NatsClient.default.setup({
   urls: [options.nats],
   verbose: options.verbose,
-  namespace: namespaceConfig,
 });
 
-files.forEach((file) => {
-  const jsFile = path.join(buildDir, file.replace('.ts', '.js'));
-  const module = require(jsFile);
+async function register() {
+  for (const file of files) {
+    const jsFile = path.join(buildDir, file.replace('.ts', '.js'));
+    const module = require(jsFile);
 
-  natsClient.register([module.default]);
-  console.log('Registered', module.default.subject);
-});
+    await natsClient.register([module.default]);
+    console.log('Registered', module.default.subject);
+  }
+}
 
 async function start() {
   await natsClient.start();
 }
 
-start()
+register()
+  .then(() => start())
   .then(() => console.log('Server started successfully'))
   .catch((e) => {
     console.error(e);

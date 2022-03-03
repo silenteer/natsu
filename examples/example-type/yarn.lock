@@ -14,17 +14,17 @@
   dependencies:
     "@cspotcode/source-map-consumer" "0.8.0"
 
-"@silenteer/natsu-type@0.0.10", "@silenteer/natsu-type@^0.0.10":
-  version "0.0.10"
-  resolved "https://registry.yarnpkg.com/@silenteer/natsu-type/-/natsu-type-0.0.10.tgz#7b9b88b11c9a93da7ac629c372f38e2dd112347d"
-  integrity sha512-UBQin2Pw39ZpdURnM+QNxh6WsiM0HHcw6nYDemdw4qFIc92fKsiYuJ3ksW0y9LgFYNJCMFBcdHl6aOhOuKsnXw==
+"@silenteer/natsu-type@0.0.11", "@silenteer/natsu-type@^0.0.11":
+  version "0.0.11"
+  resolved "https://registry.yarnpkg.com/@silenteer/natsu-type/-/natsu-type-0.0.11.tgz#b17bb7ad96428e683e1996de44b6ef20dab8601d"
+  integrity sha512-mq7uJzCr1Wwfhx+0//0ZeVZtLIiSlpLqnsmuDFXodmgkrMHdg/Dxkhv9+qOu4XfkgbwWQD0kCyy8wnezhf7ibQ==
 
 "@silenteer/natsu@^1.0.9":
-  version "1.0.14"
-  resolved "https://registry.yarnpkg.com/@silenteer/natsu/-/natsu-1.0.14.tgz#f8d2524970d0719049c5454f3617fe4adeaad31f"
-  integrity sha512-UwTlEvgbGbIgT9Q8oJUj+4lP5DJtGyxG7Xtg5X2QdQcUxWbmaWoDlX9d3ryDKLA673Kf2PX+KnOXhjR7gNlCqA==
+  version "1.0.15"
+  resolved "https://registry.yarnpkg.com/@silenteer/natsu/-/natsu-1.0.15.tgz#e6cc38267faba2460cd3b5ac318926c940e4d1c3"
+  integrity sha512-C0Lu0fS7N7wRCJzgRGbTHX8fXoPC9j5RXM0sUGBbYBMfr4dok4NetF6yoOzrE3g5E7U1mgVQ6Wj+ppfgp9+d7g==
   dependencies:
-    "@silenteer/natsu-type" "0.0.10"
+    "@silenteer/natsu-type" "0.0.11"
     nats "^2.2.0"
 
 "@tsconfig/node10@^1.0.7":

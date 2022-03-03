@@ -1,10 +1,14 @@
-import type {
-  NatsService,
-  NatsChannel,
-  NatsGetNamespace as OriginalNatsGetNamespace,
-} from '@silenteer/natsu-type';
+import type { NatsService, NatsChannel } from '@silenteer/natsu-type';
 
-export type NatsGetNamespace = OriginalNatsGetNamespace<'api.getNamespace'>;
+export type NatsGetNamespace = NatsService<
+  'api.getNamespace',
+  {
+    subject: string;
+  },
+  {
+    namespace: string;
+  }
+>;
 
 export type NatsHelloNamespace = NatsService<
   'api.helloNamespace',

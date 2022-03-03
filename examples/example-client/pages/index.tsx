@@ -18,11 +18,6 @@ export function Index() {
             <a>Natsu Websocket</a>
           </Link>
         </li>
-        <li>
-          <Link href="/natsu-sentry">
-            <a>Natsu Sentry</a>
-          </Link>
-        </li>
       </ul>
     </>
   );
