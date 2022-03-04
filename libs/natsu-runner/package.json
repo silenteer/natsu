@@ -1,6 +1,6 @@
 {
   "name": "@silenteer/natsu-runner",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "Nats Unit runner",
   "main": "index.js",
   "author": "Silenteer",
