@@ -348,9 +348,9 @@ function createHandleInjection<
   const handleInjection: NatsHandleInjection<TService, TInjection> = {
     ...injection,
     ok: (
-      params: Parameters<NatsHandleInjection<TService, TInjection>['ok']>[0]
+      params?: Parameters<NatsHandleInjection<TService, TInjection>['ok']>[0]
     ) => {
-      const { headers, body } = params;
+      const { headers, body } = params || {};
 
       return {
         code: 'OK',
@@ -359,9 +359,9 @@ function createHandleInjection<
       };
     },
     error: (
-      params: Parameters<NatsHandleInjection<TService, TInjection>['error']>[0]
+      params?: Parameters<NatsHandleInjection<TService, TInjection>['error']>[0]
     ) => {
-      const { code = 500, errors } = params;
+      const { code = 500, errors } = params || {};
 
       return {
         code,
