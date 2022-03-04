@@ -114,30 +114,25 @@
   dependencies:
     "@napi-rs/triples" "^1.0.3"
 
-"@silenteer/natsu-port@^0.0.13":
-  version "0.0.13"
-  resolved "https://registry.yarnpkg.com/@silenteer/natsu-port/-/natsu-port-0.0.13.tgz#7c6c7272c82f611d21b1ed0da9e782a72b22c300"
-  integrity sha512-trd9Ye5FPxb8dUK8G7/Ji8GAJzWI1ooVHYsXZadwKoTtDXXx0wDLa5h9VYZ4aWC6MLeQQGgQ2d70nrHjREeKzg==
+"@silenteer/natsu-port@^0.0.16":
+  version "0.0.16"
+  resolved "https://registry.yarnpkg.com/@silenteer/natsu-port/-/natsu-port-0.0.16.tgz#015e85feaa4060f69262a07375a8583d0709e33c"
+  integrity sha512-WvaIzogfbEdUgvvIFSPXvat0j3J3w9anMcWu+4rOABptByuVpqOqG6q1FpSaHGre3+/6Wg29/hp1gSFjNthFuQ==
   dependencies:
-    "@silenteer/natsu-type" "0.0.10"
+    "@silenteer/natsu-type" "0.0.12"
     reconnecting-websocket "^4.4.0"
 
-"@silenteer/natsu-type@0.0.10", "@silenteer/natsu-type@^0.0.10":
-  version "0.0.10"
-  resolved "https://registry.yarnpkg.com/@silenteer/natsu-type/-/natsu-type-0.0.10.tgz#7b9b88b11c9a93da7ac629c372f38e2dd112347d"
-  integrity sha512-UBQin2Pw39ZpdURnM+QNxh6WsiM0HHcw6nYDemdw4qFIc92fKsiYuJ3ksW0y9LgFYNJCMFBcdHl6aOhOuKsnXw==
+"@silenteer/natsu-type@0.0.12", "@silenteer/natsu-type@^0.0.12":
+  version "0.0.12"
+  resolved "https://registry.yarnpkg.com/@silenteer/natsu-type/-/natsu-type-0.0.12.tgz#49e0f8ec1a649bcd2e4bc218d4f108334b4ab78e"
+  integrity sha512-9Q3hdPFU3tXKGA3Lr8X3pQRKW2iUrnO9v/qPILXOk/3+rW1iJhELy2+rMensYxAreKZKNd3+dujLu0hHC6BFjQ==
 
-"@silenteer/natsu-type@0.0.11":
-  version "0.0.11"
-  resolved "https://registry.yarnpkg.com/@silenteer/natsu-type/-/natsu-type-0.0.11.tgz#b17bb7ad96428e683e1996de44b6ef20dab8601d"
-  integrity sha512-mq7uJzCr1Wwfhx+0//0ZeVZtLIiSlpLqnsmuDFXodmgkrMHdg/Dxkhv9+qOu4XfkgbwWQD0kCyy8wnezhf7ibQ==
-
-"@silenteer/natsu@^1.0.9":
-  version "1.0.15"
-  resolved "https://registry.yarnpkg.com/@silenteer/natsu/-/natsu-1.0.15.tgz#e6cc38267faba2460cd3b5ac318926c940e4d1c3"
-  integrity sha512-C0Lu0fS7N7wRCJzgRGbTHX8fXoPC9j5RXM0sUGBbYBMfr4dok4NetF6yoOzrE3g5E7U1mgVQ6Wj+ppfgp9+d7g==
+"@silenteer/natsu@^1.0.16":
+  version "1.0.16"
+  resolved "https://registry.yarnpkg.com/@silenteer/natsu/-/natsu-1.0.16.tgz#96bde30bfc61ac65e6cc69d84dcf6507fc61f890"
+  integrity sha512-qjxLTHnpuL15Ql758Z93om5oQ4j+YNPseSNyfq+XU6JGK8xMEj1j/S4lR/Q3Oq4IGAw5t05ocg68hWV32MdkMQ==
   dependencies:
-    "@silenteer/natsu-type" "0.0.11"
+    "@silenteer/natsu-type" "0.0.12"
     nats "^2.2.0"
 
 "@types/node@*":
@@ -734,8 +729,8 @@ evp_bytestokey@^1.0.0, evp_bytestokey@^1.0.3:
 example-type@../example-type:
   version "0.0.1"
   dependencies:
-    "@silenteer/natsu" "^1.0.9"
-    "@silenteer/natsu-type" "^0.0.10"
+    "@silenteer/natsu" "^1.0.16"
+    "@silenteer/natsu-type" "^0.0.12"
 
 fill-range@^7.0.1:
   version "7.0.1"

@@ -24,30 +24,30 @@
 "@silenteer/example-type@../example-type":
   version "0.0.1"
   dependencies:
-    "@silenteer/natsu" "^1.0.9"
-    "@silenteer/natsu-type" "^0.0.11"
+    "@silenteer/natsu" "^1.0.16"
+    "@silenteer/natsu-type" "^0.0.12"
 
-"@silenteer/natsu-runner@^1.0.3":
-  version "1.0.3"
-  resolved "https://registry.yarnpkg.com/@silenteer/natsu-runner/-/natsu-runner-1.0.3.tgz#1dfd3087bd374f35df66d16227af488d07cb41d4"
-  integrity sha512-V+/AHFH/l82Db3jIXZa8mAkKgtOP6KHuYyWrOuyVzw6zQcleV/+PlOf/fjOx4aXzVLC/E+jt3dNAfqMwFhowKw==
+"@silenteer/natsu-runner@^1.0.4":
+  version "1.0.4"
+  resolved "https://registry.yarnpkg.com/@silenteer/natsu-runner/-/natsu-runner-1.0.4.tgz#c2e2b9db8306d6229ebb69406c243925c1e0eb27"
+  integrity sha512-VW9eZo41ocE4M107Uz7FrT2Laf9BVe7FIVHcSSLbJTwftpB/DrVnxCycikMFb8F7txiHGUB4h22/cLl7Mq/r4A==
   dependencies:
     commander "^8.2.0"
     dotenv "^10.0.0"
     esbuild "^0.12.29"
     matched "^5.0.1"
 
-"@silenteer/natsu-type@0.0.11", "@silenteer/natsu-type@^0.0.11":
-  version "0.0.11"
-  resolved "https://registry.yarnpkg.com/@silenteer/natsu-type/-/natsu-type-0.0.11.tgz#b17bb7ad96428e683e1996de44b6ef20dab8601d"
-  integrity sha512-mq7uJzCr1Wwfhx+0//0ZeVZtLIiSlpLqnsmuDFXodmgkrMHdg/Dxkhv9+qOu4XfkgbwWQD0kCyy8wnezhf7ibQ==
+"@silenteer/natsu-type@0.0.12", "@silenteer/natsu-type@^0.0.12":
+  version "0.0.12"
+  resolved "https://registry.yarnpkg.com/@silenteer/natsu-type/-/natsu-type-0.0.12.tgz#49e0f8ec1a649bcd2e4bc218d4f108334b4ab78e"
+  integrity sha512-9Q3hdPFU3tXKGA3Lr8X3pQRKW2iUrnO9v/qPILXOk/3+rW1iJhELy2+rMensYxAreKZKNd3+dujLu0hHC6BFjQ==
 
-"@silenteer/natsu@^1.0.15", "@silenteer/natsu@^1.0.9":
-  version "1.0.15"
-  resolved "https://registry.yarnpkg.com/@silenteer/natsu/-/natsu-1.0.15.tgz#e6cc38267faba2460cd3b5ac318926c940e4d1c3"
-  integrity sha512-C0Lu0fS7N7wRCJzgRGbTHX8fXoPC9j5RXM0sUGBbYBMfr4dok4NetF6yoOzrE3g5E7U1mgVQ6Wj+ppfgp9+d7g==
+"@silenteer/natsu@^1.0.16":
+  version "1.0.16"
+  resolved "https://registry.yarnpkg.com/@silenteer/natsu/-/natsu-1.0.16.tgz#96bde30bfc61ac65e6cc69d84dcf6507fc61f890"
+  integrity sha512-qjxLTHnpuL15Ql758Z93om5oQ4j+YNPseSNyfq+XU6JGK8xMEj1j/S4lR/Q3Oq4IGAw5t05ocg68hWV32MdkMQ==
   dependencies:
-    "@silenteer/natsu-type" "0.0.11"
+    "@silenteer/natsu-type" "0.0.12"
     nats "^2.2.0"
 
 "@sindresorhus/is@^0.14.0":
