@@ -114,25 +114,16 @@ type NatsValidationInjection<
   TService extends NatsService<string, unknown, unknown>,
   TInjection extends Record<string, unknown> = Record<string, unknown>
 > = NatsInjection<TService, TInjection> & {
-  ok: (params: {
-    data: NatsRequest<TService['request']>;
-  }) => NatsValidationResult;
-  error: (params: {
-    data: NatsRequest<TService['request']>;
-    code?: number;
-    errors: unknown;
-  }) => NatsValidationResult;
+  ok: () => NatsValidationResult;
+  error: (params: { code?: number; errors: unknown }) => NatsValidationResult;
 };
 
 type NatsAuthorizationInjection<
   TService extends NatsService<string, unknown, unknown>,
   TInjection extends Record<string, unknown> = Record<string, unknown>
 > = NatsInjection<TService, TInjection> & {
-  ok: (params: {
-    data: NatsRequest<TService['request']>;
-  }) => NatsAuthorizationResult;
+  ok: () => NatsAuthorizationResult;
   error: (params: {
-    data: NatsRequest<TService['request']>;
     code?: number;
     errors: unknown;
   }) => NatsAuthorizationResult;
@@ -146,7 +137,6 @@ type NatsHandleInjection<
     params: Pick<NatsHandleResult<TService>, 'headers' | 'body'>
   ) => NatsHandleResult<TService>;
   error: (params: {
-    data: NatsRequest<TService['request']>;
     code?: number;
     errors: unknown;
   }) => NatsHandleResult<TService>;

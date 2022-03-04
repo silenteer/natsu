@@ -361,11 +361,10 @@ function createHandleInjection<
     error: (
       params: Parameters<NatsHandleInjection<TService, TInjection>['error']>[0]
     ) => {
-      const { data, code = 500, errors } = params;
+      const { code = 500, errors } = params;
 
       return {
         code,
-        data,
         errors,
       };
     },
