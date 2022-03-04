@@ -4,7 +4,7 @@
   "license": "MIT",
   "dependencies": {
     "@silenteer/natsu-type": "^0.0.12",
-    "@silenteer/natsu": "^1.0.16"
+    "@silenteer/natsu": "^1.0.17"
   },
   "devDependencies": {
     "@types/node": "16.9.1",
