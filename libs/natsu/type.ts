@@ -219,12 +219,12 @@ type NatsHandler<
       code: number;
       errors?: unknown;
     },
-    injection: TInjection & NatsInjection<TService, TInjection>
+    injection: NatsInjection<TService, TInjection>
   ) => Promise<void>;
   respondUnhandledError?: (
     data: NatsRequest<TService['request']>,
     error: Error,
-    injection: TInjection & NatsInjection<TService, TInjection>
+    injection: NatsInjection<TService, TInjection>
   ) => Promise<void>;
 };
 
