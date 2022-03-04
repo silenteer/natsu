@@ -37,11 +37,10 @@ type registeredHandlers = {
         middlewareId: string;
         handle: (params: {
           data: NatsRequest<NatsService<string, unknown, unknown>['request']>;
-          injection: Record<string, unknown> &
-            NatsInjection<
-              NatsService<string, unknown, unknown>,
-              Record<string, unknown>
-            >;
+          injection: NatsInjection<
+            NatsService<string, unknown, unknown>,
+            Record<string, unknown>
+          >;
         }) => Promise<
           NatsMiddlewareBeforeResult<
             NatsService<string, unknown, unknown>,
@@ -53,11 +52,10 @@ type registeredHandlers = {
         middlewareId: string;
         handle: (params: {
           data: NatsRequest<NatsService<string, unknown, unknown>['request']>;
-          injection: Record<string, unknown> &
-            NatsInjection<
-              NatsService<string, unknown, unknown>,
-              Record<string, unknown>
-            >;
+          injection: NatsInjection<
+            NatsService<string, unknown, unknown>,
+            Record<string, unknown>
+          >;
         }) => Promise<
           NatsMiddlewareAfterResult<
             NatsService<string, unknown, unknown>,
@@ -66,11 +64,10 @@ type registeredHandlers = {
         >;
       }>;
     };
-    injection: Record<string, unknown> &
-      Omit<
-        NatsInjection<NatsService<string, unknown, unknown>>,
-        'message' | 'natsService'
-      >;
+    injection: Pick<
+      NatsInjection<NatsService<string, unknown, unknown>>,
+      'subject' | 'handler' | 'logService'
+    >;
   };
 };
 
@@ -278,7 +275,7 @@ async function register(params: {
 function createNatsService<
   TService extends NatsService<string, unknown, unknown>,
   TInjection extends Record<string, unknown> = Record<string, unknown>
->(client: NatsConnection): NatsInjection<TService, TInjection>['natsService'] {
+>(client: NatsConnection) {
   return {
     request: async (
       subject: string,
@@ -300,7 +297,7 @@ function createNatsService<
     drain: async () => {
       return client.drain();
     },
-  };
+  } as NatsInjection<TService, TInjection>['natsService'];
 }
 
 function createLogService<
@@ -310,7 +307,7 @@ function createLogService<
   prefix: string;
   logService: NatsInjection<TService, TInjection>['logService'];
   logLevels?: Array<'log' | 'info' | 'warn' | 'error'> | 'all' | 'none';
-}): NatsInjection<TService, TInjection>['logService'] {
+}) {
   const { prefix, logService = console, logLevels = 'all' } = params;
   let levels: Array<'log' | 'info' | 'warn' | 'error'> = [];
 
@@ -341,7 +338,7 @@ function createLogService<
         logService.error(prefix, message, ...optionalParams);
       }
     },
-  };
+  } as NatsInjection<TService, TInjection>['logService'];
 }
 
 function createHandleInjection<
@@ -380,7 +377,7 @@ function createHandleInjection<
 function createMiddlewareBeforeInjection<
   TService extends NatsService<string, unknown, unknown>,
   TInjection extends Record<string, unknown>
->(injection: TInjection & NatsInjection<TService, TInjection>) {
+>(injection: NatsInjection<TService, TInjection>) {
   const beforeInjection: NatsMiddlewareBeforeInjection<TService, TInjection> = {
     ...injection,
     ok: (
@@ -395,7 +392,7 @@ function createMiddlewareBeforeInjection<
       return {
         code: 'OK',
         data,
-        injection: rest as TInjection & NatsInjection<TService, TInjection>,
+        injection: rest as unknown as NatsInjection<TService, TInjection>,
       };
     },
     error: (
@@ -411,7 +408,7 @@ function createMiddlewareBeforeInjection<
         code,
         data,
         errors,
-        injection: rest as TInjection & NatsInjection<TService, TInjection>,
+        injection: rest as unknown as NatsInjection<TService, TInjection>,
       };
     },
   };
@@ -422,7 +419,7 @@ function createMiddlewareBeforeInjection<
 function createMiddlewareAfterInjection<
   TService extends NatsService<string, unknown, unknown>,
   TInjection extends Record<string, unknown>
->(injection: TInjection & NatsInjection<TService, TInjection>) {
+>(injection: NatsInjection<TService, TInjection>) {
   const afterInjection: NatsMiddlewareAfterInjection<TService, TInjection> = {
     ...injection,
     ok: (
@@ -438,7 +435,7 @@ function createMiddlewareAfterInjection<
         code: 'OK',
         data,
         result,
-        injection: rest as TInjection & NatsInjection<TService, TInjection>,
+        injection: rest as unknown as NatsInjection<TService, TInjection>,
       };
     },
     error: (
@@ -455,7 +452,7 @@ function createMiddlewareAfterInjection<
         data,
         result,
         errors,
-        injection: rest as TInjection & NatsInjection<TService, TInjection>,
+        injection: rest as unknown as NatsInjection<TService, TInjection>,
       };
     },
   };
@@ -781,9 +778,9 @@ function respond(params: { message: Msg; data?: Uint8Array }) {
 
 export default {
   setup: <
-    TInjection extends Partial<
-      Pick<NatsInjection<NatsService<string, unknown, unknown>>, 'logService'> &
-        Record<string, unknown>
+    TInjection extends Pick<
+      NatsInjection<NatsService<string, unknown, unknown>>,
+      'logService'
     >
   >(params: {
     urls: string[];
