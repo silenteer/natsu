@@ -24,6 +24,6 @@
     "matched": "^5.0.1"
   },
   "peerDependencies": {
-    "@silenteer/natsu": "^1.0.20"
+    "@silenteer/natsu": "^1.0.21"
   }
 }

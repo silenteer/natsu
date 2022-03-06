@@ -106,8 +106,7 @@ async function start(params: {
             ? requestCodec.decode(message.data)
             : undefined;
           const handlerLogService = registeredInjection.logService;
-          let injection: Record<string, unknown> &
-            NatsInjection<NatsService<string, unknown, unknown>>;
+          let injection: NatsInjection<NatsService<string, unknown, unknown>>;
 
           try {
             injection = {
@@ -228,12 +227,11 @@ async function register(params: {
   handlers: Array<
     NatsHandler<NatsService<string, unknown, unknown>, Record<string, unknown>>
   >;
-  logService: NatsInjection<
-    NatsService<string, unknown, unknown>
-  >['logService'];
+  injection: Record<string, unknown> &
+    Pick<NatsInjection<NatsService<string, unknown, unknown>>, 'logService'>;
   logLevels?: Array<'log' | 'info' | 'warn' | 'error'> | 'all' | 'none';
 }) {
-  const { logService, handlers, logLevels } = params;
+  const { injection, handlers, logLevels } = params;
   const result: registeredHandlers = {};
 
   for (const handler of handlers) {
@@ -242,11 +240,12 @@ async function register(params: {
     if (!result[subject]) {
       const handlerLogService = createLogService({
         prefix: `[${subject}]`,
-        logService,
+        logService: injection.logService,
         logLevels,
       });
 
-      const injection = {
+      const registeredInjection = {
+        ...injection,
         subject,
         handler: {
           validate: handler.validate,
@@ -258,13 +257,13 @@ async function register(params: {
 
       const middlewares = await loadMiddlewares({
         handler,
-        injection,
+        injection: registeredInjection,
       });
 
       result[subject] = {
         handler,
         middlewares,
-        injection,
+        injection: registeredInjection,
       };
     }
   }
@@ -476,14 +475,14 @@ async function loadMiddlewares<
     middlewareId: string;
     handle: (params: {
       data: NatsRequest<TService['request']>;
-      injection: TInjection & NatsInjection<TService, TInjection>;
+      injection: NatsInjection<TService, TInjection>;
     }) => Promise<NatsMiddlewareBeforeResult<TService, TInjection>>;
   }> = [];
   const after: Array<{
     middlewareId: string;
     handle: (params: {
       data: NatsRequest<TService['request']>;
-      injection: TInjection & NatsInjection<TService, TInjection>;
+      injection: NatsInjection<TService, TInjection>;
     }) => Promise<NatsMiddlewareAfterResult<TService, TInjection>>;
   }> = [];
 
@@ -497,7 +496,7 @@ async function loadMiddlewares<
           middlewareId,
           handle: async (params: {
             data: NatsRequest<TService['request']>;
-            injection: TInjection & NatsInjection<TService, TInjection>;
+            injection: NatsInjection<TService, TInjection>;
           }) => {
             const { injection, ...rest } = params;
             const middlewareLogService = createLogService({
@@ -541,7 +540,7 @@ async function loadMiddlewares<
           handle: async (params: {
             data: NatsRequest<TService['request']>;
             result: NatsHandleResult<TService>;
-            injection: TInjection & NatsInjection<TService, TInjection>;
+            injection: NatsInjection<TService, TInjection>;
           }) => {
             const { injection, ...rest } = params;
             const middlewareLogService = createLogService({
@@ -777,19 +776,17 @@ function respond(params: { message: Msg; data?: Uint8Array }) {
 
 export default {
   setup: <
-    TInjection extends Pick<
-      NatsInjection<NatsService<string, unknown, unknown>>,
-      'logService'
-    >
+    TInjection extends Record<string, unknown> &
+      Pick<NatsInjection<NatsService<string, unknown, unknown>>, 'logService'>
   >(params: {
     urls: string[];
-    injections?: TInjection;
+    injection?: TInjection;
     user?: string;
     pass?: string;
     verbose?: boolean;
     logLevels?: Array<'log' | 'info' | 'warn' | 'error'> | 'all' | 'none';
   }) => {
-    const { urls, injections, user, pass, verbose, logLevels } = params;
+    const { urls, injection, user, pass, verbose, logLevels } = params;
     let natsHandlers: registeredHandlers;
     let natsService: ReturnType<typeof createNatsService>;
 
@@ -822,7 +819,7 @@ export default {
 
         const result = await register({
           handlers,
-          logService: injections?.logService,
+          injection,
           logLevels,
         });
 
