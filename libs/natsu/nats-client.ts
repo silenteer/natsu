@@ -110,9 +110,9 @@ async function start(params: {
 
           try {
             injection = {
-              ...registeredInjection,
               message,
               natsService,
+              ...registeredInjection,
             };
 
             handlerLogService.info('Begin');
