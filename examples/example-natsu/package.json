@@ -6,7 +6,7 @@
     "dev": "nodemon -e ts,js -i node_modules --exec natsu-runner"
   },
   "dependencies": {
-    "@silenteer/natsu": "^1.0.22",
+    "@silenteer/natsu": "^1.0.23",
     "@silenteer/natsu-runner": "^1.0.4",
     "@silenteer/natsu-type": "^0.0.12",
     "esbuild": "^0.12.29",

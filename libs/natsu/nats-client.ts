@@ -110,9 +110,9 @@ async function start(params: {
 
           try {
             injection = {
+              ...registeredInjection,
               message,
               natsService,
-              ...registeredInjection,
             };
 
             handlerLogService.info('Begin');
@@ -609,7 +609,7 @@ async function before<
     for (const middleware of middlewares) {
       beforeResult = await middleware.handle({
         data: beforeResult ? beforeResult.data : data,
-        injection,
+        injection: beforeResult ? beforeResult.injection : injection,
       });
 
       if (beforeResult.code !== 'OK') {
@@ -711,7 +711,7 @@ async function after<
       afterResult = await middleware.handle({
         data: afterResult ? afterResult.data : data,
         result: afterResult ? afterResult.result : result,
-        injection,
+        injection: afterResult ? afterResult.injection : injection,
       });
 
       if (afterResult.code !== 'OK') {
