@@ -8,7 +8,7 @@ import type {
 type NatsInjection<
   TService extends NatsService<string, unknown, unknown>,
   TInjection extends Record<string, unknown> = Record<string, unknown>
-> = {
+> = TInjection & {
   subject: string;
   message: Msg;
   handler: Pick<
@@ -61,7 +61,7 @@ type NatsMiddlewareBeforeResult<
 > = {
   code: 'OK' | number;
   data: NatsRequest<TService['request']>;
-  injection: TInjection & NatsInjection<TService, TInjection>;
+  injection: NatsInjection<TService, TInjection>;
   errors?: unknown;
 };
 
@@ -71,7 +71,7 @@ type NatsMiddlewareAfterResult<
 > = {
   code: 'OK' | number;
   data: NatsRequest<TService['request']>;
-  injection: TInjection & NatsInjection<TService, TInjection>;
+  injection: NatsInjection<TService, TInjection>;
   result: NatsHandleResult<TService>;
   errors?: unknown;
 };
@@ -113,47 +113,34 @@ type NatsMiddlewareAfterInjection<
 type NatsValidationInjection<
   TService extends NatsService<string, unknown, unknown>,
   TInjection extends Record<string, unknown> = Record<string, unknown>
-> = TInjection &
-  NatsInjection<TService, TInjection> & {
-    ok: (params: {
-      data: NatsRequest<TService['request']>;
-    }) => NatsValidationResult;
-    error: (params: {
-      data: NatsRequest<TService['request']>;
-      code?: number;
-      errors: unknown;
-    }) => NatsValidationResult;
-  };
+> = NatsInjection<TService, TInjection> & {
+  ok: () => NatsValidationResult;
+  error: (params?: { code?: number; errors: unknown }) => NatsValidationResult;
+};
 
 type NatsAuthorizationInjection<
   TService extends NatsService<string, unknown, unknown>,
   TInjection extends Record<string, unknown> = Record<string, unknown>
-> = TInjection &
-  NatsInjection<TService, TInjection> & {
-    ok: (params: {
-      data: NatsRequest<TService['request']>;
-    }) => NatsAuthorizationResult;
-    error: (params: {
-      data: NatsRequest<TService['request']>;
-      code?: number;
-      errors: unknown;
-    }) => NatsAuthorizationResult;
-  };
+> = NatsInjection<TService, TInjection> & {
+  ok: () => NatsAuthorizationResult;
+  error: (params?: {
+    code?: number;
+    errors: unknown;
+  }) => NatsAuthorizationResult;
+};
 
 type NatsHandleInjection<
   TService extends NatsService<string, unknown, unknown>,
   TInjection extends Record<string, unknown> = Record<string, unknown>
-> = TInjection &
-  NatsInjection<TService, TInjection> & {
-    ok: (
-      params: Pick<NatsHandleResult<TService>, 'headers' | 'body'>
-    ) => NatsHandleResult<TService>;
-    error: (params: {
-      data: NatsRequest<TService['request']>;
-      code?: number;
-      errors: unknown;
-    }) => NatsHandleResult<TService>;
-  };
+> = NatsInjection<TService, TInjection> & {
+  ok: (
+    params?: Pick<NatsHandleResult<TService>, 'headers' | 'body'>
+  ) => NatsHandleResult<TService>;
+  error: (params?: {
+    code?: number;
+    errors: unknown;
+  }) => NatsHandleResult<TService>;
+};
 
 type NatsBefore<
   TService extends NatsService<string, unknown, unknown>,
@@ -222,12 +209,12 @@ type NatsHandler<
       code: number;
       errors?: unknown;
     },
-    injection: TInjection & NatsInjection<TService, TInjection>
+    injection: NatsInjection<TService, TInjection>
   ) => Promise<void>;
   respondUnhandledError?: (
     data: NatsRequest<TService['request']>,
     error: Error,
-    injection: TInjection & NatsInjection<TService, TInjection>
+    injection: NatsInjection<TService, TInjection>
   ) => Promise<void>;
 };
 

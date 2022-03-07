@@ -31,7 +31,7 @@ function init(params?: {
     urls: ['0.0.0.0:4222'],
     verbose: true,
     logLevels: logService ? 'all' : 'none',
-    injections: {
+    injection: {
       logService,
     },
   });

@@ -1,6 +1,6 @@
 {
   "name": "@silenteer/natsu-runner",
-  "version": "1.0.4",
+  "version": "1.0.11",
   "description": "Nats Unit runner",
   "main": "index.js",
   "author": "Silenteer",
@@ -24,6 +24,6 @@
     "matched": "^5.0.1"
   },
   "peerDependencies": {
-    "@silenteer/natsu": "^1.0.16"
+    "@silenteer/natsu": "^1.0.23"
   }
 }

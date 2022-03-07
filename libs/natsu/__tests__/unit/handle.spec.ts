@@ -77,7 +77,7 @@ describe('Handle stage', () => {
       injection
     ) => {
       order.push('handler.handle');
-      return injection.error({ data, errors: { code: 500 } });
+      return injection.error({ errors: { code: 500 } });
     };
     const middlewareBefore: NatsBefore<TestService, TestInjection> = async ({
       data,

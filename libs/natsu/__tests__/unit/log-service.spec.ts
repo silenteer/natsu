@@ -528,7 +528,7 @@ describe('Log service', () => {
       data,
       injection
     ) => {
-      return injection.error({ data, errors: 'ERROR' });
+      return injection.error({ errors: 'ERROR' });
     };
     const middlewareAfter01: NatsAfter<TestService, TestInjection> = async ({
       data,
