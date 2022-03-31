@@ -4,7 +4,10 @@ import type { NatsGetCareProviders } from 'example-type';
 import { NatsuProvider, useRequest } from '@silenteer/natsu-react';
 
 function Index() {
-  const { value, status } = useRequest<NatsGetCareProviders>('api.getCareProviders', {ids: ['1', '2', '3']})
+  const { value, status } = useRequest<NatsGetCareProviders>(
+    'api.getCareProviders',
+    { ids: ['1', '2', '3'] }
+  );
 
   return (
     <>
@@ -17,13 +20,17 @@ function Index() {
 }
 
 function Wrapper() {
-  const [request] = useState(() => connect({
-    serverURL: new URL('http://localhost:8080'),
-  }));
+  const [request] = useState(() =>
+    connect({
+      serverURL: new URL('http://localhost:8080'),
+    })
+  );
 
-  return <NatsuProvider natsuClient={request}>
-    <Index />
-  </NatsuProvider>
+  return (
+    <NatsuProvider natsuClient={request}>
+      <Index />
+    </NatsuProvider>
+  );
 }
 
 export default Wrapper;

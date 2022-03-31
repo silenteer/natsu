@@ -34,15 +34,16 @@ function connect(initialOptions: NatsPortOptions) {
       traceId: string;
     }
   ): Promise<TService['response']> => {
-    try {
-      const requestBody: NatsPortRequest<unknown> =
-        body !== undefined && body !== null
-          ? {
+    const requestBody: NatsPortRequest<unknown> =
+      body !== undefined && body !== null
+        ? {
             data: body,
           }
-          : {};
+        : {};
 
-      const result = await fetch(initialOptions.serverURL.toString(), {
+    let result: Response;
+    try {
+      result = await fetch(initialOptions.serverURL.toString(), {
         ...initialOptions,
         method: 'POST',
         mode: 'cors',
@@ -54,29 +55,30 @@ function connect(initialOptions: NatsPortOptions) {
         },
         body: JSON.stringify(requestBody),
       });
-
-      let response:
-        | NatsPortResponse<TService['response']>
-        | NatsPortErrorResponse;
-      try {
-        response = await result.json();
-      } catch (e) {
-        throw new Error('Response is not JSON');
-      }
-
-      if (response.code === 200) {
-        return response.body;
-      } else if (
-        (
-          [400, 401, 403, 404, 500] as Array<NatsPortErrorResponse['code']>
-        ).includes(response.code)
-      ) {
-        throw new NatsPortError(response);
-      } else {
-        throw new Error('Unknown response.');
-      }
     } catch (e) {
+      console.error('Caught low level exception while fetching');
       throw e;
+    }
+
+    let response:
+      | NatsPortResponse<TService['response']>
+      | NatsPortErrorResponse;
+    try {
+      response = await result.json();
+    } catch (e) {
+      throw new Error('Response is not JSON');
+    }
+
+    if (response.code === 200) {
+      return response.body;
+    } else if (
+      (
+        [400, 401, 403, 404, 500] as Array<NatsPortErrorResponse['code']>
+      ).includes(response.code)
+    ) {
+      throw new NatsPortError(response);
+    } else {
+      throw new Error('Unknown response.');
     }
   };
 }
@@ -107,7 +109,7 @@ function connectWS(options: NatsPortOptions) {
       headers: { ...options.headers },
       action: 'subscribe',
     });
-  }
+  };
 
   const sendUnsub = (subject: string) => {
     websocketClient?.send({
@@ -115,12 +117,12 @@ function connectWS(options: NatsPortOptions) {
       headers: { ...options.headers },
       action: 'unsubscribe',
     });
-  }
+  };
 
   websocketClient.onreconnected = () => {
     const subjects = Object.keys(subscriptions);
     subjects.forEach((subject) => {
-      sendSub(subject, {...options.headers})
+      sendSub(subject, { ...options.headers });
     });
   };
   websocketClient.onopen = websocketClient.onreconnected;
@@ -171,7 +173,6 @@ function connectWS(options: NatsPortOptions) {
       response: NatsPortWSResponse<TService['subject'], TService['response']>
     ) => void
   ) => {
-
     const subscriptionId = getUUID();
 
     if (!subscriptions[subject]) {
@@ -179,8 +180,9 @@ function connectWS(options: NatsPortOptions) {
     }
     subscriptions[subject].push({ subscriptionId, onHandle });
 
-    if (websocketClient && websocketClient.getReadyState() === 1) { //OPEN
-      sendSub(subject, {...options.headers});
+    if (websocketClient && websocketClient.getReadyState() === 1) {
+      //OPEN
+      sendSub(subject, { ...options.headers });
     } // Otherwise, it'll do in onreconnected or onopen
 
     return { unsubscribe: () => unsubscribe({ subscriptionId, subject }) };

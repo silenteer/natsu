@@ -108,11 +108,13 @@ describe('After stage', () => {
       order.push('middleware.after01');
       return injection.ok({ data, result, injection });
     };
-    const middlewareAfter02: NatsAfter<TestService, TestInjection> =
-      async () => {
-        order.push('middleware.after02');
-        throw new Error();
-      };
+    const middlewareAfter02: NatsAfter<
+      TestService,
+      TestInjection
+    > = async () => {
+      order.push('middleware.after02');
+      throw new Error();
+    };
     const middlewareAfter03: NatsAfter<TestService, TestInjection> = async ({
       data,
       result,

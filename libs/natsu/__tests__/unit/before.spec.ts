@@ -103,11 +103,13 @@ describe('Before stage', () => {
       order.push('middleware.before01');
       return injection.ok({ data, injection });
     };
-    const middlewareBefore02: NatsBefore<TestService, TestInjection> =
-      async () => {
-        order.push('middleware.before02');
-        throw new Error();
-      };
+    const middlewareBefore02: NatsBefore<
+      TestService,
+      TestInjection
+    > = async () => {
+      order.push('middleware.before02');
+      throw new Error();
+    };
     const middlewareBefore03: NatsBefore<TestService, TestInjection> = async ({
       data,
       injection,

@@ -320,10 +320,12 @@ describe('Log service', () => {
     }) => {
       return injection.ok({ data, injection });
     };
-    const middlewareBefore02: NatsBefore<TestService, TestInjection> =
-      async () => {
-        throw 'UNHANDLED_ERROR';
-      };
+    const middlewareBefore02: NatsBefore<
+      TestService,
+      TestInjection
+    > = async () => {
+      throw 'UNHANDLED_ERROR';
+    };
     const middlewareAfter01: NatsAfter<TestService, TestInjection> = async ({
       data,
       result,
@@ -471,10 +473,12 @@ describe('Log service', () => {
     }) => {
       return injection.ok({ data, result, injection });
     };
-    const middlewareAfter02: NatsAfter<TestService, TestInjection> =
-      async () => {
-        throw 'UNHANDLED_ERROR';
-      };
+    const middlewareAfter02: NatsAfter<
+      TestService,
+      TestInjection
+    > = async () => {
+      throw 'UNHANDLED_ERROR';
+    };
 
     await natsService.register([
       {
