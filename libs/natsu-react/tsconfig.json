@@ -3,6 +3,7 @@
   "include": ["**/*.tsx", "**/*.ts"],
   "exclude": ["node_modules", "dist", "release"],
   "compilerOptions": {
+    "outDir": "dist",
     "lib": ["DOM"]
   }
 }

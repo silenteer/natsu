@@ -31,5 +31,6 @@
       "examples/*",
       "configs/*"
     ]
-  }
+  },
+  "dependencies": {}
 }

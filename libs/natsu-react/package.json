@@ -1,6 +1,6 @@
 {
   "name": "@silenteer/natsu-react",
-  "version": "0.0.24",
+  "version": "0.0.1",
   "license": "MIT",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
