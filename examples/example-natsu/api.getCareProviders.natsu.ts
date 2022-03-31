@@ -1,5 +1,5 @@
 import * as yup from 'yup';
-import type { NatsGetCareProviders } from '@silenteer/example-type';
+import type { NatsGetCareProviders } from 'example-type';
 import type { NatsValidate, NatsAuthorize, NatsHandle } from '@silenteer/natsu';
 
 const schema = yup.array(yup.string().trim()).required().min(1).required();

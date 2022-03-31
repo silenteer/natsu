@@ -86,7 +86,6 @@ if (args['--help']) {
     ]
   );
   console.log(guideTable.toString());
-  return;
 }
 
 if (args['--config']) {

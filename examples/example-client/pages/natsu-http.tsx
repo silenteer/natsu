@@ -1,35 +1,29 @@
 import React, { useEffect, useState } from 'react';
 import { connect } from '@silenteer/natsu-port';
 import type { NatsGetCareProviders } from 'example-type';
+import { NatsuProvider, useRequest } from '@silenteer/natsu-react';
 
-const request = connect({
-  serverURL: new URL('http://0.0.0.0:8080'),
-});
-
-export function Index() {
-  const [careProviders, setCareProviders] =
-    useState<NatsGetCareProviders['response']>();
-
-  useEffect(() => {
-    request<NatsGetCareProviders>('api.getCareProviders', {
-      ids: ['1', '2', '3'],
-    }).then((response) => setCareProviders(response));
-  }, []);
+function Index() {
+  const { value, status } = useRequest<NatsGetCareProviders>('api.getCareProviders', {ids: ['1', '2', '3']})
 
   return (
     <>
       <h2>Natsu Http</h2>
       <br />
       <br />
-      {careProviders && (
-        <ol>
-          {careProviders.map(({ id, name }) => (
-            <li key={id}>{name}</li>
-          ))}
-        </ol>
-      )}
+      {value && value.map((item, index) => <div key={index}>{item.name}</div>)}
     </>
   );
 }
 
-export default Index;
+function Wrapper() {
+  const [request] = useState(() => connect({
+    serverURL: new URL('http://localhost:8080'),
+  }));
+
+  return <NatsuProvider natsuClient={request}>
+    <Index />
+  </NatsuProvider>
+}
+
+export default Wrapper;

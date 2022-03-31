@@ -1,4 +1,4 @@
-import type { NatsHelloNamespace } from '@silenteer/example-type';
+import type { NatsHelloNamespace } from 'example-type';
 import type { NatsResponse } from '@silenteer/natsu-type';
 import type { NatsHandle } from '@silenteer/natsu';
 import NatsServiceMiddleware from './middlewares/middleware-nats-service';

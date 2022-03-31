@@ -18,6 +18,11 @@ export function Index() {
             <a>Natsu Websocket</a>
           </Link>
         </li>
+        <li>
+          <Link href="/with-react-query">
+            <a>Natsu with React Query</a>
+          </Link>
+        </li>
       </ul>
     </>
   );

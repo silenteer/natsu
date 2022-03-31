@@ -1,8 +1,7 @@
 {
-  "name": "@silenteer/natsu-port-server",
+  "name": "@silenteer/natsu-react",
   "version": "0.0.24",
   "license": "MIT",
-  "private": false,
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "publishConfig": {
@@ -10,29 +9,23 @@
     "registry": "https://registry.npmjs.org/"
   },
   "files": [
-    "dist/**",
-    "cli.js"
+    "dist/**"
   ],
   "scripts": {
     "build": "rm -rf dist && tsc"
   },
-  "bin": {
-    "natsu-port-server": "./cli.js"
-  },
   "dependencies": {
-    "@silenteer/natsu-type": "*",
-    "arg": "5.0.1",
-    "cli-table3": "0.6.0",
-    "fastify": "3.21.0",
-    "fastify-cors": "6.0.2",
-    "fastify-websocket": "4.0.0",
-    "nats": "2.2.0",
-    "yup": "0.32.9"
+    "@silenteer/natsu-port": "*",
+    "react-query": "^3.34.19"
   },
   "devDependencies": {
     "@types/node": "16.9.1",
     "ts-node": "10.2.1",
+    "tsconfigs": "*",
     "tslib": "2.3.1",
     "typescript": "4.4.3"
+  },
+  "peerDependencies": {
+    "react": "^17.0.0"
   }
 }

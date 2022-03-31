@@ -18,7 +18,7 @@
     "test:coverage": "jest --coverage=true"
   },
   "dependencies": {
-    "@silenteer/natsu-type": "0.0.12",
+    "@silenteer/natsu-type": "*",
     "nats": "^2.2.0"
   },
   "devDependencies": {
