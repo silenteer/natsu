@@ -9,6 +9,9 @@
     "access": "public",
     "registry": "https://registry.npmjs.org/"
   },
+  "scripts": {
+    "test": "echo \"no tests\""
+  },
   "files": [
     "command.js",
     "index.js"

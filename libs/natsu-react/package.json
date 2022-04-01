@@ -12,7 +12,8 @@
     "dist/**"
   ],
   "scripts": {
-    "build": "rm -rf dist && tsc"
+    "build": "rm -rf dist && tsc",
+    "test": "echo \"no tests\""
   },
   "dependencies": {
     "@silenteer/natsu-port": "*",

@@ -14,7 +14,8 @@
     "cli.js"
   ],
   "scripts": {
-    "build": "rm -rf dist && tsc"
+    "build": "rm -rf dist && tsc",
+    "test": "echo \"no tests\""
   },
   "bin": {
     "natsu-port-server": "./cli.js"
