@@ -5,7 +5,7 @@ import type {
   NatsService,
 } from '@silenteer/natsu-type';
 import type { NatsMiddleware } from '@silenteer/natsu';
-import type { NatsGetNamespace } from '@silenteer/example-type';
+import type { NatsGetNamespace } from 'example-type';
 
 const NatsServiceMiddleware: NatsMiddleware<
   NatsService<string, unknown, unknown>

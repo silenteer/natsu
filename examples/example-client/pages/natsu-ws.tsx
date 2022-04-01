@@ -1,44 +1,17 @@
 import React, { useState } from 'react';
-import { connect, connectWS } from '@silenteer/natsu-port';
-import type {
-  NatsHelloNamespaceChannel,
-  NatsHelloNamespace,
-  NatsGetCareProviders,
-  NatsGetNamespace,
-} from 'example-type';
-import { createNatsuProvider } from '@silenteer/natsu-react';
 
-// To assume user has user info in headers after authenticated, we generate userId then add it to headers
-const userId01 = Date.now().toString();
-const userId02 = (Date.now() + 60000).toString();
-
-const natsu1 = createNatsuProvider({
-  natsuClient: connect<
-    NatsHelloNamespace | NatsGetCareProviders | NatsGetNamespace
-  >({
-    serverURL: new URL('http://localhost:8080'),
-    headers: {
-      'user-id': userId01,
-    },
-  }),
-  makeNatsuSocketClient: () =>
-    connectWS<NatsHelloNamespaceChannel>({
-      serverURL: new URL('ws://localhost:8080'),
-      headers: {
-        'user-id': userId01,
-      },
-    }),
-});
+import {
+  NatsuProvider,
+  useDefferedRequest,
+  useSubscribe,
+} from '../natsu/browser';
 
 function Socket1() {
   const [messages, setMessages] = useState<string[]>();
-  const sendHello = natsu1.useDefferedRequest('api.helloNamespace');
-  const subscriber = natsu1.useSubscribe(
-    'ws.helloNamespace',
-    async (nextMsg) => {
-      setMessages((prevState) => [...(prevState || []), nextMsg.body.message]);
-    }
-  );
+  const sendHello = useDefferedRequest('api.helloNamespace');
+  const subscriber = useSubscribe('ws.helloNamespace', async (nextMsg) => {
+    setMessages((prevState) => [...(prevState || []), nextMsg.body.message]);
+  });
 
   return (
     <>
@@ -66,9 +39,9 @@ function Socket1() {
 function Wrapper() {
   return (
     <>
-      <natsu1.NatsuProvider>
+      <NatsuProvider>
         <Socket1 />
-      </natsu1.NatsuProvider>
+      </NatsuProvider>
     </>
   );
 }

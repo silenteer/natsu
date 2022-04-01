@@ -6,6 +6,7 @@
     "dev": "next dev"
   },
   "dependencies": {
+    "@silenteer/natsu": "*",
     "@silenteer/natsu-port": "*",
     "@silenteer/natsu-react": "*",
     "example-type": "*",

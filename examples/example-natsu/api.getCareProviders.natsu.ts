@@ -10,9 +10,9 @@ const validate: NatsValidate<NatsGetCareProviders> = async (
 ) => {
   try {
     schema.validateSync(data.body.ids);
-    return injection.ok({ data });
+    return injection.ok();
   } catch (error) {
-    return injection.error({ data, errors: error.errors });
+    return injection.error({ errors: error.errors });
   }
 };
 
@@ -20,7 +20,7 @@ const authorize: NatsAuthorize<NatsGetCareProviders> = async (
   data,
   injection
 ) => {
-  return injection.ok({ data });
+  return injection.ok();
 };
 
 const handle: NatsHandle<NatsGetCareProviders> = async (data, injection) => {

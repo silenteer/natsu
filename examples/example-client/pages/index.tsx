@@ -23,6 +23,11 @@ export function Index() {
             <a>Natsu with React Query</a>
           </Link>
         </li>
+        <li>
+          <Link href="/with-ssr">
+            <a>Natsu with SSR</a>
+          </Link>
+        </li>
       </ul>
     </>
   );
