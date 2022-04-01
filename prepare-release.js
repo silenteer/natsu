@@ -2,7 +2,7 @@
 const project = process.env.PROJECT;
 if (!project) {
   throw new Error(
-    `Use arg 'PROJECT' to declare the project path. Ex: PROJECT=libs/natsu yarn release`
+    `Use arg 'PROJECT' to declare the project path. Ex: PROJECT=packages/natsu yarn release`
   );
 }
 

@@ -94,7 +94,9 @@ async function start(params: {
     pingInterval: 30 * 1000,
     maxPingOut: 10,
     verbose,
+    reconnect: true,
   });
+
   const natsService = createNatsService(client);
 
   Object.entries(handlers).forEach(

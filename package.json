@@ -28,7 +28,7 @@
   },
   "workspaces": {
     "packages": [
-      "libs/*",
+      "packages/*",
       "examples/*",
       "configs/*"
     ]
