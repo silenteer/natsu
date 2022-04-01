@@ -6,7 +6,7 @@
     "dev": "next dev"
   },
   "dependencies": {
-    "@silenteer/natsu-port": "^0.0.16",
+    "@silenteer/natsu-port": "*",
     "@silenteer/natsu-react": "*",
     "example-type": "*",
     "next": "11.1.0",
