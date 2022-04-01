@@ -1,6 +1,6 @@
 {
   "name": "@silenteer/natsu-port-server",
-  "version": "0.0.25",
+  "version": "0.0.26",
   "license": "MIT",
   "private": false,
   "main": "dist/index.js",
@@ -14,7 +14,8 @@
     "cli.js"
   ],
   "scripts": {
-    "build": "rm -rf dist && tsc"
+    "build": "rm -rf dist && tsc",
+    "test": "echo \"no tests\""
   },
   "bin": {
     "natsu-port-server": "./cli.js"

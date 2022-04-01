@@ -1,6 +1,6 @@
 {
   "name": "@silenteer/natsu-runner",
-  "version": "1.0.12",
+  "version": "1.0.13",
   "description": "Nats Unit runner",
   "main": "index.js",
   "author": "Silenteer",
@@ -8,6 +8,9 @@
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org/"
+  },
+  "scripts": {
+    "test": "echo \"no tests\""
   },
   "files": [
     "command.js",

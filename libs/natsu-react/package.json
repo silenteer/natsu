@@ -1,6 +1,6 @@
 {
   "name": "@silenteer/natsu-react",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "license": "MIT",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -12,7 +12,8 @@
     "dist/**"
   ],
   "scripts": {
-    "build": "rm -rf dist && tsc"
+    "build": "rm -rf dist && tsc",
+    "test": "echo \"no tests\""
   },
   "dependencies": {
     "@silenteer/natsu-port": "*",

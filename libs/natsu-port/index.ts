@@ -108,7 +108,7 @@ function connectWS<A extends NatsChannel<string, unknown, unknown>>(
   const sendSub = (subject: string, headers: {}) => {
     websocketClient.send({
       subject,
-      headers: { ...options.headers },
+      headers: { ...options.headers, ...headers },
       action: 'subscribe',
     });
   };
