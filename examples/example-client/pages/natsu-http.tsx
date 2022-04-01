@@ -1,13 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { connect } from '@silenteer/natsu-port';
 import type { NatsGetCareProviders } from 'example-type';
 import { NatsuProvider, useRequest } from '@silenteer/natsu-react';
 
 function Index() {
-  const { value, status } = useRequest<NatsGetCareProviders>(
-    'api.getCareProviders',
-    { ids: ['1', '2', '3'] }
-  );
+  const { value } = useRequest<NatsGetCareProviders>('api.getCareProviders', {
+    ids: ['1', '2', '3'],
+  });
 
   return (
     <>

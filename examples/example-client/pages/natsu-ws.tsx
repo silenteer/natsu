@@ -7,7 +7,6 @@ import type {
 import {
   NatsuProvider,
   useDefferedRequest,
-  useRequest,
   useSubscribe,
 } from '@silenteer/natsu-react';
 
