@@ -240,7 +240,7 @@ async function register(params: {
     if (!result[subject]) {
       const handlerLogService = createLogService({
         prefix: `[${subject}]`,
-        logService: injection.logService,
+        logService: injection?.logService,
         logLevels,
       });
 

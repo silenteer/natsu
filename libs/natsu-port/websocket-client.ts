@@ -58,6 +58,7 @@ class WebsocketClient {
 
   constructor(url: string) {
     this._url = url;
+    this._webSocket = new WebSocket(this._url);
     this._open();
   }
 
@@ -81,8 +82,6 @@ class WebsocketClient {
   }
 
   private _open() {
-    this._webSocket = new WebSocket(this._url);
-
     this._webSocket.onopen = (event: Event) => {
       this._retriedTimes = 0;
 

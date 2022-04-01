@@ -1,9 +1,28 @@
 import { useCallback, useEffect, useState } from 'react';
 
+export type UseAsyncResult<T, E = string> = {
+  execute: () => void;
+} & (
+  | {
+      status: 'idle';
+    }
+  | {
+      status: 'pending';
+    }
+  | {
+      status: 'success';
+      value: T;
+    }
+  | {
+      status: 'error';
+      error: E;
+    }
+);
+
 const useAsync = <T, E = string>(
   asyncFunction: () => Promise<T>,
   immediate = true
-) => {
+): UseAsyncResult<T, E> => {
   const [status, setStatus] = useState<
     'idle' | 'pending' | 'success' | 'error'
   >('idle');
@@ -35,7 +54,21 @@ const useAsync = <T, E = string>(
       execute();
     }
   }, [execute, immediate]);
-  return { execute, status, value, error };
+
+  const v = value as T;
+  const e = error as E;
+
+  switch (status) {
+    case 'idle':
+    case 'pending':
+      return { execute, status };
+
+    case 'success':
+      return { execute, status, value: v };
+
+    case 'error':
+      return { execute, status, error: e };
+  }
 };
 
 export default useAsync;

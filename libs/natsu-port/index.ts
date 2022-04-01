@@ -26,14 +26,19 @@ class NatsPortError extends Error implements NatsPortErrorResponse {
   }
 }
 
-function connect(initialOptions: NatsPortOptions) {
-  return async <TService extends NatsService<string, unknown, unknown>>(
-    subject: TService['subject'],
-    body: TService['request'],
-    options?: {
-      traceId: string;
-    }
-  ): Promise<TService['response']> => {
+type RequestOptions = { traceId?: string };
+export type Client<A extends NatsService<string, unknown, unknown>> = {
+  <B extends A['subject']>(
+    subject: B,
+    body: Extract<A, { subject: B }>['request'],
+    options?: RequestOptions
+  ): Promise<Extract<A, { subject: B }>['response']>;
+};
+
+function connect<A extends NatsService<string, unknown, unknown>>(
+  initialOptions: NatsPortOptions
+): Client<A> {
+  return async (subject, body, options?: RequestOptions) => {
     const requestBody: NatsPortRequest<unknown> =
       body !== undefined && body !== null
         ? {
@@ -60,9 +65,7 @@ function connect(initialOptions: NatsPortOptions) {
       throw e;
     }
 
-    let response:
-      | NatsPortResponse<TService['response']>
-      | NatsPortErrorResponse;
+    let response: NatsPortResponse<any> | NatsPortErrorResponse;
     try {
       response = await result.json();
     } catch (e) {
@@ -83,10 +86,9 @@ function connect(initialOptions: NatsPortOptions) {
   };
 }
 
-export type NatsuClient = ReturnType<typeof connect>;
-export type NatsuSocketClient = ReturnType<typeof connectWS>;
-
-function connectWS(options: NatsPortOptions) {
+function connectWS<A extends NatsChannel<string, unknown, unknown>>(
+  options: NatsPortOptions
+): NatsuSocket<A> {
   const subscriptions: {
     [subject: string]: Array<{
       subscriptionId: string;
@@ -167,12 +169,7 @@ function connectWS(options: NatsPortOptions) {
     }
   };
 
-  const subscribe = <TService extends NatsChannel<string, unknown, unknown>>(
-    subject: TService['subject'],
-    onHandle: (
-      response: NatsPortWSResponse<TService['subject'], TService['response']>
-    ) => void
-  ) => {
+  const subscribe: Subscribe<A> = (subject, onHandle) => {
     const subscriptionId = getUUID();
 
     if (!subscriptions[subject]) {
@@ -198,6 +195,24 @@ function connectWS(options: NatsPortOptions) {
     close,
   };
 }
+
+export type Subscribe<A extends NatsChannel<string, unknown, unknown>> = {
+  <B extends A['subject']>(
+    subject: B,
+    onHandle: (
+      response: NatsPortWSResponse<
+        Extract<A, { subject: B }>['subject'],
+        Extract<A, { subject: B }>['response']
+      >
+    ) => Promise<void>,
+    options?: RequestOptions
+  ): { unsubscribe: () => void };
+};
+
+export type NatsuSocket<A extends NatsChannel<string, unknown, unknown>> = {
+  subscribe: Subscribe<A>;
+  close: () => void;
+};
 
 function getUUID(): string {
   let date = new Date().getTime();

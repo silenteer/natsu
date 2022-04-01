@@ -1,12 +1,6 @@
-import React, {
-  useCallback,
-  useContext,
-  useEffect,
-  useRef,
-  useState,
-} from 'react';
+import React, { useCallback, useContext, useEffect, useRef } from 'react';
 
-import type { NatsuClient, NatsuSocketClient } from '@silenteer/natsu-port';
+import type { Client, NatsuSocket } from '@silenteer/natsu-port';
 import type {
   NatsChannel,
   NatsPortWSResponse,
@@ -14,147 +8,114 @@ import type {
 } from '@silenteer/natsu-type';
 import useAsync from './useAsync';
 
-type NatsuContextProps = {
-  natsuClient?: NatsuClient;
-  natsuSocketClient?: NatsuSocketClient;
+export type NatsuOptions<
+  A extends NatsService<string, unknown, unknown>,
+  B extends NatsChannel<string, unknown, unknown>
+> = {
+  natsuClient: Client<A>;
+  makeNatsuSocketClient?: () => NatsuSocket<B>;
 };
-const NatsuContext = React.createContext<NatsuContextProps | undefined>(
-  undefined
-);
-
-function useNatsuClient() {
-  const context = useContext(NatsuContext);
-
-  if (context === undefined) {
-    throw new Error('Context cannot be used without Provider');
-  }
-
-  if (context.natsuClient === undefined) {
-    throw new Error('natsuClient seems to be undefined in the Provider');
-  }
-
-  return context.natsuClient as NatsuClient;
-}
-
-function useNatsuSocketClient() {
-  const context = useContext(NatsuContext);
-
-  if (context === undefined) {
-    throw new Error('Context cannot be used without Provider');
-  }
-
-  if (context.natsuSocketClient === undefined) {
-    throw new Error('natsuSocketClient seems to be undefined in the Provider');
-  }
-
-  return context.natsuSocketClient as NatsuSocketClient;
-}
-
-function useRequest<TService extends NatsService<string, unknown, unknown>>(
-  address: TService['subject'],
-  data?: TService['request'],
-  options: { immediate: boolean } = { immediate: true }
-) {
-  const natsuClient = useNatsuClient();
-  const call = useCallback(
-    () => natsuClient<TService>(address, data),
-    [address, data]
-  );
-
-  return useAsync(call, options.immediate);
-}
-
-function useDefferedRequest<
-  TService extends NatsService<string, unknown, unknown>
->(
-  address: TService['subject'],
-  data?: TService['request'],
-  options: { immediate: boolean } = { immediate: false }
-) {
-  const natsuClient = useNatsuClient();
-  const call = useCallback(
-    () => natsuClient<TService>(address, data),
-    [address, data]
-  );
-
-  return useAsync(call, options.immediate);
-}
 
 type SubscribeOption = {
-  immediate?: boolean;
+  immediate: boolean;
 };
 
-function useSubscribe<TChannel extends NatsChannel<string, unknown, unknown>>(
-  address: TChannel['subject'],
-  handler: (
-    nextMsg: NatsPortWSResponse<TChannel['subject'], TChannel['response']>
-  ) => Promise<void>,
-  options: SubscribeOption = { immediate: true }
-) {
-  const natsuSocketClient = useNatsuSocketClient();
-  const unsubscribeRef = useRef<() => void>();
-
-  const sub = useCallback(() => {
-    const subscriber = natsuSocketClient.subscribe(address, handler);
-    unsubscribeRef.current = subscriber.unsubscribe;
-  }, [address]);
-
-  const unsub = () => {
-    unsubscribeRef.current?.();
-    unsubscribeRef.current = undefined;
-  };
-
-  const { immediate = true } = options || {};
-
-  useEffect(() => {
-    if (immediate) {
-      sub();
-    }
-
-    return () => {
-      unsub();
-    };
-  }, [address]);
-
-  return { sub, unsub };
-}
-
-export type NatsuProviderOptions = React.PropsWithChildren<{
-  natsuClient?: NatsuClient;
-  makeNatsuSocketClient?: () => NatsuSocketClient;
-}>;
-
-const isOnBrowser = typeof window !== 'undefined';
-
-function NatsuProvider({
+const createNatsuProvider = <
+  A extends NatsService<string, unknown, unknown>,
+  B extends NatsChannel<string, unknown, unknown>
+>({
   natsuClient,
-  children,
   makeNatsuSocketClient,
-}: NatsuProviderOptions) {
-  const [natsuSocketClient] = useState<NatsuSocketClient | undefined>(() => {
-    if (!isOnBrowser) {
-      return undefined;
-    }
+}: NatsuOptions<A, B>) => {
+  const natsuSocket =
+    typeof window !== 'undefined' ? makeNatsuSocketClient?.() : undefined;
 
-    return makeNatsuSocketClient?.();
+  const context = React.createContext({
+    natsuClient,
+    natsuSocket,
   });
 
-  useEffect(() => {
-    return () => natsuSocketClient?.close();
-  }, [natsuSocketClient]);
-
-  return (
-    <NatsuContext.Provider value={{ natsuClient, natsuSocketClient }}>
-      {children}
-    </NatsuContext.Provider>
+  const NatsuProvider = (props: React.PropsWithChildren<{}>) => (
+    <context.Provider
+      value={{
+        natsuClient,
+        natsuSocket,
+      }}
+    >
+      {props.children}
+    </context.Provider>
   );
-}
 
-export {
-  useNatsuClient,
-  useNatsuSocketClient,
-  NatsuProvider,
-  useRequest,
-  useSubscribe,
-  useDefferedRequest,
+  const useNatsuClient = () => {
+    const { natsuClient } = useContext(context);
+    return natsuClient;
+  };
+
+  const useNatsuSocket = () => {
+    const { natsuSocket } = useContext(context);
+    return natsuSocket;
+  };
+
+  function useSubscribe<Subject extends B['subject']>(
+    address: Subject,
+    handler: (
+      response: NatsPortWSResponse<
+        Subject,
+        Extract<B, { subject: Subject }>['response']
+      >
+    ) => Promise<void>,
+    options: SubscribeOption = { immediate: true }
+  ) {
+    const natsuSocket = useNatsuSocket();
+    const unsubscribeRef = useRef<() => void>();
+
+    const sub = useCallback(() => {
+      const subscriber = natsuSocket?.subscribe(address, handler);
+      unsubscribeRef.current = subscriber?.unsubscribe;
+    }, [address]);
+
+    const unsub = () => {
+      unsubscribeRef.current?.();
+      unsubscribeRef.current = undefined;
+    };
+
+    const { immediate = true } = options || {};
+
+    useEffect(() => {
+      if (immediate) {
+        sub();
+      }
+
+      return () => {
+        unsub();
+      };
+    }, [address]);
+
+    return { sub, unsub };
+  }
+
+  const useRequest = <Subject extends A['subject']>(
+    address: Subject,
+    data?: Extract<A, { subject: Subject }>['request'],
+    { immediate } = { immediate: true }
+  ) => {
+    const natsuClient = useNatsuClient();
+    const call = useCallback(() => natsuClient(address, data), [address, data]);
+
+    return useAsync(call, true);
+  };
+
+  const useDefferedRequest: typeof useRequest = (address, data) => {
+    return useRequest(address, data, { immediate: false });
+  };
+
+  return {
+    NatsuProvider,
+    useNatsuClient,
+    useRequest,
+    useDefferedRequest,
+    useSubscribe,
+  };
 };
+
+export { createNatsuProvider };

@@ -27,6 +27,7 @@
     "fastify-cors": "6.0.2",
     "fastify-websocket": "4.0.0",
     "nats": "2.2.0",
+    "uri-js": "^4.4.1",
     "yup": "0.32.9"
   },
   "devDependencies": {

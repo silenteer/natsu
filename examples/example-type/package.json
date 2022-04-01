@@ -2,6 +2,9 @@
   "name": "example-type",
   "version": "0.0.1",
   "license": "MIT",
+  "scripts": {
+    "build": "tsc"
+  },
   "dependencies": {
     "@silenteer/natsu-type": "*",
     "@silenteer/natsu": "*"

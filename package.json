@@ -6,7 +6,8 @@
   "scripts": {
     "test:all": "node ./test-all.js",
     "release": "node ./prepare-release.js && (cd $PROJECT && npx np --branch=main --no-cleanup --no-release-draft && rm -rf .npmrc)",
-    "lint": "eslint --fix --ext .ts,.tsx,.json -c .eslintrc.js ."
+    "lint": "eslint --fix --ext .ts,.tsx,.json -c .eslintrc.js .",
+    "clean:dist": "find . -name \"dist\" -type d -prune | xargs rm -rf"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "5.17.0",

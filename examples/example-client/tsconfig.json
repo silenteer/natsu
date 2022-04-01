@@ -23,13 +23,24 @@
     "isolatedModules": true,
     "target": "ES2015",
     "module": "CommonJS",
-    "lib": ["ES2017", "DOM", "ES2020.Promise"],
+    "lib": [
+      "ES2017",
+      "DOM",
+      "ES2020.Promise"
+    ],
     "rootDir": ".",
     "baseUrl": ".",
     "outDir": "dist",
     "strict": false,
-    "noEmit": true
+    "noEmit": true,
+    "incremental": true
   },
-  "exclude": ["node_modules", "dist"],
-  "include": ["**/*.ts", "**/*.tsx"]
+  "exclude": [
+    "node_modules",
+    "dist"
+  ],
+  "include": [
+    "**/*.ts",
+    "**/*.tsx"
+  ]
 }

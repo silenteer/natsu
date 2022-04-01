@@ -1,16 +1,14 @@
-import { NatsuProvider, useNatsuClient } from '@silenteer/natsu-react';
+import { createNatsuProvider } from '@silenteer/natsu-react';
 import { connect } from '@silenteer/natsu-port';
 import React from 'react';
 import { useState } from 'react';
 import { QueryClientProvider, QueryClient, useQuery } from 'react-query';
-import type { NatsGetCareProviders } from 'example-type';
+import type { NatsGetCareProviders, NatsGetNamespace } from 'example-type';
 
 function WithReactQuery() {
-  const request = useNatsuClient();
+  const request = natsu.useNatsuClient();
   const result = useQuery('test', () =>
-    request<NatsGetCareProviders>('api.getCareProviders', {
-      ids: ['1', '2', '3'],
-    })
+    request('api.getCareProviders',  {ids: ['1']})
   );
 
   return (
@@ -22,17 +20,19 @@ function WithReactQuery() {
   );
 }
 
+const natsu = createNatsuProvider({
+  natsuClient: connect<NatsGetCareProviders | NatsGetNamespace>({ serverURL: new URL('http://localhost:8080') })
+})
+
 export default function Wrapper() {
   const [client] = useState(() => new QueryClient());
-  const [natsu] = useState(() =>
-    connect({ serverURL: new URL('http://localhost:8080') })
-  );
+
   return (
     <>
       <QueryClientProvider client={client}>
-        <NatsuProvider natsuClient={natsu}>
+        <natsu.NatsuProvider>
           <WithReactQuery />
-        </NatsuProvider>
+          </natsu.NatsuProvider>
       </QueryClientProvider>
     </>
   );
