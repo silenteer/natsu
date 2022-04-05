@@ -17,10 +17,12 @@
   },
   "dependencies": {
     "@silenteer/natsu-port": "*",
+    "react-async-hook": "^4.0.0",
     "react-query": "^3.34.19"
   },
   "devDependencies": {
     "@types/node": "16.9.1",
+    "react": "17.0.2",
     "ts-node": "10.2.1",
     "tsconfigs": "*",
     "tslib": "2.3.1",

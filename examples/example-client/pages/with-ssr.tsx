@@ -1,10 +1,10 @@
-import type { NatsGetCareProviders, NatsGetNamespace } from 'example-type';
+import type { NatsGetCareProviders } from 'example-type';
 import type { GetServerSideProps } from 'next';
 import React from 'react';
 import { client } from '../natsu/server';
 
 type IndexProps = {
-  value: NatsGetNamespace['response'];
+  value: NatsGetCareProviders['response'];
 };
 
 function WithSSR(props: IndexProps) {
@@ -23,7 +23,9 @@ function WithSSR(props: IndexProps) {
 export default WithSSR;
 
 export const getServerSideProps: GetServerSideProps<IndexProps> = async () => {
-  const value = await client.request('api.getNamespace', { subject: 'abc' });
+  const value = await client.request('api.getCareProviders', {
+    ids: ['1', '2'],
+  });
   return {
     props: { value },
   };

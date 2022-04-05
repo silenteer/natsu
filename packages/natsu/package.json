@@ -19,7 +19,7 @@
   },
   "dependencies": {
     "@silenteer/natsu-type": "*",
-    "nats": "^2.2.0"
+    "nats": "2.6.1"
   },
   "devDependencies": {
     "@types/jest": "27.4.0",

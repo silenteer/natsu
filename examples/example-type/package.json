@@ -6,8 +6,8 @@
     "build": "tsc"
   },
   "dependencies": {
-    "@silenteer/natsu-type": "*",
-    "@silenteer/natsu": "*"
+    "@silenteer/natsu": "*",
+    "@silenteer/natsu-type": "*"
   },
   "devDependencies": {
     "@types/node": "16.9.1",

@@ -1,4 +1,10 @@
-import React, { useCallback, useContext, useEffect, useRef } from 'react';
+import React, {
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+} from 'react';
 
 import type { Client, NatsuSocket } from '@silenteer/natsu-port';
 import type {
@@ -6,7 +12,7 @@ import type {
   NatsPortWSResponse,
   NatsService,
 } from '@silenteer/natsu-type';
-import useAsync from './useAsync';
+import { useAsync } from 'react-async-hook';
 
 export type NatsuOptions<
   A extends NatsService<string, unknown, unknown>,
@@ -16,7 +22,7 @@ export type NatsuOptions<
   makeNatsuSocketClient?: () => NatsuSocket<B>;
 };
 
-type SubscribeOption = {
+type RequestOtions = {
   immediate: boolean;
 };
 
@@ -64,7 +70,7 @@ const createNatsuProvider = <
         Extract<B, { subject: Subject }>['response']
       >
     ) => Promise<void>,
-    options: SubscribeOption = { immediate: true }
+    options: RequestOtions = { immediate: true }
   ) {
     const natsuSocket = useNatsuSocket();
     const unsubscribeRef = useRef<() => void>();
@@ -97,16 +103,22 @@ const createNatsuProvider = <
   const useRequest = <Subject extends A['subject']>(
     address: Subject,
     data?: Extract<A, { subject: Subject }>['request'],
-    { immediate } = { immediate: true }
+    dependencies: [] = [],
+    { immediate }: RequestOtions = { immediate: true }
   ) => {
     const natsuClient = useNatsuClient();
-    const call = useCallback(() => natsuClient(address, data), [address, data]);
 
-    return useAsync(call, true);
+    return useAsync<Extract<A, { subject: Subject }>['request']>(
+      (address) => natsuClient(address, data),
+      [address, ...dependencies],
+      {
+        executeOnMount: immediate,
+      }
+    );
   };
 
   const useDefferedRequest: typeof useRequest = (address, data) => {
-    return useRequest(address, data, { immediate: false });
+    return useRequest(address, data, undefined, { immediate: false });
   };
 
   return {

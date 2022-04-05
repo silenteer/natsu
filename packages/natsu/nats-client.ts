@@ -95,6 +95,8 @@ async function start(params: {
     maxPingOut: 10,
     verbose,
     reconnect: true,
+    maxReconnectAttempts: 3,
+    reconnectTimeWait: 1000,
   });
 
   const natsService = createNatsService(client);

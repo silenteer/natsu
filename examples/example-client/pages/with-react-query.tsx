@@ -5,10 +5,16 @@ import { useState } from 'react';
 import { QueryClientProvider, QueryClient, useQuery } from 'react-query';
 import type { NatsGetCareProviders, NatsGetNamespace } from 'example-type';
 
+const natsu = createNatsuProvider({
+  natsuClient: connect<NatsGetCareProviders | NatsGetNamespace>({
+    serverURL: new URL('http://localhost:8080'),
+  }),
+});
+
 function WithReactQuery() {
   const request = natsu.useNatsuClient();
   const result = useQuery('test', () =>
-    request('api.getCareProviders',  {ids: ['1']})
+    request('api.getCareProviders', { ids: ['1'] })
   );
 
   return (
@@ -20,10 +26,6 @@ function WithReactQuery() {
   );
 }
 
-const natsu = createNatsuProvider({
-  natsuClient: connect<NatsGetCareProviders | NatsGetNamespace>({ serverURL: new URL('http://localhost:8080') })
-})
-
 export default function Wrapper() {
   const [client] = useState(() => new QueryClient());
 
@@ -32,7 +34,7 @@ export default function Wrapper() {
       <QueryClientProvider client={client}>
         <natsu.NatsuProvider>
           <WithReactQuery />
-          </natsu.NatsuProvider>
+        </natsu.NatsuProvider>
       </QueryClientProvider>
     </>
   );
