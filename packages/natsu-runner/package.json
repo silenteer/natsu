@@ -20,8 +20,9 @@
     "natsu-runner": "./index.js"
   },
   "dependencies": {
+    "colors": "^1.4.0",
     "commander": "^8.2.0",
-    "dotenv": "16.0.0",
+    "dotenv": "^16.0.0",
     "esbuild": "^0.12.29",
     "matched": "^5.0.1"
   },

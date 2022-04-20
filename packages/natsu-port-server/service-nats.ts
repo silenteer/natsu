@@ -69,7 +69,8 @@ async function request(params: {
   options?: Partial<RequestOptions>;
 }) {
   const { subject, data, options } = params;
-  return (await getConnection()).request(subject, data, {
+  const connection = await getConnection();
+  return connection.request(subject, data, {
     ...defaultRequestOptions,
     ...options,
   });

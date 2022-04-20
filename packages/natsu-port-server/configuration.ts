@@ -1,5 +1,8 @@
 import * as yup from 'yup';
 
+import dotenv from 'dotenv';
+dotenv.config();
+
 type Config = {
   natsURI: string;
   natsAuthSubjects: string[];

@@ -8,6 +8,7 @@ import fastify from 'fastify';
 import fastifyCors from 'fastify-cors';
 import type { SocketStream } from 'fastify-websocket';
 import fastifyWebsocket from 'fastify-websocket';
+import 'colors';
 import type {
   NatsPortRequest,
   NatsPortResponse,

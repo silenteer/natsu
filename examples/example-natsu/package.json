@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "license": "MIT",
   "scripts": {
-    "dev": "nodemon -e ts,js -i node_modules --exec natsu-runner"
+    "dev": "DOT_ENV_PATH='.env.natsu' natsu-runner"
   },
   "dependencies": {
     "@silenteer/natsu": "*",

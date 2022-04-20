@@ -1,10 +1,4 @@
-import React, {
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-} from 'react';
+import React, { useCallback, useContext, useEffect, useRef } from 'react';
 
 import type { Client, NatsuSocket } from '@silenteer/natsu-port';
 import type {
@@ -109,7 +103,7 @@ const createNatsuProvider = <
     const natsuClient = useNatsuClient();
 
     return useAsync<Extract<A, { subject: Subject }>['request']>(
-      (address) => natsuClient(address, data),
+      () => natsuClient(address, data),
       [address, ...dependencies],
       {
         executeOnMount: immediate,

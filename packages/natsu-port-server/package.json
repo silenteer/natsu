@@ -24,6 +24,8 @@
     "@silenteer/natsu-type": "*",
     "arg": "5.0.1",
     "cli-table3": "0.6.0",
+    "colors": "^1.4.0",
+    "dotenv": "^16.0.0",
     "fastify": "3.21.0",
     "fastify-cors": "6.0.2",
     "fastify-websocket": "4.0.0",
