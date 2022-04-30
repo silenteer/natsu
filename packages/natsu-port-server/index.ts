@@ -51,13 +51,21 @@ function start() {
     })
     .register(fastifyWebsocket)
     .post(config.httpPath, async (request, reply) => {
+      const subject = request.headers['nats-subject'];
+
       try {
+        console.log(`----- [${subject}]Begin validate -----`, {
+          headers: request.headers,
+          body: request.body,
+        });
         const validationResult = validateHttpRequest(request);
         if (validationResult.code === 400) {
           return400(reply);
           return;
         }
+        console.log(`----- [${subject}]End validate -----`, validationResult);
 
+        console.log(`----- [${subject}]Begin authenticate -----`);
         const authenticationResult = await authenticate(request);
         if (authenticationResult.code !== 'OK') {
           reply.send({
@@ -66,14 +74,17 @@ function start() {
           });
           return;
         }
+        console.log(`----- [${subject}]End authenticate -----`);
 
+        console.log(`----- [${subject}]Begin send nats request -----`);
         const response = await sendNatsRequest({
           httpRequest: request,
           natsAuthResponse: authenticationResult.authResponse as NatsResponse,
         });
+        console.log(`----- [${subject}]End send nats request -----`);
         reply.send(response);
       } catch (error) {
-        console.error(request.headers['nats-subject'], error);
+        console.error(subject, error);
         if (error.code) {
           reply.send(error);
         } else {
@@ -211,6 +222,7 @@ async function authenticate(
     config.natsAuthSubjects?.length > 0 &&
     !config.natsNonAuthorizedSubjects?.includes(subject);
   if (shouldAuthenticate) {
+    console.log(`----- [${subject}]Begin send nats auth request -----`);
     const natsAuthResponse = await sendNatsAuthRequest(request);
 
     if (natsAuthResponse.code !== 200) {
@@ -220,7 +232,6 @@ async function authenticate(
           | NatsPortResponse
           | NatsPortErrorResponse,
       };
-      return result;
     } else {
       result = {
         code: 'OK',
@@ -228,8 +239,9 @@ async function authenticate(
           | NatsPortResponse
           | NatsPortErrorResponse,
       };
-      return result;
     }
+    console.log(`----- [${subject}]End send nats auth request -----`);
+    return result;
   }
 
   result = { code: 'OK' };
@@ -285,12 +297,19 @@ async function sendNatsAuthRequest(
     const natsRequest: NatsRequest<string> = {
       headers: natsResponse ? natsResponse.headers : request.headers,
     };
-
+    console.log(
+      `----- [${request.headers['nats-subject']}][${subject}] Sending -----`,
+      natsRequest
+    );
     const message = await NatsService.request({
       subject,
       data: requestCodec.encode(natsRequest),
     });
     natsResponse = responseCodec.decode(message.data);
+    console.log(
+      `----- [${request.headers['nats-subject']}][${subject}] Ending -----`,
+      natsResponse
+    );
     if (natsResponse.code !== 200) {
       break;
     }
@@ -308,7 +327,10 @@ async function sendNatsRequest(params: {
     headers: natsAuthResponse ? natsAuthResponse.headers : httpRequest.headers,
     body: (httpRequest.body as NatsPortRequest)?.data,
   };
-
+  console.log(
+    `----- [${natsRequest.headers['nats-subject']}] Sending -----`,
+    natsRequest
+  );
   const message = await NatsService.request({
     subject: httpRequest.headers['nats-subject'] as string,
     data: requestCodec.encode(natsRequest),
@@ -320,7 +342,10 @@ async function sendNatsRequest(params: {
       | NatsPortErrorResponse['code'],
     body: natsResponse.body,
   };
-
+  console.log(
+    `----- [${natsRequest.headers['nats-subject']}] Ending -----`,
+    portResponse
+  );
   return portResponse;
 }
 
