@@ -3,6 +3,7 @@
 const path = require('path');
 const args = require('arg')({
   '--config': String,
+  '--log-levels': String,
   '--nats-uri': String,
   '--nats-auth-subjects': String,
   '--nats-non-auth-subjects': String,
@@ -23,6 +24,12 @@ if (args['--help']) {
     colWidths: [30, 40, 20],
   });
   guideTable.push(
+    [
+      '--log-levels',
+      false,
+      'all',
+      `It can be a string with many levels which delimited by ','.\nAccept 'all' or 'none' or combination of [log, info, error].`,
+    ],
     [
       '--nats-uri',
       false,
@@ -97,6 +104,9 @@ if (args['--config']) {
   Object.entries(config || {}).forEach(([key, value]) => {
     process.env[key] = value;
   });
+}
+if (args['--log-levels']) {
+  process.env['LOG_LEVELS'] = args['--log-levels'];
 }
 if (args['--nats-uri']) {
   process.env['NATS_URI'] = args['--nats-uri'];
