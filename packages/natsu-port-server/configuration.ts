@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 type Config = {
+  logLevels: Array<'all' | 'none' | 'error' | 'info' | 'log'>;
   natsURI: string;
   natsAuthSubjects: string[];
   natsNonAuthorizedSubjects: string[];
@@ -17,6 +18,9 @@ type Config = {
 };
 
 const schema = yup.object({
+  logLevels: yup
+    .array(yup.string().oneOf(['all', 'none', 'error', 'info', 'log']))
+    .required(),
   natsURI: yup.string().trim().required(),
   natsAuthSubjects: yup.array(yup.string().trim()).min(1).notRequired(),
   natsNonAuthorizedSubjects: yup
@@ -37,7 +41,10 @@ const schema = yup.object({
   port: yup.number().lessThan(65000).moreThan(0),
 });
 
-const config = {
+const config: Config = {
+  logLevels: (process.env.LOG_LEVELS
+    ? process.env.LOG_LEVELS.split(',').filter((item) => !!item)
+    : ['all']) as Config['logLevels'],
   natsURI: process.env.NATS_URI || 'localhost:4222',
   natsAuthSubjects: process.env.NATS_AUTH_SUBJECTS?.split(',').filter(
     (item) => !!item
@@ -64,8 +71,8 @@ try {
   process.exit(1);
 }
 
-const result: Config = schema.cast(config);
+const result = schema.cast(config);
 console.log('Config set', JSON.stringify(result, undefined, 2));
 
 export type { Config };
-export default result;
+export default result as Config;

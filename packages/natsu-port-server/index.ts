@@ -20,6 +20,7 @@ import type {
   NatsResponse,
 } from '@silenteer/natsu-type';
 import config from './configuration';
+import logger from './logger';
 import NatsService from './service-nats';
 
 const httpRequestSchema = yup.object({
@@ -54,7 +55,7 @@ function start() {
       const subject = request.headers['nats-subject'];
 
       try {
-        console.log(`----- [${subject}]Begin validate -----`, {
+        logger.log(`----- [${subject}]Begin validate -----`, {
           headers: request.headers,
           body: request.body,
         });
@@ -63,9 +64,9 @@ function start() {
           return400(reply);
           return;
         }
-        console.log(`----- [${subject}]End validate -----`, validationResult);
+        logger.log(`----- [${subject}]End validate -----`, validationResult);
 
-        console.log(`----- [${subject}]Begin authenticate -----`);
+        logger.log(`----- [${subject}]Begin authenticate -----`);
         const authenticationResult = await authenticate(request);
         if (authenticationResult.code !== 'OK') {
           reply.send({
@@ -74,17 +75,17 @@ function start() {
           });
           return;
         }
-        console.log(`----- [${subject}]End authenticate -----`);
+        logger.log(`----- [${subject}]End authenticate -----`);
 
-        console.log(`----- [${subject}]Begin send nats request -----`);
+        logger.log(`----- [${subject}]Begin send nats request -----`);
         const response = await sendNatsRequest({
           httpRequest: request,
           natsAuthResponse: authenticationResult.authResponse as NatsResponse,
         });
-        console.log(`----- [${subject}]End send nats request -----`);
+        logger.log(`----- [${subject}]End send nats request -----`);
         reply.send(response);
       } catch (error) {
-        console.error(subject, error);
+        logger.error(subject, error);
         if (error.code) {
           reply.send(error);
         } else {
@@ -169,10 +170,10 @@ function start() {
     })
     .listen(config.port, '0.0.0.0', (error, address) => {
       if (error) {
-        console.error(error);
+        logger.error(error);
         process.exit(1);
       }
-      console.log(`Server listening at ${address}`);
+      logger.info(`Server listening at ${address}`);
     });
 }
 
@@ -222,7 +223,7 @@ async function authenticate(
     config.natsAuthSubjects?.length > 0 &&
     !config.natsNonAuthorizedSubjects?.includes(subject);
   if (shouldAuthenticate) {
-    console.log(`----- [${subject}]Begin send nats auth request -----`);
+    logger.log(`----- [${subject}]Begin send nats auth request -----`);
     const natsAuthResponse = await sendNatsAuthRequest(request);
 
     if (natsAuthResponse.code !== 200) {
@@ -240,7 +241,7 @@ async function authenticate(
           | NatsPortErrorResponse,
       };
     }
-    console.log(`----- [${subject}]End send nats auth request -----`);
+    logger.log(`----- [${subject}]End send nats auth request -----`);
     return result;
   }
 
@@ -297,7 +298,7 @@ async function sendNatsAuthRequest(
     const natsRequest: NatsRequest<string> = {
       headers: natsResponse ? natsResponse.headers : request.headers,
     };
-    console.log(
+    logger.log(
       `----- [${request.headers['nats-subject']}][${subject}] Sending -----`,
       natsRequest
     );
@@ -306,7 +307,7 @@ async function sendNatsAuthRequest(
       data: requestCodec.encode(natsRequest),
     });
     natsResponse = responseCodec.decode(message.data);
-    console.log(
+    logger.log(
       `----- [${request.headers['nats-subject']}][${subject}] Ending -----`,
       natsResponse
     );
@@ -327,7 +328,7 @@ async function sendNatsRequest(params: {
     headers: natsAuthResponse ? natsAuthResponse.headers : httpRequest.headers,
     body: (httpRequest.body as NatsPortRequest)?.data,
   };
-  console.log(
+  logger.log(
     `----- [${natsRequest.headers['nats-subject']}] Sending -----`,
     natsRequest
   );
@@ -342,7 +343,7 @@ async function sendNatsRequest(params: {
       | NatsPortErrorResponse['code'],
     body: natsResponse.body,
   };
-  console.log(
+  logger.log(
     `----- [${natsRequest.headers['nats-subject']}] Ending -----`,
     portResponse
   );
