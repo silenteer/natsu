@@ -9,7 +9,7 @@ if (Configuration.logLevels.includes('none')) {
 } else {
   Configuration.logLevels.forEach((logLevel) => {
     if (['log', 'info', 'error'].includes(logLevel)) {
-      if (logLevels) {
+      if (!logLevels) {
         logLevels = [];
       }
       logLevels.push(logLevel);
