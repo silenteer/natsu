@@ -28,11 +28,11 @@ class NatsPortError extends Error implements NatsPortErrorResponse {
 
 type RequestOptions = { traceId?: string };
 export type Client<A extends NatsService<string, unknown, unknown>> = {
-  <B extends A['subject']>(
-    subject: B,
-    body: Extract<A, { subject: B }>['request'],
+  <B extends A>(
+    subject: B['subject'],
+    body: B['request'],
     options?: RequestOptions
-  ): Promise<Extract<A, { subject: B }>['response']>;
+  ): Promise<B['response']>;
 };
 
 function connect<A extends NatsService<string, unknown, unknown>>(
