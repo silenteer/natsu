@@ -78,11 +78,18 @@ function start() {
         logger.log(`----- [${subject}]End authenticate -----`);
 
         logger.log(`----- [${subject}]Begin send nats request -----`);
-        const response = await sendNatsRequest({
+
+        const { headers, response } = await sendNatsRequest({
           httpRequest: request,
           natsAuthResponse: authenticationResult.authResponse as NatsResponse,
         });
+
         logger.log(`----- [${subject}]End send nats request -----`);
+
+        if (headers['set-cookie']) {
+          reply.header('set-cookie', headers['set-cookie']);
+        }
+
         reply.send(response);
       } catch (error) {
         logger.error(subject, error);
@@ -337,17 +344,20 @@ async function sendNatsRequest(params: {
     data: requestCodec.encode(natsRequest),
   });
   const natsResponse = responseCodec.decode(message.data);
+
   const portResponse: NatsPortResponse | NatsPortErrorResponse = {
     code: natsResponse.code as
       | NatsPortResponse['code']
       | NatsPortErrorResponse['code'],
     body: natsResponse.body,
   };
+
   logger.log(
     `----- [${natsRequest.headers['nats-subject']}] Ending -----`,
     portResponse
   );
-  return portResponse;
+
+  return { headers: natsResponse.headers, response: portResponse };
 }
 
 function sendWSResponse(params: {
