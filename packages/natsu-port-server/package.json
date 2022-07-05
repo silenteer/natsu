@@ -1,6 +1,6 @@
 {
   "name": "@silenteer/natsu-port-server",
-  "version": "0.0.31",
+  "version": "0.0.32",
   "license": "MIT",
   "private": false,
   "main": "dist/index.js",
