@@ -9,7 +9,7 @@ yarn install
 ```
 PROJECT=library_path yarn release
 ```
-Ex: `PROJECT=package/natsu yarn release`
+Ex: `PROJECT=packages/natsu yarn release`
 
 ### FAQ
 - Nats-runner reports error?<br/> Natsu is yet built and Natsu-runner is written in JS. `yarn workspace @silenteer/natsu build` would solve
