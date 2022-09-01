@@ -26,8 +26,9 @@ class NatsPortError extends Error implements NatsPortErrorResponse {
   }
 }
 
-type RequestOptions = { traceId?: string };
-export type Client<A extends NatsService<string, unknown, unknown>> = {
+type RequestOptions = { traceId?: string; timeout?: number };
+
+type Client<A extends NatsService<string, unknown, unknown>> = {
   <B extends A>(
     subject: B['subject'],
     body: B['request'],
@@ -46,26 +47,47 @@ function connect<A extends NatsService<string, unknown, unknown>>(
           }
         : {};
 
+    let abortController: AbortController;
     let result: Response;
+    let timeoutId: number;
+    const { traceId, timeout } = options || {};
+
     try {
+      if (timeout) {
+        abortController = new AbortController();
+        timeoutId = setTimeout(
+          () => {
+            abortController.abort();
+          },
+          timeout,
+          []
+        );
+      }
+
       result = await fetch(initialOptions.serverURL.toString(), {
         ...initialOptions,
         method: 'POST',
         mode: 'cors',
         headers: {
           ...initialOptions.headers,
-          ...(options?.traceId ? { 'trace-id': options?.traceId } : {}),
+          ...(traceId ? { 'trace-id': traceId } : {}),
           'nats-subject': subject,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(requestBody),
+        signal: abortController?.signal,
       });
     } catch (e) {
-      console.error('Caught low level exception while fetching');
+      if (e.name === 'AbortError') {
+        throw new Error(`Request aborted after ${timeout}`);
+      }
       throw e;
+    } finally {
+      timeoutId && clearTimeout(timeoutId);
     }
 
     let response: NatsPortResponse<any> | NatsPortErrorResponse;
+
     try {
       response = await result.json();
     } catch (e) {
@@ -196,7 +218,7 @@ function connectWS<A extends NatsChannel<string, unknown, unknown>>(
   };
 }
 
-export type Subscribe<A extends NatsChannel<string, unknown, unknown>> = {
+type Subscribe<A extends NatsChannel<string, unknown, unknown>> = {
   <B extends A['subject']>(
     subject: B,
     onHandle: (
@@ -209,7 +231,7 @@ export type Subscribe<A extends NatsChannel<string, unknown, unknown>> = {
   ): { unsubscribe: () => void };
 };
 
-export type NatsuSocket<A extends NatsChannel<string, unknown, unknown>> = {
+type NatsuSocket<A extends NatsChannel<string, unknown, unknown>> = {
   subscribe: Subscribe<A>;
   close: () => void;
 };
@@ -236,5 +258,5 @@ function getErrorMessage(error: NatsPortErrorResponse) {
   }
 }
 
-export type { NatsPortOptions };
+export type { NatsPortOptions, Client, Subscribe, NatsuSocket };
 export { connect, connectWS, NatsPortError };
