@@ -47,7 +47,8 @@ const responseCodec = JSONCodec<NatsResponse>();
 function start() {
   fastify()
     .register(fastifyCors, {
-      origin: '*',
+      origin: config.origin,
+      credentials: config.credentials,
       methods: ['POST'],
     })
     .register(fastifyWebsocket)

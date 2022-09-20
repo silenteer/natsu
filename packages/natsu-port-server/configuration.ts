@@ -15,6 +15,8 @@ type Config = {
   httpPath: string;
   wsPath: string;
   port: number;
+  credentials: boolean;
+  origin: string[];
 };
 
 const schema = yup.object({
@@ -61,6 +63,8 @@ const config: Config = {
   port: parseInt(process.env.SERVER_PORT) || 8080,
   httpPath: process.env.SERVER_HTTP_PATH || '/',
   wsPath: process.env.SERVER_WS_PATH || '/',
+  origin: ['*'].concat(process.env.SERVER_ORIGIN?.split(',') || []),
+  credentials: !!process.env.SERVER_CREDENTIALS
 };
 
 try {
