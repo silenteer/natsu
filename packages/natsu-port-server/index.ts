@@ -56,6 +56,8 @@ function start() {
       const subject = request.headers['nats-subject'];
 
       try {
+        reply.header('nats-subject', subject);
+
         logger.log(`----- [${subject}]Begin validate -----`, {
           headers: request.headers,
           body: request.body,
