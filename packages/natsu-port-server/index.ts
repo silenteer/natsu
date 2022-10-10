@@ -92,6 +92,11 @@ function start() {
         if (headers['set-cookie']) {
           reply.header('set-cookie', headers['set-cookie']);
         }
+        config.allowedCustomHeaders?.forEach((item) => {
+          if (headers[item]) {
+            reply.header(item, headers[item]);
+          }
+        });
 
         reply.send(response);
       } catch (error) {

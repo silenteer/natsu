@@ -10,6 +10,7 @@ type Config = {
   natsNonAuthorizedSubjects: string[];
   natsNamespaceSubjects: string[];
   getNamespaceSubject: string;
+  allowedCustomHeaders: string[];
   natsUser: string;
   natsPass: string;
   httpPath: string;
@@ -36,6 +37,7 @@ const schema = yup.object({
     then: yup.string().trim().required(),
     otherwise: yup.string().trim().notRequired(),
   }),
+  allowedCustomHeaders: yup.array(yup.string().trim()).min(1).notRequired(),
   natsUser: yup.string().trim().notRequired(),
   natsPass: yup.string().trim().notRequired(),
   httpPath: yup.string(),
@@ -58,13 +60,16 @@ const config: Config = {
     (item) => !!item
   ),
   getNamespaceSubject: process.env.NATS_GET_NAMESPACE_SUBJECT,
+  allowedCustomHeaders: process.env.ALLOWED_CUSTOM_HEADERS?.split(',').filter(
+    (item) => !!item
+  ),
   natsUser: process.env.NATS_USER,
   natsPass: process.env.NATS_PASS,
   port: parseInt(process.env.SERVER_PORT) || 8080,
   httpPath: process.env.SERVER_HTTP_PATH || '/',
   wsPath: process.env.SERVER_WS_PATH || '/',
   origin: ['*'].concat(process.env.SERVER_ORIGIN?.split(',') || []),
-  credentials: !!process.env.SERVER_CREDENTIALS
+  credentials: !!process.env.SERVER_CREDENTIALS,
 };
 
 try {
