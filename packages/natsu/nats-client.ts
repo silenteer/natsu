@@ -832,6 +832,7 @@ export default {
           ...result,
         };
       },
+      getNatsService: () => natsService,
     };
 
     return client;
