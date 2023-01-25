@@ -784,7 +784,9 @@ export default {
       Pick<NatsInjection<NatsService<string, unknown, unknown>>, 'logService'>
   >(params: {
     urls: string[];
-    injection?: TInjection;
+    injection?: (
+      natsService: ReturnType<typeof createNatsService>
+    ) => Promise<TInjection>;
     user?: string;
     pass?: string;
     verbose?: boolean;
@@ -823,7 +825,7 @@ export default {
 
         const result = await register({
           handlers,
-          injection,
+          injection: await injection(natsService),
           logLevels,
         });
 
@@ -832,7 +834,6 @@ export default {
           ...result,
         };
       },
-      getNatsService: () => natsService,
     };
 
     return client;

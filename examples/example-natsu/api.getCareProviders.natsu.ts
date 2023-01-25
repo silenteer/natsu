@@ -9,7 +9,7 @@ const validate: NatsValidate<NatsGetCareProviders> = async (
   injection
 ) => {
   try {
-    schema.validateSync(data.body.ids);
+    schema.validateSync(data.body?.ids);
     return injection.ok();
   } catch (error) {
     return injection.error({ errors: error.errors });
@@ -26,7 +26,7 @@ const authorize: NatsAuthorize<NatsGetCareProviders> = async (
 const handle: NatsHandle<NatsGetCareProviders> = async (data, injection) => {
   return injection.ok({
     headers: data.headers,
-    body: data.body.ids.map((id) => ({ id, name: `Care provider ${id}` })),
+    body: data.body?.ids.map((id) => ({ id, name: `Care provider ${id}` })),
   });
 };
 
