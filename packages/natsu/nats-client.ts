@@ -75,31 +75,14 @@ const requestCodec = JSONCodec<NatsRequest>();
 const responseCodec = JSONCodec<NatsResponse>();
 
 async function start(params: {
-  urls: string[];
+  natsService: ReturnType<typeof createNatsService>;
   handlers: registeredHandlers;
-  user?: string;
-  pass?: string;
-  verbose?: boolean;
 }) {
-  const { urls, handlers = {}, user, pass, verbose } = params;
+  const { natsService, handlers = {} } = params;
 
-  if (Object.keys(handlers).length === 0) {
+  if (!natsService || Object.keys(handlers).length === 0) {
     throw new Error(`Must register handlers before starting client`);
   }
-
-  const client = await connect({
-    servers: urls,
-    user,
-    pass,
-    pingInterval: 30 * 1000,
-    maxPingOut: 10,
-    verbose,
-    reconnect: true,
-    maxReconnectAttempts: 3,
-    reconnectTimeWait: 1000,
-  });
-
-  const natsService = createNatsService(client);
 
   Object.entries(handlers).forEach(
     ([subject, { handler, injection: registeredInjection, middlewares }]) => {
@@ -219,8 +202,6 @@ async function start(params: {
       })();
     }
   );
-
-  return natsService;
 }
 
 async function stop(natsService: ReturnType<typeof createNatsService>) {
@@ -795,28 +776,43 @@ export default {
     const { urls, injection, user, pass, verbose, logLevels } = params;
     let natsHandlers: registeredHandlers;
     let natsService: ReturnType<typeof createNatsService>;
+    let isStarted: boolean;
 
     const client = {
       start: async () => {
-        natsService = await start({
-          urls,
+        await start({
+          natsService,
           handlers: natsHandlers,
-          user,
-          pass,
-          verbose,
         });
+        isStarted = true;
       },
       stop: async () => {
         await stop(natsService);
         natsService = undefined;
         natsHandlers = undefined;
+        isStarted = false;
       },
       register: async (
         handlers: Array<
           NatsHandler<NatsService<string, unknown, unknown>, TInjection>
         >
       ) => {
-        const isStarted = !!natsService;
+        if (!natsService) {
+          const natsConnection = await connect({
+            servers: urls,
+            user,
+            pass,
+            pingInterval: 30 * 1000,
+            maxPingOut: 10,
+            verbose,
+            reconnect: true,
+            maxReconnectAttempts: 3,
+            reconnectTimeWait: 1000,
+          });
+
+          natsService = createNatsService(natsConnection);
+        }
+
         if (isStarted) {
           throw new Error(
             `Can't register more handler after nats client started`
