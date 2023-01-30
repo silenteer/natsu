@@ -74,17 +74,62 @@ type registeredHandlers = {
 const requestCodec = JSONCodec<NatsRequest>();
 const responseCodec = JSONCodec<NatsResponse>();
 
-async function start(params: {
-  natsService: ReturnType<typeof createNatsService>;
-  handlers: registeredHandlers;
+async function start<
+  TInjection extends Record<string, unknown> &
+    Pick<NatsInjection<NatsService<string, unknown, unknown>>, 'logService'>
+>(params: {
+  urls: string[];
+  user?: string;
+  pass?: string;
+  verbose?: boolean;
+  logLevels?: Array<'log' | 'info' | 'warn' | 'error'> | 'all' | 'none';
+  injection?: (
+    natsService: ReturnType<typeof createNatsService>
+  ) => Promise<TInjection>;
+  handlers: Array<
+    NatsHandler<NatsService<string, unknown, unknown>, TInjection>
+  >;
+  onCreateNatsService?: (natsService) => ReturnType<typeof createNatsService>;
 }) {
-  const { natsService, handlers = {} } = params;
+  const {
+    urls,
+    user,
+    pass,
+    verbose,
+    logLevels,
+    handlers,
+    injection,
+    onCreateNatsService,
+  } = params;
 
-  if (!natsService || Object.keys(handlers).length === 0) {
+  if (!handlers || handlers.length === 0) {
     throw new Error(`Must register handlers before starting client`);
   }
 
-  Object.entries(handlers).forEach(
+  const natsConnection = await connect({
+    servers: urls,
+    user,
+    pass,
+    pingInterval: 30 * 1000,
+    maxPingOut: 10,
+    verbose,
+    reconnect: true,
+    maxReconnectAttempts: 3,
+    reconnectTimeWait: 1000,
+  });
+
+  let natsService = createNatsService(natsConnection);
+  if (onCreateNatsService) {
+    natsService = onCreateNatsService(natsService);
+  }
+
+  const registeredHandlers = await register({
+    handlers,
+    injection: await injection(natsService),
+    logLevels,
+  });
+
+  Object.entries(registeredHandlers).forEach(
     ([subject, { handler, injection: registeredInjection, middlewares }]) => {
       const subcription = natsService.subscribe(subject);
       (async () => {
@@ -202,6 +247,8 @@ async function start(params: {
       })();
     }
   );
+
+  return natsService;
 }
 
 async function stop(natsService: ReturnType<typeof createNatsService>) {
@@ -448,10 +495,7 @@ async function loadMiddlewares<
   TInjection extends Record<string, unknown>
 >(params: {
   injection: TInjection &
-    Omit<
-      NatsInjection<NatsService<string, unknown, unknown>>,
-      'message' | 'natsService'
-    >;
+    Omit<NatsInjection<NatsService<string, unknown, unknown>>, 'message'>;
   handler: NatsHandler<TService, TInjection>;
 }) {
   const { injection, handler } = params;
@@ -765,31 +809,48 @@ export default {
       Pick<NatsInjection<NatsService<string, unknown, unknown>>, 'logService'>
   >(params: {
     urls: string[];
-    injection?: (
-      natsService: ReturnType<typeof createNatsService>
-    ) => Promise<TInjection>;
     user?: string;
     pass?: string;
     verbose?: boolean;
     logLevels?: Array<'log' | 'info' | 'warn' | 'error'> | 'all' | 'none';
+    injection?: (
+      natsService: ReturnType<typeof createNatsService>
+    ) => Promise<TInjection>;
+    onCreateNatsService?: (natsService) => ReturnType<typeof createNatsService>;
   }) => {
-    const { urls, injection, user, pass, verbose, logLevels } = params;
-    let natsHandlers: registeredHandlers;
+    const {
+      urls,
+      user,
+      pass,
+      verbose,
+      logLevels,
+      injection,
+      onCreateNatsService,
+    } = params;
+    let natsHandlers: Array<
+      NatsHandler<NatsService<string, unknown, unknown>, TInjection>
+    > = [];
     let natsService: ReturnType<typeof createNatsService>;
     let isStarted: boolean;
 
     const client = {
       start: async () => {
-        await start({
-          natsService,
+        natsService = await start<TInjection>({
+          urls,
+          user,
+          pass,
+          verbose,
+          logLevels,
           handlers: natsHandlers,
+          injection,
+          onCreateNatsService,
         });
         isStarted = true;
       },
       stop: async () => {
         await stop(natsService);
         natsService = undefined;
-        natsHandlers = undefined;
+        natsHandlers = [];
         isStarted = false;
       },
       register: async (
@@ -797,38 +858,13 @@ export default {
           NatsHandler<NatsService<string, unknown, unknown>, TInjection>
         >
       ) => {
-        if (!natsService) {
-          const natsConnection = await connect({
-            servers: urls,
-            user,
-            pass,
-            pingInterval: 30 * 1000,
-            maxPingOut: 10,
-            verbose,
-            reconnect: true,
-            maxReconnectAttempts: 3,
-            reconnectTimeWait: 1000,
-          });
-
-          natsService = createNatsService(natsConnection);
-        }
-
         if (isStarted) {
           throw new Error(
             `Can't register more handler after nats client started`
           );
         }
 
-        const result = await register({
-          handlers,
-          injection: await injection(natsService),
-          logLevels,
-        });
-
-        natsHandlers = {
-          ...natsHandlers,
-          ...result,
-        };
+        natsHandlers = natsHandlers.concat(handlers);
       },
     };
 
