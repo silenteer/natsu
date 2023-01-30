@@ -89,7 +89,9 @@ async function start<
   handlers: Array<
     NatsHandler<NatsService<string, unknown, unknown>, TInjection>
   >;
-  onCreateNatsService?: (natsService) => ReturnType<typeof createNatsService>;
+  onCreateNatsService?: (
+    natsService: ReturnType<typeof createNatsService>
+  ) => ReturnType<typeof createNatsService>;
 }) {
   const {
     urls,
