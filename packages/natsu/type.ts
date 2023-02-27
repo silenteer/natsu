@@ -16,14 +16,22 @@ type NatsInjection<
     'validate' | 'authorize' | 'handle'
   >;
   natsService: {
-    request: (
-      subject: string,
+    request: <T extends NatsService<string, unknown, unknown>>(
+      subject: T['subject'],
       data?: NatsRequest,
       opts?: RequestOptions
     ) => Promise<Msg>;
-    publish: (
-      subject: string,
-      data?: NatsResponse,
+    publish: <T extends NatsService<string, unknown, unknown>>(
+      subject: T['subject'],
+      data?:
+        | NatsResponse
+        | {
+            headers: {
+              [key: string]: unknown;
+            };
+            body?: T['response'];
+            code: 200;
+          },
       opts?: PublishOptions
     ) => Promise<void>;
     subscribe: NatsConnection['subscribe'];
