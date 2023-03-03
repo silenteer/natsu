@@ -792,7 +792,6 @@ async function respondUnhandledError<
     message,
     data: responseCodec.encode({
       ...data,
-      error,
       body: data?.body,
       code: 500,
     }),
