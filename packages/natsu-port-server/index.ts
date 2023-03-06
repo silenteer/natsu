@@ -6,6 +6,8 @@ import type { RouteGenericInterface } from 'fastify/types/route';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import fastify from 'fastify';
 import fastifyCors from 'fastify-cors';
+import type { FastifyMultipartOptions } from 'fastify-multipart';
+import fastifyMultipart from 'fastify-multipart';
 import type { SocketStream } from 'fastify-websocket';
 import fastifyWebsocket from 'fastify-websocket';
 import 'colors';
@@ -29,7 +31,10 @@ const httpRequestSchema = yup.object({
   contentType: yup
     .string()
     .trim()
-    .test((value) => value === 'application/json'),
+    .test(
+      (value) =>
+        value === 'application/json' || value.includes('multipart/form-data')
+    ),
 });
 
 const wsRequestSchema = yup.object({
@@ -43,16 +48,24 @@ const wsRequestSchema = yup.object({
 
 const requestCodec = JSONCodec<NatsRequest<unknown>>();
 const responseCodec = JSONCodec<NatsResponse>();
+const multipartOptions: FastifyMultipartOptions = {};
 
-function start() {
+interface CustomFastifyRequest extends FastifyRequest {
+  parts: () => any;
+}
+
+function start(options?: {
+  onBeforeSendNatsRequest?: (request: CustomFastifyRequest) => Promise<void>;
+}) {
   fastify()
     .register(fastifyCors, {
       origin: config.origin,
       credentials: config.credentials,
       methods: ['POST'],
     })
+    .register(fastifyMultipart, multipartOptions)
     .register(fastifyWebsocket)
-    .post(config.httpPath, async (request, reply) => {
+    .post(config.httpPath, async (request: CustomFastifyRequest, reply) => {
       const subject = request.headers['nats-subject'];
 
       try {
@@ -81,6 +94,10 @@ function start() {
         logger.log(`----- [${subject}]End authenticate -----`);
 
         logger.log(`----- [${subject}]Begin send nats request -----`);
+
+        if (options?.onBeforeSendNatsRequest) {
+          await options.onBeforeSendNatsRequest(request);
+        }
 
         const { headers, response } = await sendNatsRequest({
           httpRequest: request,

@@ -127,7 +127,7 @@ async function start<
 
   const registeredHandlers = await register({
     handlers,
-    injection: await injection(natsService),
+    injection: injection ? await injection(natsService) : undefined,
     logLevels,
   });
 
