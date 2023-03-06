@@ -50,9 +50,9 @@ const requestCodec = JSONCodec<NatsRequest<unknown>>();
 const responseCodec = JSONCodec<NatsResponse>();
 const multipartOptions: FastifyMultipartOptions = {};
 
-interface CustomFastifyRequest extends FastifyRequest {
+export type CustomFastifyRequest = FastifyRequest & {
   parts: () => any;
-}
+};
 
 function start(options?: {
   onBeforeSendNatsRequest?: (request: CustomFastifyRequest) => Promise<void>;
