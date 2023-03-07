@@ -54,8 +54,18 @@ export type CustomFastifyRequest = FastifyRequest & {
   parts: () => any;
 };
 
+export type OnBeforeSendNatsRequest = (
+  request: CustomFastifyRequest
+) => Promise<void>;
+
+export type OnAfterSendNatsRequest = (
+  request: CustomFastifyRequest,
+  response: NatsPortResponse<unknown> | NatsPortErrorResponse
+) => Promise<void>;
+
 function start(options?: {
-  onBeforeSendNatsRequest?: (request: CustomFastifyRequest) => Promise<void>;
+  onBeforeSendNatsRequest?: OnBeforeSendNatsRequest;
+  onAfterSendNatsRequest?: OnAfterSendNatsRequest;
 }) {
   fastify()
     .register(fastifyCors, {
@@ -114,6 +124,10 @@ function start(options?: {
             reply.header(item, headers[item]);
           }
         });
+
+        if (options?.onAfterSendNatsRequest) {
+          await options.onAfterSendNatsRequest(request, response);
+        }
 
         reply.send(response);
       } catch (error) {
