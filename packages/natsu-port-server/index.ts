@@ -6,8 +6,8 @@ import type { RouteGenericInterface } from 'fastify/types/route';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import fastify from 'fastify';
 import fastifyCors from 'fastify-cors';
-import type { FastifyMultipartOptions } from 'fastify-multipart';
-import fastifyMultipart from 'fastify-multipart';
+import type { FastifyMultipartOptions } from '@fastify/multipart';
+import fastifyMultipart from '@fastify/multipart';
 import type { SocketStream } from 'fastify-websocket';
 import fastifyWebsocket from 'fastify-websocket';
 import 'colors';
@@ -50,8 +50,9 @@ const requestCodec = JSONCodec<NatsRequest<unknown>>();
 const responseCodec = JSONCodec<NatsResponse>();
 const multipartOptions: FastifyMultipartOptions = {};
 
-export type CustomFastifyRequest = FastifyRequest & {
+export type CustomFastifyRequest = FastifyRequest<any> & {
   parts: () => any;
+  file?: Buffer;
 };
 
 export type OnBeforeSendNatsRequest = (
