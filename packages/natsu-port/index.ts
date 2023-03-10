@@ -91,7 +91,11 @@ function connect<A extends NatsService<string, unknown, unknown>>(
     try {
       response = await result.json();
     } catch (e) {
-      throw new Error('Response is not JSON');
+      throw {
+        errors: {
+          code: 'INVALID_JSON_RESPONSE',
+        },
+      };
     }
 
     if (response.code === 200) {
