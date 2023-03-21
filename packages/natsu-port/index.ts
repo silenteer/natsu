@@ -11,6 +11,7 @@ import { WebsocketClient } from './websocket-client';
 
 type NatsPortOptions = {
   serverURL: URL;
+  onFinishRequest?: (tracing: Tracing) => Promise<void>;
 } & RequestInit;
 
 class NatsPortError extends Error implements NatsPortErrorResponse {
@@ -36,6 +37,13 @@ type Client<A extends NatsService<string, unknown, unknown>> = {
   ): Promise<B['response']>;
 };
 
+export type Tracing = {
+  headers: RequestInit['headers'];
+  start: number;
+  end: number;
+  error?: Error;
+};
+
 function connect<A extends NatsService<string, unknown, unknown>>(
   initialOptions: NatsPortOptions
 ): Client<A> {
@@ -51,6 +59,17 @@ function connect<A extends NatsService<string, unknown, unknown>>(
     let result: Response;
     let timeoutId: number;
     const { traceId, timeout } = options || {};
+    const headers: RequestInit['headers'] = {
+      ...initialOptions.headers,
+      ...(traceId ? { 'trace-id': traceId } : {}),
+      'nats-subject': subject,
+      'Content-Type': 'application/json',
+    };
+    const tracing: Tracing = {
+      headers,
+      start: 0,
+      end: 0,
+    };
 
     try {
       if (timeout) {
@@ -64,26 +83,34 @@ function connect<A extends NatsService<string, unknown, unknown>>(
         );
       }
 
-      result = await fetch(initialOptions.serverURL.toString(), {
+      const options: RequestInit = {
         ...initialOptions,
         method: 'POST',
         mode: 'cors',
-        headers: {
-          ...initialOptions.headers,
-          ...(traceId ? { 'trace-id': traceId } : {}),
-          'nats-subject': subject,
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify(requestBody),
         signal: abortController?.signal,
-      });
+      };
+
+      tracing.start = Date.now();
+
+      result = await fetch(initialOptions.serverURL.toString(), options);
     } catch (e) {
+      tracing.error = e;
+
       if (e.name === 'AbortError') {
         throw new Error(`Request aborted after ${timeout}`);
       }
+
       throw e;
     } finally {
       timeoutId && clearTimeout(timeoutId);
+
+      tracing.end = Date.now();
+
+      if (initialOptions?.onFinishRequest) {
+        await initialOptions.onFinishRequest(tracing);
+      }
     }
 
     let response: NatsPortResponse<any> | NatsPortErrorResponse;

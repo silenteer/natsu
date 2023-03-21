@@ -65,6 +65,15 @@ export type OnAfterSendNatsRequest = (
 ) => Promise<void>;
 
 function start(options?: {
+  onRequest?: (request: CustomFastifyRequest) => Promise<void>;
+  onResponseSuccess?: (
+    request: CustomFastifyRequest,
+    response: NatsPortResponse<unknown> | NatsPortErrorResponse
+  ) => Promise<void>;
+  onResponseError?: (
+    request: CustomFastifyRequest,
+    error: Error
+  ) => Promise<void>;
   onBeforeSendNatsRequest?: OnBeforeSendNatsRequest;
   onAfterSendNatsRequest?: OnAfterSendNatsRequest;
 }) {
@@ -78,6 +87,10 @@ function start(options?: {
     .register(fastifyWebsocket)
     .post(config.httpPath, async (request: CustomFastifyRequest, reply) => {
       const subject = request.headers['nats-subject'];
+
+      if (options?.onRequest) {
+        await options.onRequest(request);
+      }
 
       try {
         reply.header('nats-subject', subject);
@@ -130,9 +143,18 @@ function start(options?: {
           await options.onAfterSendNatsRequest(request, response);
         }
 
+        if (options?.onResponseSuccess) {
+          await options.onResponseSuccess(request, response);
+        }
+
         reply.send(response);
       } catch (error) {
         logger.error(subject, error);
+
+        if (options?.onResponseError) {
+          await options.onResponseError(request, error);
+        }
+
         if (error.code) {
           reply.send(error);
         } else {
