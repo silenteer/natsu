@@ -11,7 +11,7 @@ import { WebsocketClient } from './websocket-client';
 
 type NatsPortOptions = {
   serverURL: URL;
-  onFinishRequest: (tracing: Tracing) => Promise<void>;
+  onFinishRequest?: (tracing: Tracing) => Promise<void>;
 } & RequestInit;
 
 class NatsPortError extends Error implements NatsPortErrorResponse {
@@ -59,8 +59,17 @@ function connect<A extends NatsService<string, unknown, unknown>>(
     let result: Response;
     let timeoutId: number;
     const { traceId, timeout } = options || {};
-
-    const tracing: Tracing = { headers: { subject }, start: 0, end: 0 };
+    const headers: RequestInit['headers'] = {
+      ...initialOptions.headers,
+      ...(traceId ? { 'trace-id': traceId } : {}),
+      'nats-subject': subject,
+      'Content-Type': 'application/json',
+    };
+    const tracing: Tracing = {
+      headers,
+      start: 0,
+      end: 0,
+    };
 
     try {
       if (timeout) {
@@ -78,17 +87,11 @@ function connect<A extends NatsService<string, unknown, unknown>>(
         ...initialOptions,
         method: 'POST',
         mode: 'cors',
-        headers: {
-          ...initialOptions.headers,
-          ...(traceId ? { 'trace-id': traceId } : {}),
-          'nats-subject': subject,
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify(requestBody),
         signal: abortController?.signal,
       };
 
-      tracing.headers = options.headers;
       tracing.start = Date.now();
 
       result = await fetch(initialOptions.serverURL.toString(), options);
