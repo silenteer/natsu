@@ -199,8 +199,10 @@ function start(options?: {
           }
 
           const getNamespaceResult = await getNamespace({
-            httpRequest: request,
-            natsAuthResponse: authenticationResult.authResponse as NatsResponse,
+            subject: wsRequest.subject,
+            headers: {
+              ...(authenticationResult.authResponse?.['headers'] || {}),
+            },
           });
           if (getNamespaceResult.code !== 'OK') {
             connection.destroy(
@@ -319,11 +321,11 @@ async function authenticate(
 }
 
 async function getNamespace(params: {
-  httpRequest: FastifyRequest<RouteGenericInterface, Server, IncomingMessage>;
-  natsAuthResponse: NatsResponse;
+  subject: string;
+  headers: NatsResponse['headers'];
 }) {
-  const { httpRequest, natsAuthResponse } = params;
-  const subject = httpRequest.headers['nats-subject'] as string;
+  const { subject, headers } = params;
+
   let result: {
     code: 'OK' | 400 | 401 | 403 | 500;
     namespace?: string;
@@ -332,9 +334,7 @@ async function getNamespace(params: {
   const shouldSetNamespace = config.natsNamespaceSubjects?.includes(subject);
   if (shouldSetNamespace) {
     const natsRequest: NatsRequest<unknown> = {
-      headers: natsAuthResponse
-        ? natsAuthResponse.headers
-        : httpRequest.headers,
+      headers,
       body: { subject },
     };
 
