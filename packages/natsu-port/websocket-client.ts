@@ -15,6 +15,7 @@ const waitForOpenConnection = (socket) => {
     const interval = setInterval(() => {
       if (currentAttempt > maxNumberOfAttempts) {
         clearInterval(interval);
+        console.log(`readyState: ${socket?.readyState}`);
         reject(new Error('Maximum number of attempts exceeded'));
       } else if (socket.readyState === socket.OPEN) {
         clearInterval(interval);
