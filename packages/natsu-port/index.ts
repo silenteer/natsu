@@ -180,7 +180,14 @@ function connectWS<A extends NatsChannel<string, unknown, unknown>>(
   websocketClient.onreconnected = () => {
     const subjects = Object.keys(subscriptions);
     subjects.forEach((subject) => {
-      sendSub(subject, { ...options.headers });
+      try {
+        sendSub(subject, { ...options.headers });
+      } catch (error) {
+        // Log for debug
+        console.log('websocketClient[onreconnected]', error);
+        console.log({ subject, headers: options.headers });
+        throw error;
+      }
     });
   };
   websocketClient.onopen = websocketClient.onreconnected;

@@ -560,7 +560,7 @@ async function loadMiddlewares<
               };
             } catch (error) {
               middlewareLogService.error(error);
-              throw new UnhandledMiddlewareError();
+              throw new UnhandledMiddlewareError(error);
             }
           },
         });
@@ -604,7 +604,7 @@ async function loadMiddlewares<
               };
             } catch (error) {
               middlewareLogService.error(error);
-              throw new UnhandledMiddlewareError();
+              throw new UnhandledMiddlewareError(error);
             }
           },
         });
