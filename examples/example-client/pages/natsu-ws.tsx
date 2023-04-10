@@ -24,7 +24,13 @@ function Socket1() {
       <button onClick={() => subscriber.unsub()}>
         Unsubscribe for Socket1
       </button>
-      <button onClick={() => subscriber.sub()}>Subscribe for Socket1</button>
+      <button
+        onClick={() => {
+          subscriber.unsub().then(() => subscriber.sub());
+        }}
+      >
+        Subscribe for Socket1
+      </button>
 
       <h2>Messages of Socket1</h2>
       {messages && (
