@@ -67,15 +67,15 @@ const createNatsuProvider = <
     options: RequestOtions = { immediate: true }
   ) {
     const natsuSocket = useNatsuSocket();
-    const unsubscribeRef = useRef<() => void>();
+    const unsubscribeRef = useRef<() => Promise<void>>();
 
-    const sub = useCallback(() => {
-      const subscriber = natsuSocket?.subscribe(address, handler);
+    const sub = useCallback(async () => {
+      const subscriber = await natsuSocket?.subscribe(address, handler);
       unsubscribeRef.current = subscriber?.unsubscribe;
     }, [address]);
 
-    const unsub = () => {
-      unsubscribeRef.current?.();
+    const unsub = async () => {
+      await unsubscribeRef.current?.();
       unsubscribeRef.current = undefined;
     };
 
