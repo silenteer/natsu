@@ -11,8 +11,12 @@ import { WebsocketClient } from './websocket-client';
 
 type NatsPortOptions = {
   serverURL: URL;
+  withCredentials?: boolean;
+  headers?: {
+    [key: string]: string;
+  };
   onFinishRequest?: (tracing: Tracing) => Promise<void>;
-} & RequestInit;
+};
 
 class NatsPortError extends Error implements NatsPortErrorResponse {
   get code() {
@@ -38,7 +42,9 @@ type Client<A extends NatsService<string, unknown, unknown>> = {
 };
 
 export type Tracing = {
-  headers: RequestInit['headers'];
+  headers: {
+    [key: string]: string;
+  };
   start: number;
   end: number;
   error?: Error;
@@ -84,10 +90,10 @@ function connect<A extends NatsService<string, unknown, unknown>>(
       }
 
       const options: RequestInit = {
-        ...initialOptions,
         method: 'POST',
         mode: 'cors',
         headers,
+        credentials: initialOptions.withCredentials ? 'include' : 'same-origin',
         body: JSON.stringify(requestBody),
         signal: abortController?.signal,
       };
@@ -146,70 +152,48 @@ function connectWS<A extends NatsChannel<string, unknown, unknown>>(
   options: NatsPortOptions
 ): NatsuSocket<A> {
   const subscriptions: {
-    [subject: string]: Array<{
-      subscriptionId: string;
-      headers?: {
-        [key: string]: unknown;
+    [subject: string]: {
+      [subscriptionId: string]: {
+        isPending?: boolean;
+        headers?: {
+          [key: string]: unknown;
+        };
+        onHandle: (
+          response: NatsPortWSResponse<string> | NatsPortWSErrorResponse<string>
+        ) => void;
       };
-      onHandle: (
-        response: NatsPortWSResponse<string> | NatsPortWSErrorResponse<string>
-      ) => void;
-    }>;
+    };
   } = {};
 
-  let websocketClient = new WebsocketClient(options.serverURL.toString());
-
-  websocketClient.onerror = (event) => console.error(event);
-
-  const sendSub = (subject: string, headers: {}) => {
-    websocketClient?.send({
-      subject,
-      headers: { ...options.headers, ...headers },
-      action: 'subscribe',
-    });
-  };
-
-  const sendUnsub = (subject: string) => {
-    websocketClient?.send({
-      subject,
-      headers: { ...options.headers },
-      action: 'unsubscribe',
-    });
-  };
-
-  websocketClient.onreconnected = () => {
-    const subjects = Object.keys(subscriptions);
-    subjects.forEach((subject) => {
-      try {
-        sendSub(subject, { ...options.headers });
-      } catch (error) {
-        // Log for debug
-        console.log('websocketClient[onreconnected]', error);
-        console.log({ subject, headers: options.headers });
-        throw error;
-      }
-    });
-  };
-  websocketClient.onopen = websocketClient.onreconnected;
-
-  websocketClient.onmessage = (event) => {
-    try {
-      const data = JSON.parse(event.data) as
+  let websocketClient = new WebsocketClient({
+    url: options.serverURL.toString(),
+    withCredentials: options.withCredentials,
+    headers: { ...options.headers },
+    onMessage: (data) => {
+      const response = JSON.parse(data) as
         | NatsPortWSResponse<string>
         | NatsPortWSErrorResponse<string>;
-      subscriptions[data.subject]?.forEach(({ onHandle }) => {
-        try {
-          onHandle(data);
-        } catch (error) {
-          console.error(`Handle response failed`, data);
+      Object.values(subscriptions[response.subject] || {}).forEach(
+        ({ onHandle }) => {
+          try {
+            onHandle(response);
+          } catch (error) {
+            console.error(`Handle response failed`, data);
+          }
         }
-      });
-    } catch (error) {
-      websocketClient.onerror(error);
-    }
-  };
+      );
+    },
+    onConnect: () => {
+      // eslint-disable-next-line @typescript-eslint/no-use-before-define
+      subscribePendingSubject();
+    },
+    onReConnect: () => {
+      // eslint-disable-next-line @typescript-eslint/no-use-before-define
+      subscribePendingSubject();
+    },
+  });
 
-  const unsubscribe = <
+  const unsubscribe = async <
     TService extends NatsChannel<string, unknown, unknown>
   >(params: {
     subscriptionId: string;
@@ -217,40 +201,96 @@ function connectWS<A extends NatsChannel<string, unknown, unknown>>(
   }) => {
     const { subscriptionId, subject } = params;
 
-    if (
-      subscriptions[subject]?.some(
-        (item) => item.subscriptionId === subscriptionId
-      )
-    ) {
-      subscriptions[subject] = subscriptions[subject].filter(
-        (item) => item.subscriptionId !== subscriptionId
-      );
-      if (subscriptions[subject].length === 0) {
+    if (subscriptions[subject]?.[subscriptionId]) {
+      delete subscriptions[subject][subscriptionId];
+
+      console.log('useSubscribe', { subscriptionId, subject });
+      await websocketClient.send({
+        subject,
+        headers: { ...options.headers },
+        action: 'unsubscribe',
+      });
+
+      if (Object.keys(subscriptions[subject]).length === 0) {
         delete subscriptions[subject];
-        sendUnsub(subject);
       }
     }
   };
 
-  const subscribe: Subscribe<A> = (subject, onHandle) => {
+  const subscribe: Subscribe<A> = async (subject, onHandle) => {
     const subscriptionId = getUUID();
 
     if (!subscriptions[subject]) {
-      subscriptions[subject] = [];
+      subscriptions[subject] = {};
     }
-    subscriptions[subject].push({ subscriptionId, onHandle });
 
-    if (websocketClient && websocketClient.getReadyState() === 1) {
-      //OPEN
-      sendSub(subject, { ...options.headers });
-    } // Otherwise, it'll do in onreconnected or onopen
+    if (websocketClient.isConnected()) {
+      subscriptions[subject] = {
+        ...subscriptions[subject],
+        [subscriptionId]: { onHandle },
+      };
+      console.log('subscribe', { subscriptionId, subject });
+      await websocketClient.send({
+        subject,
+        headers: { ...options.headers },
+        action: 'subscribe',
+      });
+    } else {
+      subscriptions[subject] = {
+        ...subscriptions[subject],
+        [subscriptionId]: { onHandle, isPending: true },
+      };
+    }
 
     return { unsubscribe: () => unsubscribe({ subscriptionId, subject }) };
   };
 
   const close = () => {
+    const subjects = Object.keys(subscriptions);
+    subjects.forEach((subject) => {
+      try {
+        delete subscriptions[subject];
+        websocketClient.send({
+          subject,
+          headers: { ...options.headers },
+          action: 'unsubscribe',
+        });
+      } catch (error) {
+        console.log('websocketClient[close]', error);
+        console.log({ subject, headers: options.headers });
+      }
+    });
+
     websocketClient.close();
     websocketClient = undefined;
+  };
+
+  const subscribePendingSubject = () => {
+    const entries = Object.entries(subscriptions);
+
+    for (const [subject, subscriptionInfo] of entries) {
+      const items = Object.entries(subscriptionInfo);
+
+      for (const [subscriptionId, { isPending }] of items) {
+        if (isPending) {
+          console.log('subscribePendingSubject', { subscriptionId, subject });
+          try {
+            websocketClient
+              .send({
+                subject,
+                headers: { ...options.headers },
+                action: 'subscribe',
+              })
+              .then(
+                () => (subscriptions[subject][subscriptionId].isPending = false)
+              );
+          } catch (error) {
+            console.log('websocketClient[subscribe]', error);
+            console.log({ subject, headers: options.headers });
+          }
+        }
+      }
+    }
   };
 
   return {
@@ -269,7 +309,7 @@ type Subscribe<A extends NatsChannel<string, unknown, unknown>> = {
       >
     ) => Promise<void>,
     options?: RequestOptions
-  ): { unsubscribe: () => void };
+  ): Promise<{ unsubscribe: () => Promise<void> }>;
 };
 
 type NatsuSocket<A extends NatsChannel<string, unknown, unknown>> = {
