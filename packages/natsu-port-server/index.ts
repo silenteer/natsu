@@ -1,15 +1,14 @@
-import { randomUUID } from 'crypto';
 import type { IncomingMessage, Server } from 'http';
 import * as yup from 'yup';
 import { JSONCodec } from 'nats';
+import type { Socket } from 'socket.io';
 import type { RouteGenericInterface } from 'fastify/types/route';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import fastify from 'fastify';
 import fastifyCors from 'fastify-cors';
 import type { FastifyMultipartOptions } from '@fastify/multipart';
 import fastifyMultipart from '@fastify/multipart';
-import type { SocketStream } from 'fastify-websocket';
-import fastifyWebsocket from 'fastify-websocket';
+import fastifyWebsocket from 'fastify-socket.io';
 import 'colors';
 import type {
   NatsPortRequest,
@@ -77,14 +76,110 @@ function start(options?: {
   onBeforeSendNatsRequest?: OnBeforeSendNatsRequest;
   onAfterSendNatsRequest?: OnAfterSendNatsRequest;
 }) {
-  fastify()
+  const app = fastify();
+
+  app
     .register(fastifyCors, {
       origin: config.origin,
       credentials: config.credentials,
       methods: ['POST'],
     })
     .register(fastifyMultipart, multipartOptions)
-    .register(fastifyWebsocket)
+    .register(fastifyWebsocket, {
+      cors: {
+        origin: config.origin,
+        credentials: config.credentials,
+        methods: ['GET', 'OPTIONS'],
+      },
+      connectionStateRecovery: {
+        maxDisconnectionDuration: config.maxDisconnectionDuration,
+        skipMiddlewares: true,
+      },
+    });
+
+  app.ready((error) => {
+    if (error) {
+      logger.error(error);
+      process.exit(1);
+    }
+
+    app.io.on('connection', (socket) => {
+      const connectionId = socket.id;
+
+      socket.on('close', () => {
+        NatsService.unsubscribeAllSubjects(connectionId);
+      });
+
+      socket.on('message', async (message) => {
+        let wsRequest: NatsPortWSRequest;
+
+        try {
+          wsRequest = JSON.parse(message.toString()) as NatsPortWSRequest;
+
+          const validationResult = validateWSRequest(wsRequest);
+          if (validationResult.code === 400) {
+            const response: NatsPortWSErrorResponse = {
+              subject: wsRequest.subject,
+              code: validationResult.code,
+            };
+            sendWSResponse({ socket, response });
+            return;
+          }
+
+          const headers = {
+            ...wsRequest.headers,
+            ['nats-subject']: wsRequest.subject,
+          };
+
+          const authenticationResult = await authenticate(headers);
+          if (authenticationResult.code !== 'OK') {
+            socket.disconnect(true);
+            return;
+          }
+
+          const getNamespaceResult = await getNamespace({
+            subject: wsRequest.subject,
+            headers: {
+              ...headers,
+              ...(authenticationResult.authResponse?.['headers'] || {}),
+            },
+          });
+          if (getNamespaceResult.code !== 'OK') {
+            socket.disconnect(true);
+            return;
+          }
+
+          if (wsRequest.action === 'subscribe') {
+            NatsService.subscribe({
+              connectionId,
+              subject: wsRequest.subject,
+              namespace: getNamespaceResult.namespace,
+              onHandle: (response) => {
+                sendWSResponse({ socket, response });
+              },
+            });
+          } else if (wsRequest.action === 'unsubscribe') {
+            NatsService.unsubscribe({
+              connectionId,
+              subject: wsRequest.subject,
+              namespace: getNamespaceResult.namespace,
+            });
+          } else {
+            socket.disconnect(true);
+          }
+        } catch (error) {
+          const response: NatsPortWSErrorResponse = {
+            subject: wsRequest?.subject,
+            code: 500,
+            body: JSON.stringify(error),
+          };
+          sendWSResponse({ socket, response });
+        }
+      });
+    });
+  });
+
+  app
     .post(config.httpPath, async (request: CustomFastifyRequest, reply) => {
       const subject = request.headers['nats-subject'];
 
@@ -107,7 +202,7 @@ function start(options?: {
         logger.log(`----- [${subject}]End validate -----`, validationResult);
 
         logger.log(`----- [${subject}]Begin authenticate -----`);
-        const authenticationResult = await authenticate(request);
+        const authenticationResult = await authenticate(request.headers);
         if (authenticationResult.code !== 'OK') {
           reply.send({
             code: authenticationResult.code,
@@ -162,83 +257,6 @@ function start(options?: {
         }
       }
     })
-    .get(config.wsPath, { websocket: true }, (connection, request) => {
-      const connectionId = randomUUID();
-
-      connection.socket.on('close', () => {
-        NatsService.unsubscribeAllSubjects(connectionId);
-      });
-
-      connection.socket.on('message', async (message) => {
-        let wsRequest: NatsPortWSRequest;
-
-        try {
-          wsRequest = JSON.parse(message.toString()) as NatsPortWSRequest;
-          request.headers = {
-            ...wsRequest.headers,
-            ...request.headers,
-            ['nats-subject']: wsRequest.subject,
-          };
-
-          const validationResult = validateWSRequest(wsRequest);
-          if (validationResult.code === 400) {
-            const response: NatsPortWSErrorResponse = {
-              subject: wsRequest.subject,
-              code: validationResult.code,
-            };
-            sendWSResponse({ connection, response });
-            return;
-          }
-
-          const authenticationResult = await authenticate(request);
-          if (authenticationResult.code !== 'OK') {
-            connection.destroy(
-              new Error(JSON.stringify({ code: authenticationResult.code }))
-            );
-            return;
-          }
-
-          const getNamespaceResult = await getNamespace({
-            subject: wsRequest.subject,
-            headers: {
-              ...(authenticationResult.authResponse?.['headers'] || {}),
-            },
-          });
-          if (getNamespaceResult.code !== 'OK') {
-            connection.destroy(
-              new Error(JSON.stringify({ code: authenticationResult.code }))
-            );
-            return;
-          }
-
-          if (wsRequest.action === 'subscribe') {
-            NatsService.subscribe({
-              connectionId,
-              subject: wsRequest.subject,
-              namespace: getNamespaceResult.namespace,
-              onHandle: (response) => {
-                sendWSResponse({ connection, response });
-              },
-            });
-          } else if (wsRequest.action === 'unsubscribe') {
-            NatsService.unsubscribe({
-              connectionId,
-              subject: wsRequest.subject,
-              namespace: getNamespaceResult.namespace,
-            });
-          } else {
-            connection.destroy(new Error('Unsupported operation'));
-          }
-        } catch (error) {
-          const response: NatsPortWSErrorResponse = {
-            subject: wsRequest?.subject,
-            code: 500,
-            body: JSON.stringify(error),
-          };
-          sendWSResponse({ connection, response });
-        }
-      });
-    })
     .listen(config.port, '0.0.0.0', (error, address) => {
       if (error) {
         logger.error(error);
@@ -281,21 +299,19 @@ function validateWSRequest(request: NatsPortWSRequest) {
   return result;
 }
 
-async function authenticate(
-  request: FastifyRequest<RouteGenericInterface, Server, IncomingMessage>
-) {
+async function authenticate(headers: FastifyRequest['headers']) {
   let result: {
     code: 'OK' | 401 | 403 | 500;
     authResponse?: NatsPortResponse | NatsPortErrorResponse;
   };
-  const subject = request.headers['nats-subject'] as string;
+  const subject = headers['nats-subject'] as string;
 
   const shouldAuthenticate =
     config.natsAuthSubjects?.length > 0 &&
     !config.natsNonAuthorizedSubjects?.includes(subject);
   if (shouldAuthenticate) {
     logger.log(`----- [${subject}]Begin send nats auth request -----`);
-    const natsAuthResponse = await sendNatsAuthRequest(request);
+    const natsAuthResponse = await sendNatsAuthRequest(headers);
 
     if (natsAuthResponse.code !== 200) {
       result = {
@@ -359,16 +375,14 @@ async function getNamespace(params: {
   return result;
 }
 
-async function sendNatsAuthRequest(
-  request: FastifyRequest<RouteGenericInterface, Server, IncomingMessage>
-) {
+async function sendNatsAuthRequest(headers: FastifyRequest['headers']) {
   let natsResponse: NatsResponse;
   for (const subject of config.natsAuthSubjects) {
     const natsRequest: NatsRequest<string> = {
-      headers: natsResponse ? natsResponse.headers : request.headers,
+      headers: natsResponse ? natsResponse.headers : headers,
     };
     logger.log(
-      `----- [${request.headers['nats-subject']}][${subject}] Sending -----`,
+      `----- [${headers['nats-subject']}][${subject}] Sending -----`,
       natsRequest
     );
     const message = await NatsService.request({
@@ -377,7 +391,7 @@ async function sendNatsAuthRequest(
     });
     natsResponse = responseCodec.decode(message.data);
     logger.log(
-      `----- [${request.headers['nats-subject']}][${subject}] Ending -----`,
+      `----- [${headers['nats-subject']}][${subject}] Ending -----`,
       natsResponse
     );
     if (natsResponse.code !== 200) {
@@ -423,12 +437,12 @@ async function sendNatsRequest(params: {
 }
 
 function sendWSResponse(params: {
-  connection: SocketStream;
+  socket: Socket;
   response: NatsPortWSResponse<string> | NatsPortWSErrorResponse<string>;
 }) {
-  const { connection, response } = params;
+  const { socket, response } = params;
   if (response?.subject) {
-    connection.socket.send(JSON.stringify(response));
+    socket.send(JSON.stringify(response));
   }
 }
 

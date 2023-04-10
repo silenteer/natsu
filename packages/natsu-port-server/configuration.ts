@@ -5,6 +5,7 @@ dotenv.config();
 
 type Config = {
   logLevels: Array<'all' | 'none' | 'error' | 'info' | 'log'>;
+  maxDisconnectionDuration: number;
   natsURI: string;
   natsAuthSubjects: string[];
   natsNonAuthorizedSubjects: string[];
@@ -24,6 +25,7 @@ const schema = yup.object({
   logLevels: yup
     .array(yup.string().oneOf(['all', 'none', 'error', 'info', 'log']))
     .required(),
+  maxDisconnectionDuration: yup.number().moreThan(0).required(),
   natsURI: yup.string().trim().required(),
   natsAuthSubjects: yup.array(yup.string().trim()).min(1).notRequired(),
   natsNonAuthorizedSubjects: yup
@@ -49,6 +51,8 @@ const config: Config = {
   logLevels: (process.env.LOG_LEVELS
     ? process.env.LOG_LEVELS.split(',').filter((item) => !!item)
     : ['all']) as Config['logLevels'],
+  maxDisconnectionDuration:
+    parseInt(process.env.MAX_DISCONNECTION_DURATION) || 5 * 60 * 1000,
   natsURI: process.env.NATS_URI || 'localhost:4222',
   natsAuthSubjects: process.env.NATS_AUTH_SUBJECTS?.split(',').filter(
     (item) => !!item
@@ -68,8 +72,17 @@ const config: Config = {
   port: parseInt(process.env.SERVER_PORT) || 8080,
   httpPath: process.env.SERVER_HTTP_PATH || '/',
   wsPath: process.env.SERVER_WS_PATH || '/',
-  origin: ['*'].concat(process.env.SERVER_ORIGIN?.split(',') || []),
-  credentials: !!process.env.SERVER_CREDENTIALS,
+  origin: process.env.SERVER_ORIGIN
+    ? [].concat(
+        ...process.env.SERVER_ORIGIN.split(',').map((item) => {
+          if (item.startsWith('/') && item.endsWith('/')) {
+            return new RegExp(item.slice(1, item.length - 1));
+          }
+          return item;
+        })
+      )
+    : ['*'],
+  credentials: process.env.SERVER_CREDENTIALS === 'true',
 };
 
 try {
@@ -80,8 +93,5 @@ try {
   process.exit(1);
 }
 
-const result = schema.cast(config);
-console.log('Config set', JSON.stringify(result, undefined, 2));
-
 export type { Config };
-export default result as Config;
+export default config as Config;
