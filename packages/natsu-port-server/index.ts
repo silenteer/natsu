@@ -89,7 +89,7 @@ function start(options?: {
       cors: {
         origin: config.origin,
         credentials: config.credentials,
-        methods: ['GET', 'OPTIONS'],
+        methods: ['GET', 'POST', 'OPTIONS'],
       },
       connectionStateRecovery: {
         maxDisconnectionDuration: config.maxDisconnectionDuration,
@@ -128,6 +128,7 @@ function start(options?: {
 
           const headers = {
             ...wsRequest.headers,
+            cookie: socket.handshake.headers.cookie,
             ['nats-subject']: wsRequest.subject,
           };
 
