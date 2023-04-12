@@ -204,7 +204,6 @@ function connectWS<A extends NatsChannel<string, unknown, unknown>>(
     if (subscriptions[subject]?.[subscriptionId]) {
       delete subscriptions[subject][subscriptionId];
 
-      console.log('useSubscribe', { subscriptionId, subject });
       await websocketClient.send({
         subject,
         headers: { ...options.headers },
@@ -229,7 +228,6 @@ function connectWS<A extends NatsChannel<string, unknown, unknown>>(
         ...subscriptions[subject],
         [subscriptionId]: { onHandle },
       };
-      console.log('subscribe', { subscriptionId, subject });
       await websocketClient.send({
         subject,
         headers: { ...options.headers },
@@ -273,7 +271,6 @@ function connectWS<A extends NatsChannel<string, unknown, unknown>>(
 
       for (const [subscriptionId, { isPending }] of items) {
         if (isPending) {
-          console.log('subscribePendingSubject', { subscriptionId, subject });
           try {
             websocketClient
               .send({

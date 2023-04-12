@@ -27,6 +27,7 @@ class WebsocketClient {
     this._webSocket = socket(url, {
       extraHeaders: headers,
       withCredentials,
+      transports: ['websocket'],
       autoConnect: true,
     });
     this._webSocket.on('message', onMessage);
