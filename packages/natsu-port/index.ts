@@ -210,7 +210,10 @@ function connectWS<A extends NatsChannel<string, unknown, unknown>>(
         action: 'unsubscribe',
       });
 
-      if (Object.keys(subscriptions[subject]).length === 0) {
+      if (
+        subscriptions[subject] &&
+        Object.keys(subscriptions[subject]).length === 0
+      ) {
         delete subscriptions[subject];
       }
     }
