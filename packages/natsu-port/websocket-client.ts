@@ -42,7 +42,7 @@ class WebsocketClient {
   };
 
   send = async (data: NatsPortWSRequest<string>) => {
-    if (this.isConnected) {
+    if (this.isConnected()) {
       this._webSocket.send(JSON.stringify(data));
     }
   };

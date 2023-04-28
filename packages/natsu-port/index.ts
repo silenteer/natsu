@@ -189,9 +189,13 @@ function connectWS<A extends NatsChannel<string, unknown, unknown>>(
     },
     onReConnect: () => {
       // eslint-disable-next-line @typescript-eslint/no-use-before-define
-      subscribePendingSubject();
+      subscribePendingSubject({ isForced: true });
     },
   });
+
+  const isConnected = () => {
+    return websocketClient.isConnected();
+  };
 
   const unsubscribe = async <
     TService extends NatsChannel<string, unknown, unknown>
@@ -266,14 +270,15 @@ function connectWS<A extends NatsChannel<string, unknown, unknown>>(
     websocketClient = undefined;
   };
 
-  const subscribePendingSubject = () => {
+  const subscribePendingSubject = (params?: { isForced?: boolean }) => {
+    const { isForced } = params || {};
     const entries = Object.entries(subscriptions);
 
     for (const [subject, subscriptionInfo] of entries) {
       const items = Object.entries(subscriptionInfo);
 
       for (const [subscriptionId, { isPending }] of items) {
-        if (isPending) {
+        if (isPending || isForced) {
           try {
             websocketClient
               .send({
@@ -294,6 +299,7 @@ function connectWS<A extends NatsChannel<string, unknown, unknown>>(
   };
 
   return {
+    isConnected,
     subscribe,
     close,
   };
@@ -313,6 +319,7 @@ type Subscribe<A extends NatsChannel<string, unknown, unknown>> = {
 };
 
 type NatsuSocket<A extends NatsChannel<string, unknown, unknown>> = {
+  isConnected: () => boolean;
   subscribe: Subscribe<A>;
   close: () => void;
 };
