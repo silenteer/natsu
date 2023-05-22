@@ -154,13 +154,16 @@ async function start<
             if (!data) {
               handlerLogService.error('Incoming message has no data');
 
-              respond({
+              await respond({
                 message,
-                data: responseCodec.encode({
-                  ...data,
+                request: data,
+                response: {
+                  headers: data?.headers,
                   body: undefined,
                   code: 400,
-                }),
+                },
+                injection,
+                onResponse: handler.response,
               });
 
               handlerLogService.info('End');
@@ -220,10 +223,10 @@ async function start<
             }
             //#endregion
 
-            respond({
+            await respond({
               message,
-              data: responseCodec.encode({
-                ...data,
+              request: data,
+              response: {
                 headers: handleResult?.headers
                   ? {
                       ...data?.headers,
@@ -232,7 +235,9 @@ async function start<
                   : data?.headers,
                 code: handleResult?.code === 'OK' ? 200 : handleResult?.code,
                 body: handleResult?.body,
-              }),
+              },
+              injection,
+              onResponse: handler.response,
             });
             handlerLogService.info('End');
           } catch (error) {
@@ -644,13 +649,15 @@ async function before<
       });
 
       if (beforeResult.code !== 'OK') {
-        respond({
+        await respond({
           message,
-          data: responseCodec.encode({
-            ...beforeResult.data,
-            code: beforeResult.code,
+          request: beforeResult.data,
+          response: {
+            headers: beforeResult.data.headers,
             body: beforeResult.errors,
-          }),
+            code: beforeResult.code,
+          },
+          injection,
         });
         break;
       }
@@ -699,13 +706,15 @@ async function handle<
           );
         }
 
-        respond({
+        await respond({
           message,
-          data: responseCodec.encode({
-            ...data,
-            code: handleResult.code,
+          request: data,
+          response: {
+            headers: data.headers,
             body: handleResult.errors,
-          }),
+            code: handleResult.code,
+          },
+          injection,
         });
       }
     } catch (error) {
@@ -746,13 +755,15 @@ async function after<
       });
 
       if (afterResult.code !== 'OK') {
-        respond({
+        await respond({
           message,
-          data: responseCodec.encode({
-            ...afterResult.data,
-            code: afterResult.code,
+          request: afterResult.data,
+          response: {
+            headers: afterResult.data.headers,
             body: afterResult.errors,
-          }),
+            code: afterResult.code,
+          },
+          injection,
         });
         break;
       }
@@ -788,21 +799,55 @@ async function respondUnhandledError<
     }
   }
 
-  respond({
+  await respond({
     message,
-    data: responseCodec.encode({
-      ...data,
+    request: data,
+    response: {
+      headers: data?.headers,
       body: data?.body,
       code: 500,
-    }),
+    },
+    injection,
+    onResponse: handler.response,
   });
 }
 
-function respond(params: { message: Msg; data?: Uint8Array }) {
-  const { message, data } = params;
-  if (message.reply) {
-    message.respond(data);
+async function respond<
+  TService extends NatsService<string, unknown, unknown>,
+  TInjection extends Record<string, unknown>
+>(params: {
+  message: Msg;
+  request: NatsRequest<TService['request']>;
+  response: Pick<NatsResponse, 'headers' | 'code'> & {
+    code: number;
+    body: TService['response'];
+  };
+  injection: TInjection & NatsInjection<TService, TInjection>;
+  onResponse?: NatsHandler<TService, TInjection>['response'];
+}) {
+  const { message, request, response, injection, onResponse } = params;
+
+  if (!message.reply) {
+    return;
   }
+
+  let data: Uint8Array;
+  if (onResponse && request) {
+    data = await onResponse({
+      request,
+      response,
+      codec: responseCodec,
+      injection,
+    });
+  } else {
+    data = responseCodec.encode({
+      headers: response.headers,
+      body: response.body,
+      code: response.code,
+    });
+  }
+
+  message.respond(data);
 }
 
 export default {

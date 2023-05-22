@@ -1,4 +1,10 @@
-import type { Msg, NatsConnection, PublishOptions, RequestOptions } from 'nats';
+import type {
+  Msg,
+  NatsConnection,
+  PublishOptions,
+  RequestOptions,
+  Codec,
+} from 'nats';
 import type {
   NatsService,
   NatsRequest,
@@ -224,6 +230,15 @@ type NatsHandler<
     error: Error,
     injection: NatsInjection<TService, TInjection>
   ) => Promise<void>;
+  response?: (params: {
+    request: NatsRequest<TService['request']>;
+    response: Pick<NatsResponse, 'headers' | 'code'> & {
+      code: number;
+      body: TService['response'];
+    };
+    codec: Codec<NatsResponse>;
+    injection: NatsInjection<TService, TInjection>;
+  }) => Promise<Uint8Array>;
 };
 
 export type {
