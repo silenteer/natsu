@@ -85,7 +85,7 @@ export type PortServerOptions = {
   onBeforeSendNatsRequest?: OnBeforeSendNatsRequest;
   onAfterSendNatsRequest?: OnAfterSendNatsRequest;
   onBeforeHandleSocket?: OnBeforeHandleSocket;
-  mapSubjectNamespace: { [subject: string]: string }; // { [subject]: namespace }
+  mapSubjectNamespace?: { [subject: string]: string }; // { [subject]: namespace }
 };
 
 function start(options?: PortServerOptions) {
