@@ -202,8 +202,9 @@ function connectWS<A extends NatsChannel<string, unknown, unknown>>(
   >(params: {
     subscriptionId: string;
     subject: TService['subject'];
+    request: TService['request']
   }) => {
-    const { subscriptionId, subject } = params;
+    const { subscriptionId, subject, request } = params;
 
     if (subscriptions[subject]?.[subscriptionId]) {
       delete subscriptions[subject][subscriptionId];
@@ -212,6 +213,7 @@ function connectWS<A extends NatsChannel<string, unknown, unknown>>(
         subject,
         headers: { ...options.headers },
         action: 'unsubscribe',
+        data: request,
       });
 
       if (
@@ -223,7 +225,7 @@ function connectWS<A extends NatsChannel<string, unknown, unknown>>(
     }
   };
 
-  const subscribe: Subscribe<A> = async (subject, onHandle) => {
+  const subscribe: Subscribe<A> = async (subject, onHandle, request = {}) => {
     const subscriptionId = getUUID();
 
     if (!subscriptions[subject]) {
@@ -239,6 +241,7 @@ function connectWS<A extends NatsChannel<string, unknown, unknown>>(
         subject,
         headers: { ...options.headers },
         action: 'subscribe',
+        data: request,
       });
     } else {
       subscriptions[subject] = {
@@ -247,7 +250,9 @@ function connectWS<A extends NatsChannel<string, unknown, unknown>>(
       };
     }
 
-    return { unsubscribe: () => unsubscribe({ subscriptionId, subject }) };
+    return {
+      unsubscribe: () => unsubscribe({ subscriptionId, subject, request }),
+    };
   };
 
   const close = () => {
@@ -314,6 +319,7 @@ type Subscribe<A extends NatsChannel<string, unknown, unknown>> = {
         Extract<A, { subject: B }>['response']
       >
     ) => Promise<void>,
+    request?: A['request'],
     options?: RequestOptions
   ): Promise<{ unsubscribe: () => Promise<void> }>;
 };
