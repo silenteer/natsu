@@ -171,6 +171,7 @@ function start(options?: PortServerOptions) {
 
           const getNamespaceResult = await getNamespace({
             subject: wsRequest.subject,
+            data: wsRequest.data as object,
             headers,
             options,
           });
@@ -382,10 +383,11 @@ const getNamespaceSubject = (
 
 async function getNamespace(params: {
   subject: string;
+  data: object;
   headers: NatsResponse['headers'];
   options: PortServerOptions;
 }) {
-  const { subject, headers, options } = params;
+  const { subject, headers, options, data = {} } = params;
 
   let result: {
     code: 'OK' | 400 | 401 | 403 | 500;
@@ -397,7 +399,7 @@ async function getNamespace(params: {
   if (shouldSetNamespace) {
     const natsRequest: NatsRequest<unknown> = {
       headers,
-      body: { subject },
+      body: { subject, ...data },
     };
 
     const message = await NatsService.request({
