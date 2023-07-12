@@ -23,6 +23,7 @@
   "devDependencies": {
     "@types/jest": "27.4.0",
     "@types/node": "16.9.1",
+    "isomorphic-fetch": "3.0.0",
     "jest": "27.5.1",
     "msw": "0.35.0",
     "ts-jest": "27.1.3",
