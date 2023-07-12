@@ -63,7 +63,16 @@ export type OnAfterSendNatsRequest = (
   response: NatsPortResponse<unknown> | NatsPortErrorResponse
 ) => Promise<void>;
 
-function start(options?: {
+export type OnBeforeHandleSocket = (params: {
+  subject: string;
+  headers: {
+    [key: string]: string;
+  };
+}) => Promise<{
+  code: 'OK' | 400 | 401 | 403 | 429 | 500;
+}>;
+
+export type PortServerOptions = {
   onRequest?: (request: CustomFastifyRequest) => Promise<void>;
   onResponseSuccess?: (
     request: CustomFastifyRequest,
@@ -75,7 +84,11 @@ function start(options?: {
   ) => Promise<void>;
   onBeforeSendNatsRequest?: OnBeforeSendNatsRequest;
   onAfterSendNatsRequest?: OnAfterSendNatsRequest;
-}) {
+  onBeforeHandleSocket?: OnBeforeHandleSocket;
+  mapSubjectNamespace?: { [subject: string]: string }; // { [subject]: namespace }
+};
+
+function start(options?: PortServerOptions) {
   const app = fastify();
 
   app
@@ -126,25 +139,42 @@ function start(options?: {
             return;
           }
 
-          const headers = {
+          let headers = {
             ...wsRequest.headers,
             cookie: socket.handshake.headers.cookie,
             ['nats-subject']: wsRequest.subject,
           };
 
           const authenticationResult = await authenticate(headers);
+
           if (authenticationResult.code !== 'OK') {
             socket.disconnect(true);
             return;
           }
 
+          headers = {
+            ...headers,
+            ...(authenticationResult.authResponse?.['headers'] || {}),
+          };
+
+          if (options?.onBeforeHandleSocket) {
+            const result = await options.onBeforeHandleSocket({
+              subject: wsRequest.subject,
+              headers,
+            });
+
+            if (result.code !== 'OK') {
+              socket.disconnect(true);
+              return;
+            }
+          }
+
           const getNamespaceResult = await getNamespace({
             subject: wsRequest.subject,
-            headers: {
-              ...headers,
-              ...(authenticationResult.authResponse?.['headers'] || {}),
-            },
+            headers,
+            options,
           });
+
           if (getNamespaceResult.code !== 'OK') {
             socket.disconnect(true);
             return;
@@ -337,11 +367,25 @@ async function authenticate(headers: FastifyRequest['headers']) {
   return result;
 }
 
+const getNamespaceSubject = (
+  subject: string,
+  options: PortServerOptions
+): string => {
+  const mapSubjectNamespace = options?.mapSubjectNamespace || {};
+
+  if (mapSubjectNamespace[subject]) {
+    return mapSubjectNamespace[subject];
+  }
+
+  return config.getNamespaceSubject;
+};
+
 async function getNamespace(params: {
   subject: string;
   headers: NatsResponse['headers'];
+  options: PortServerOptions;
 }) {
-  const { subject, headers } = params;
+  const { subject, headers, options } = params;
 
   let result: {
     code: 'OK' | 400 | 401 | 403 | 500;
@@ -349,6 +393,7 @@ async function getNamespace(params: {
   };
 
   const shouldSetNamespace = config.natsNamespaceSubjects?.includes(subject);
+
   if (shouldSetNamespace) {
     const natsRequest: NatsRequest<unknown> = {
       headers,
@@ -356,7 +401,7 @@ async function getNamespace(params: {
     };
 
     const message = await NatsService.request({
-      subject: config.getNamespaceSubject,
+      subject: getNamespaceSubject(subject, options),
       data: requestCodec.encode(natsRequest),
     });
     const natsResponse = responseCodec.decode(message.data);

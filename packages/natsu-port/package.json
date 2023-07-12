@@ -25,7 +25,6 @@
     "@types/node": "16.9.1",
     "jest": "27.5.1",
     "msw": "0.35.0",
-    "node-fetch-polyfill": "2.0.6",
     "ts-jest": "27.1.3",
     "ts-node": "10.2.1",
     "tslib": "2.3.1",
