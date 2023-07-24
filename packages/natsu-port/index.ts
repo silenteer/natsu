@@ -185,7 +185,7 @@ function connectWS<A extends NatsChannel<string, unknown, unknown>>(
     },
     onConnect: () => {
       // eslint-disable-next-line @typescript-eslint/no-use-before-define
-      subscribePendingSubject();
+      subscribePendingSubject({ isForced: true });
     },
     onReConnect: () => {
       // eslint-disable-next-line @typescript-eslint/no-use-before-define
