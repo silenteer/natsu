@@ -202,25 +202,32 @@ function connectWS<A extends NatsChannel<string, unknown, unknown>>(
   >(params: {
     subscriptionId: string;
     subject: TService['subject'];
-    request: TService['request']
+    request: TService['request'];
   }) => {
     const { subscriptionId, subject, request } = params;
 
-    if (subscriptions[subject]?.[subscriptionId]) {
+    if (subscriptions?.[subject]?.[subscriptionId]) {
       delete subscriptions[subject][subscriptionId];
 
-      await websocketClient.send({
-        subject,
-        headers: { ...options.headers },
-        action: 'unsubscribe',
-        data: request,
-      });
+      try {
+        await websocketClient.send({
+          subject,
+          headers: { ...options.headers },
+          action: 'unsubscribe',
+          data: request,
+        });
 
-      if (
-        subscriptions[subject] &&
-        Object.keys(subscriptions[subject]).length === 0
-      ) {
-        delete subscriptions[subject];
+        if (
+          subscriptions[subject] &&
+          Object.keys(subscriptions[subject]).length === 0
+        ) {
+          delete subscriptions[subject];
+        }
+      } catch (error) {
+        console.error('websocketClient[unsubscribe]', error, {
+          subject,
+          headers: options.headers,
+        });
       }
     }
   };
@@ -237,12 +244,20 @@ function connectWS<A extends NatsChannel<string, unknown, unknown>>(
         ...subscriptions[subject],
         [subscriptionId]: { onHandle },
       };
-      await websocketClient.send({
-        subject,
-        headers: { ...options.headers },
-        action: 'subscribe',
-        data: request,
-      });
+
+      try {
+        await websocketClient.send({
+          subject,
+          headers: { ...options.headers },
+          action: 'subscribe',
+          data: request,
+        });
+      } catch (error) {
+        console.error('websocketClient[subscribe]', error, {
+          subject,
+          headers: options.headers,
+        });
+      }
     } else {
       subscriptions[subject] = {
         ...subscriptions[subject],
@@ -258,17 +273,19 @@ function connectWS<A extends NatsChannel<string, unknown, unknown>>(
   const close = () => {
     const subjects = Object.keys(subscriptions);
     subjects.forEach((subject) => {
-      try {
-        delete subscriptions[subject];
-        websocketClient.send({
+      delete subscriptions[subject];
+      websocketClient
+        .send({
           subject,
           headers: { ...options.headers },
           action: 'unsubscribe',
+        })
+        .catch((error) => {
+          console.error('websocketClient[close]', error, {
+            subject,
+            headers: options.headers,
+          });
         });
-      } catch (error) {
-        console.log('websocketClient[close]', error);
-        console.log({ subject, headers: options.headers });
-      }
     });
 
     websocketClient.close();
@@ -284,20 +301,23 @@ function connectWS<A extends NatsChannel<string, unknown, unknown>>(
 
       for (const [subscriptionId, { isPending }] of items) {
         if (isPending || isForced) {
-          try {
-            websocketClient
-              .send({
+          websocketClient
+            .send({
+              subject,
+              headers: { ...options.headers },
+              action: 'subscribe',
+            })
+            .then(() => {
+              if (subscriptions?.[subject]?.[subscriptionId]) {
+                subscriptions[subject][subscriptionId].isPending = false;
+              }
+            })
+            .catch((error) => {
+              console.error('websocketClient[subscribePendingSubject]', error, {
                 subject,
-                headers: { ...options.headers },
-                action: 'subscribe',
-              })
-              .then(
-                () => (subscriptions[subject][subscriptionId].isPending = false)
-              );
-          } catch (error) {
-            console.log('websocketClient[subscribe]', error);
-            console.log({ subject, headers: options.headers });
-          }
+                headers: options.headers,
+              });
+            });
         }
       }
     }
