@@ -308,7 +308,10 @@ function validateHttpRequest(
     code: 'OK' | 400;
   };
 
-  if (!httpRequestSchema.isValidSync({ contentType, subject, traceId })) {
+  if (
+    !httpRequestSchema.isValidSync({ contentType, subject, traceId }) ||
+    !validateNatsSubject(subject)
+  ) {
     result = { code: 400 };
     return result;
   }
@@ -322,13 +325,34 @@ function validateWSRequest(request: NatsPortWSRequest) {
     code: 'OK' | 400;
   };
 
-  if (!wsRequestSchema.isValidSync(request)) {
+  if (
+    !wsRequestSchema.isValidSync(request) ||
+    !validateNatsSubject(request.subject)
+  ) {
     result = { code: 400 };
     return result;
   }
 
   result = { code: 'OK' };
   return result;
+}
+
+function validateNatsSubject(subject: string) {
+  const items = subject.split('.');
+
+  for (const item of items) {
+    // When subject has multis dot side by side as 'a..b', or dot at first/last position as '.a.b.c'
+    // The dot will become '' after split()
+    if (!item) {
+      return false;
+    }
+    // Only accept a-z, A-Z, 0-9
+    if (!/^[\w]*$/.test(item)) {
+      return false;
+    }
+  }
+
+  return true;
 }
 
 async function authenticate(headers: FastifyRequest['headers']) {
