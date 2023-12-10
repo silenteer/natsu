@@ -134,7 +134,7 @@ function start(options?: PortServerOptions) {
         try {
           wsRequest = JSON.parse(message.toString()) as NatsPortWSRequest;
 
-          const validationResult = await validateWSRequest(wsRequest);
+          const validationResult = await validateWSRequest(wsRequest, options);
           if (validationResult.code === 400) {
             const response: NatsPortWSErrorResponse = {
               subject: wsRequest.subject,
@@ -231,7 +231,7 @@ function start(options?: PortServerOptions) {
           headers: request.headers,
           body: request.body,
         });
-        const validationResult = await validateHttpRequest(request);
+        const validationResult = await validateHttpRequest(request, options);
         if (validationResult.code === 400) {
           return400(reply);
           return;
