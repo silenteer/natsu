@@ -4399,12 +4399,12 @@ nanoid@^3.3.4:
   resolved "https://registry.yarnpkg.com/nanoid/-/nanoid-3.3.6.tgz#443380c856d6e9f9824267d960b4236ad583ea4c"
   integrity sha512-BGcqMMJuToF7i1rt+2PWSNVnWIkGCU78jBG3RxO/bZlnZPK2Cmi2QaffxGO/2RvWi9sL+FAiRiXMgsyxQ1DIDA==
 
-nats@2.6.1:
-  version "2.6.1"
-  resolved "https://registry.yarnpkg.com/nats/-/nats-2.6.1.tgz#70cf96be48058028411fef48cdb5bae7ced88f1e"
-  integrity sha512-PwcSZgWS2+JDoiU1Nd25eiV6wdvZbsCrBjyGyhqcJ72+SP2mJw0A0Sz4FKiSehx3mm2A61vwvC9rhkrNAMPpAw==
+nats@2.18.0:
+  version "2.18.0"
+  resolved "https://registry.yarnpkg.com/nats/-/nats-2.18.0.tgz#a82b263ed71be0f8518af4313e2339055e5d946b"
+  integrity sha512-zZF004ejzf67Za0Tva+xphxoxBMNc5IMLqbZ7Ho0j9TMuisjpo+qCd1EktXRCLNxmrZ8O6Tbm1dBsZYNF6yR1A==
   dependencies:
-    nkeys.js "^1.0.0-9"
+    nkeys.js "1.0.5"
 
 natural-compare@^1.4.0:
   version "1.4.0"
@@ -4455,7 +4455,7 @@ nice-try@^1.0.4:
   resolved "https://registry.yarnpkg.com/nice-try/-/nice-try-1.0.5.tgz#a3378a7696ce7d223e88fc9b764bd7ef1089e366"
   integrity sha512-1nh45deeb5olNY7eX82BkPO7SSxR5SSYJiPTrTdFUVYwAl8CKMA5N9PjTYkHiRjisVcxcQ1HXdLhx2qxxJzLNQ==
 
-nkeys.js@^1.0.0-9:
+nkeys.js@1.0.5:
   version "1.0.5"
   resolved "https://registry.yarnpkg.com/nkeys.js/-/nkeys.js-1.0.5.tgz#3024bde671eb33be0316ff2d5abe8b8cec960158"
   integrity sha512-u25YnRPHiGVsNzwyHnn+PT90sgAhnS8jUJ1nxmkHMFYCJ6+Ic0lv291w7uhRBpJVJ3PH2GWbYqA151lGCRrB5g==

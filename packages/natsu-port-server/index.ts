@@ -24,8 +24,13 @@ import config from './configuration';
 import logger from './logger';
 import NatsService from './service-nats';
 
+const SUBJECT_PATTERN = /^[A-Za-z0-9]+(\.[A-Za-z0-9]+){0,9}$/;
+
 const httpRequestSchema = yup.object({
-  subject: yup.string().trim().required(),
+  subject: yup
+    .string()
+    .trim()
+    .test((value) => !!value && SUBJECT_PATTERN.test(value)),
   traceId: yup.string().trim().notRequired(),
   contentType: yup
     .string()
@@ -79,7 +84,7 @@ export type PortServerOptions = {
     response: NatsPortResponse<unknown> | NatsPortErrorResponse
   ) => Promise<void>;
   onResponseError?: (
-    request: CustomFastifyRequest,
+    request: CustomFastifyRequest | NatsPortWSRequest,
     error: Error
   ) => Promise<void>;
   onBeforeSendNatsRequest?: OnBeforeSendNatsRequest;
@@ -129,7 +134,7 @@ function start(options?: PortServerOptions) {
         try {
           wsRequest = JSON.parse(message.toString()) as NatsPortWSRequest;
 
-          const validationResult = validateWSRequest(wsRequest);
+          const validationResult = await validateWSRequest(wsRequest);
           if (validationResult.code === 400) {
             const response: NatsPortWSErrorResponse = {
               subject: wsRequest.subject,
@@ -226,7 +231,7 @@ function start(options?: PortServerOptions) {
           headers: request.headers,
           body: request.body,
         });
-        const validationResult = validateHttpRequest(request);
+        const validationResult = await validateHttpRequest(request);
         if (validationResult.code === 400) {
           return400(reply);
           return;
@@ -298,61 +303,75 @@ function start(options?: PortServerOptions) {
     });
 }
 
-function validateHttpRequest(
-  request: FastifyRequest<RouteGenericInterface, Server, IncomingMessage>
+async function validateHttpRequest(
+  request: CustomFastifyRequest,
+  options?: PortServerOptions
 ) {
   const contentType = request.headers['content-type'];
   const subject = request.headers['nats-subject'] as string;
   const traceId = request.headers['trace-id'] as string;
-  let result: {
-    code: 'OK' | 400;
-  };
+  let result:
+    | {
+        code: 'OK';
+      }
+    | {
+        code: 400;
+        errorCode: string;
+      };
 
-  if (
-    !httpRequestSchema.isValidSync({ contentType, subject, traceId }) ||
-    !validateNatsSubject(subject)
-  ) {
-    result = { code: 400 };
+  if (!httpRequestSchema.isValidSync({ contentType, subject, traceId })) {
+    result = { code: 400, errorCode: 'INVALID_HTTP_HEADERS' };
+
+    logger.error('INVALID_HTTP_HEADERS', { subject, contentType, traceId });
+
+    if (options?.onResponseError) {
+      await options.onResponseError(
+        request,
+        new Error(
+          `Invalid http headers: { subject: ${subject}, contentType: ${contentType}, traceId: ${traceId} }`
+        )
+      );
+    }
+    return result;
+  }
+  result = { code: 'OK' };
+  return result;
+}
+
+async function validateWSRequest(
+  request: NatsPortWSRequest,
+  options?: PortServerOptions
+) {
+  const contentType = request.headers['content-type'];
+  const subject = request.headers['nats-subject'] as string;
+  const traceId = request.headers['trace-id'] as string;
+  let result:
+    | {
+        code: 'OK';
+      }
+    | {
+        code: 400;
+        errorCode: string;
+      };
+
+  if (!wsRequestSchema.isValidSync({ contentType, subject, traceId })) {
+    result = { code: 400, errorCode: 'INVALID_WS_HEADERS' };
+
+    logger.error('INVALID_WS_HEADERS', { subject, contentType, traceId });
+
+    if (options?.onResponseError) {
+      await options.onResponseError(
+        request,
+        new Error(
+          `Invalid ws headers: { subject: ${subject}, contentType: ${contentType}, traceId: ${traceId} }`
+        )
+      );
+    }
     return result;
   }
 
   result = { code: 'OK' };
   return result;
-}
-
-function validateWSRequest(request: NatsPortWSRequest) {
-  let result: {
-    code: 'OK' | 400;
-  };
-
-  if (
-    !wsRequestSchema.isValidSync(request) ||
-    !validateNatsSubject(request.subject)
-  ) {
-    result = { code: 400 };
-    return result;
-  }
-
-  result = { code: 'OK' };
-  return result;
-}
-
-function validateNatsSubject(subject: string) {
-  const items = subject.split('.');
-
-  for (const item of items) {
-    // When subject has multis dot side by side as 'a..b', or dot at first/last position as '.a.b.c'
-    // The dot will become '' after split()
-    if (!item) {
-      return false;
-    }
-    // Only accept a-z, A-Z, 0-9
-    if (!/^[\w]*$/.test(item)) {
-      return false;
-    }
-  }
-
-  return true;
 }
 
 async function authenticate(headers: FastifyRequest['headers']) {
@@ -528,6 +547,7 @@ function return500(reply: FastifyReply) {
   reply.send();
 }
 
+export { SUBJECT_PATTERN };
 export default {
   start,
 };

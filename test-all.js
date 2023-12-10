@@ -2,7 +2,11 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 const { execSync } = require('child_process');
 
-const projects = ['packages/natsu-port', 'packages/natsu'];
+const projects = [
+  'packages/natsu-port',
+  'packages/natsu-port-server',
+  'packages/natsu',
+];
 
 const commands = projects
   .map((projectPath) => `\"(cd ${projectPath} && yarn test)\"`)

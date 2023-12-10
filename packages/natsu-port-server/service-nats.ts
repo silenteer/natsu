@@ -70,7 +70,7 @@ async function request(params: {
 }) {
   const { subject, data, options } = params;
   const connection = await getConnection();
-  return connection.request(subject, data, {
+  return await connection.request(subject, data, {
     ...defaultRequestOptions,
     ...options,
   });

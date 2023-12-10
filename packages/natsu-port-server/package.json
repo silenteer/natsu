@@ -15,7 +15,7 @@
   ],
   "scripts": {
     "build": "rm -rf dist && tsc",
-    "test": "echo \"no tests\""
+    "test": "jest"
   },
   "bin": {
     "natsu-port-server": "./cli.js"
@@ -30,7 +30,7 @@
     "fastify": "3.24.0",
     "fastify-cors": "6.0.2",
     "fastify-socket.io": "4.0.0",
-    "nats": "2.6.1",
+    "nats": "2.18.0",
     "socket.io": "4.6.1",
     "uri-js": "^4.4.1",
     "yup": "0.32.9"
