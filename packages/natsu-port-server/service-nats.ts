@@ -54,6 +54,14 @@ async function getConnection(): Promise<NatsConnection> {
       user: config.natsUser,
       pass: config.natsPass,
     });
+    natsConnection.closed().then((error) => {
+      console.log(
+        `connection closed ${error ? `with error: ${error.message}` : ''}`
+      );
+      // If nats connection closed and cannot auto reconnect, should exit process.
+      // Docker service or similar things will restart a new process
+      process.exit(1);
+    });
   }
 
   return natsConnection;
