@@ -30,8 +30,12 @@ const httpRequestSchema = yup.object({
   subject: yup
     .string()
     .trim()
-    .test((value) => !!value && SUBJECT_PATTERN.test(value)),
+    .test((value) => !!value && SUBJECT_PATTERN.test(value))
+    .required(),
   traceId: yup.string().trim().notRequired(),
+  action: yup
+    .string()
+    .oneOf<NatsPortWSRequest['action']>(['subscribe', 'unsubscribe']),
   contentType: yup
     .string()
     .trim()
@@ -342,9 +346,10 @@ async function validateWSRequest(
   request: NatsPortWSRequest,
   options?: PortServerOptions
 ) {
+  const subject = request.subject;
+  const action = request.action;
   const contentType = request.headers['content-type'];
-  const subject = request.headers['nats-subject'] as string;
-  const traceId = request.headers['trace-id'] as string;
+
   let result:
     | {
         code: 'OK';
@@ -354,16 +359,16 @@ async function validateWSRequest(
         errorCode: string;
       };
 
-  if (!wsRequestSchema.isValidSync({ contentType, subject, traceId })) {
+  if (!wsRequestSchema.isValidSync({ contentType, subject, action })) {
     result = { code: 400, errorCode: 'INVALID_WS_HEADERS' };
 
-    logger.error('INVALID_WS_HEADERS', { subject, contentType, traceId });
+    logger.error('INVALID_WS_HEADERS', { subject, contentType, action });
 
     if (options?.onResponseError) {
       await options.onResponseError(
         request,
         new Error(
-          `Invalid ws headers: { subject: ${subject}, contentType: ${contentType}, traceId: ${traceId} }`
+          `Invalid ws headers: { subject: ${subject}, contentType: ${contentType}, action: ${action} }`
         )
       );
     }
