@@ -1,4 +1,4 @@
-import { SUBJECT_PATTERN } from '../index';
+import { SUBJECT_PATTERN } from '../../index';
 
 it('Validate subject', async () => {
   expect(SUBJECT_PATTERN.test('.api')).toBeFalsy();

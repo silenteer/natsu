@@ -9,6 +9,11 @@ const projects = [
 ];
 
 const commands = projects
-  .map((projectPath) => `\"(cd ${projectPath} && yarn test)\"`)
+  .map((projectPath) => {
+    if (projectPath === 'packages/natsu-port-server') {
+      return `\"(cd ${projectPath} && yarn test && yarn test:integration)\"`;
+    }
+    return `\"(cd ${projectPath} && yarn test)\"`;
+  })
   .join(' ');
 execSync(`yarn concurrently ${commands}`);

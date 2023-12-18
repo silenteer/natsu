@@ -12,6 +12,6 @@ module.exports = {
     '^.+\\.ts?$': 'ts-jest',
   },
   moduleFileExtensions: ['js', 'ts'],
-  testMatch: ['**/__tests__/**/*.spec.ts'],
+  testMatch: ['**/__tests__/unit/**/*.spec.ts'],
   coverageDirectory: './coverage',
 };
