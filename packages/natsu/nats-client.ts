@@ -553,7 +553,11 @@ async function loadMiddlewares<
               });
 
               if (result.code !== 'OK') {
-                middlewareLogService.error(result);
+                middlewareLogService.error({
+                  code: result.code,
+                  data: result.data,
+                  errors: result.errors,
+                });
               }
 
               return {
@@ -597,7 +601,11 @@ async function loadMiddlewares<
               });
 
               if (result.code !== 'OK') {
-                middlewareLogService.error(result);
+                middlewareLogService.error({
+                  code: result.code,
+                  data: result.data,
+                  errors: result.errors,
+                });
               }
 
               return {
