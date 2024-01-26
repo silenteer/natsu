@@ -31,7 +31,7 @@ export type NatsPortResponse<TBody = unknown> = {
 };
 
 export type NatsPortErrorResponse = {
-  code: 400 | 401 | 403 | 404 | 500;
+  code: 400 | 401 | 403 | 404 | 500 | 503;
   body?: unknown;
 };
 
@@ -52,6 +52,6 @@ export type NatsPortWSResponse<TSubject = string, TBody = unknown> = {
 
 export type NatsPortWSErrorResponse<TSubject = string> = {
   subject: TSubject;
-  code: 400 | 401 | 403 | 404 | 500;
+  code: 400 | 401 | 403 | 404 | 500 | 503;
   body?: unknown;
 };
