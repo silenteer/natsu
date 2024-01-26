@@ -119,10 +119,13 @@ function connect<A extends NatsService<string, unknown, unknown>>(
       }
     }
 
-    let response: NatsPortResponse<any> | NatsPortErrorResponse;
-
+    let responseCode: number;
+    let responseBody: any;
     try {
-      response = await result.json();
+      const response = await result.json();
+
+      responseCode = response.code || result.status;
+      responseBody = response.code ? response.body : response;
     } catch (e) {
       throw {
         subject,
@@ -134,14 +137,13 @@ function connect<A extends NatsService<string, unknown, unknown>>(
       };
     }
 
-    if (response.code === 200) {
-      return response.body;
-    } else if (
-      (
-        [400, 401, 403, 404, 500] as Array<NatsPortErrorResponse['code']>
-      ).includes(response.code)
-    ) {
-      throw new NatsPortError(response);
+    if (responseCode === 200) {
+      return responseBody;
+    } else if ([400, 401, 403, 404, 500, 503].includes(responseCode)) {
+      throw new NatsPortError({
+        code: responseCode as any,
+        body: responseBody,
+      });
     } else {
       throw new Error('Unknown response.');
     }
