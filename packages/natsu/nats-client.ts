@@ -133,9 +133,8 @@ async function start<
 
   Object.entries(registeredHandlers).forEach(
     ([subject, { handler, injection: registeredInjection, middlewares }]) => {
-      const subcription = natsService.subscribe(subject);
-      (async () => {
-        for await (const message of subcription) {
+      natsService.subscribe(subject, {
+        callback: async (error, message) => {
           let data = message.data
             ? requestCodec.decode(message.data)
             : undefined;
@@ -167,7 +166,7 @@ async function start<
               });
 
               handlerLogService.info('End');
-              continue;
+              return;
             }
             if (data.body) {
               data = {
@@ -185,7 +184,7 @@ async function start<
             });
             if (beforeResult && beforeResult.code !== 'OK') {
               handlerLogService.info('End');
-              continue;
+              return;
             } else if (beforeResult) {
               data = beforeResult.data;
               injection = beforeResult.injection;
@@ -201,7 +200,7 @@ async function start<
             });
             if (handleResult && handleResult.code !== 'OK') {
               handlerLogService.info('End');
-              continue;
+              return;
             }
             //#endregion
 
@@ -215,7 +214,7 @@ async function start<
             });
             if (afterResult && afterResult.code !== 'OK') {
               handlerLogService.info('End');
-              continue;
+              return;
             } else if (afterResult) {
               data = afterResult.data;
               handleResult = afterResult.result;
@@ -250,8 +249,8 @@ async function start<
             });
             handlerLogService.info('End');
           }
-        }
-      })();
+        },
+      });
     }
   );
 
