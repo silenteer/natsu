@@ -1,7 +1,6 @@
 import type {
   NatsService,
   NatsPortRequest,
-  NatsPortResponse,
   NatsPortErrorResponse,
   NatsPortWSResponse,
   NatsPortWSErrorResponse,
@@ -31,7 +30,7 @@ class NatsPortError extends Error implements NatsPortErrorResponse {
   }
 }
 
-type RequestOptions = { traceId?: string; timeout?: number };
+type RequestOptions = { traceContext?: string; timeout?: number };
 
 type Client<A extends NatsService<string, unknown, unknown>> = {
   <B extends A>(
@@ -64,10 +63,10 @@ function connect<A extends NatsService<string, unknown, unknown>>(
     let abortController: AbortController;
     let result: Response;
     let timeoutId: number;
-    const { traceId, timeout } = options || {};
+    const { traceContext, timeout } = options || {};
     const headers: RequestInit['headers'] = {
       ...initialOptions.headers,
-      ...(traceId ? { 'trace-id': traceId } : {}),
+      ...(traceContext ? { 'trace-context': traceContext } : {}),
       'nats-subject': subject,
       'Content-Type': 'application/json',
     };

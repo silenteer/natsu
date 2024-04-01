@@ -32,7 +32,7 @@ const httpRequestSchema = yup.object({
     .trim()
     .test((value) => !!value && SUBJECT_PATTERN.test(value))
     .required(),
-  traceId: yup.string().trim().notRequired(),
+  traceContext: yup.string().trim().notRequired(),
   action: yup
     .string()
     .oneOf<NatsPortWSRequest['action']>(['subscribe', 'unsubscribe']),
@@ -313,7 +313,7 @@ async function validateHttpRequest(
 ) {
   const contentType = request.headers['content-type'];
   const subject = request.headers['nats-subject'] as string;
-  const traceId = request.headers['trace-id'] as string;
+  const traceContext = request.headers['trace-context'] as string;
   let result:
     | {
         code: 'OK';
@@ -323,16 +323,20 @@ async function validateHttpRequest(
         errorCode: string;
       };
 
-  if (!httpRequestSchema.isValidSync({ contentType, subject, traceId })) {
+  if (!httpRequestSchema.isValidSync({ contentType, subject, traceContext })) {
     result = { code: 400, errorCode: 'INVALID_HTTP_HEADERS' };
 
-    logger.error('INVALID_HTTP_HEADERS', { subject, contentType, traceId });
+    logger.error('INVALID_HTTP_HEADERS', {
+      subject,
+      contentType,
+      traceContext,
+    });
 
     if (options?.onResponseError) {
       await options.onResponseError(
         request,
         new Error(
-          `Invalid http headers: { subject: ${subject}, contentType: ${contentType}, traceId: ${traceId} }`
+          `Invalid http headers: { subject: ${subject}, contentType: ${contentType}, traceContext: ${traceContext} }`
         )
       );
     }
