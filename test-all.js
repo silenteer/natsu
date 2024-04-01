@@ -11,7 +11,7 @@ const projects = [
 const commands = projects
   .map((projectPath) => {
     if (projectPath === 'packages/natsu-port-server') {
-      return `\"(cd ${projectPath} && yarn test && yarn test:integration)\"`;
+      return `\"(cd ${projectPath} && yarn test && yarn test:integration:install && yarn test:integration)\"`;
     }
     return `\"(cd ${projectPath} && yarn test)\"`;
   })

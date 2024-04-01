@@ -14,9 +14,9 @@
     "cli.js"
   ],
   "scripts": {
-    "postinstall": "playwright install-deps && playwright install",
     "build": "rm -rf dist && tsc",
     "test": "jest",
+    "test:integration:install": "playwright install-deps && playwright install",
     "test:integration": "NODE_TLS_REJECT_UNAUTHORIZED=0 playwright test --config=./playwright.config.ts"
   },
   "bin": {
