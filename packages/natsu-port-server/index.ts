@@ -95,6 +95,10 @@ export type PortServerOptions = {
   onAfterSendNatsRequest?: OnAfterSendNatsRequest;
   onBeforeHandleSocket?: OnBeforeHandleSocket;
   mapSubjectNamespace?: { [subject: string]: string }; // { [subject]: namespace }
+  customAuthSubjects?: Array<{
+    subjects: string[];
+    authSubjects: string[];
+  }>;
 };
 
 function start(options?: PortServerOptions) {
@@ -154,7 +158,7 @@ function start(options?: PortServerOptions) {
             ['nats-subject']: wsRequest.subject,
           };
 
-          const authenticationResult = await authenticate(headers);
+          const authenticationResult = await authenticate(headers, options);
 
           if (authenticationResult.code !== 'OK') {
             socket.disconnect(true);
@@ -243,7 +247,11 @@ function start(options?: PortServerOptions) {
         logger.log(`----- [${subject}]End validate -----`, validationResult);
 
         logger.log(`----- [${subject}]Begin authenticate -----`);
-        const authenticationResult = await authenticate(request.headers);
+        const authenticationResult = await authenticate(
+          request.headers,
+          options
+        );
+
         if (authenticationResult.code !== 'OK') {
           reply.send({
             code: authenticationResult.code,
@@ -383,7 +391,10 @@ async function validateWSRequest(
   return result;
 }
 
-async function authenticate(headers: FastifyRequest['headers']) {
+async function authenticate(
+  headers: FastifyRequest['headers'],
+  options: PortServerOptions
+) {
   let result: {
     code: 'OK' | 401 | 403 | 500;
     authResponse?: NatsPortResponse | NatsPortErrorResponse;
@@ -393,9 +404,15 @@ async function authenticate(headers: FastifyRequest['headers']) {
   const shouldAuthenticate =
     config.natsAuthSubjects?.length > 0 &&
     !config.natsNonAuthorizedSubjects?.includes(subject);
+
   if (shouldAuthenticate) {
     logger.log(`----- [${subject}]Begin send nats auth request -----`);
-    const natsAuthResponse = await sendNatsAuthRequest(headers);
+
+    const natsAuthResponse = await sendNatsAuthRequest({
+      subject,
+      headers,
+      options,
+    });
 
     if (natsAuthResponse.code !== 200) {
       result = {
@@ -475,25 +492,44 @@ async function getNamespace(params: {
   return result;
 }
 
-async function sendNatsAuthRequest(headers: FastifyRequest['headers']) {
+async function sendNatsAuthRequest(params: {
+  subject: string;
+  headers: FastifyRequest['headers'];
+  options: PortServerOptions;
+}) {
+  const { subject, headers, options } = params;
+
+  const authenticateSubjects = options.customAuthSubjects || [];
+  const custom = authenticateSubjects.find((e) => e.subjects.includes(subject));
+
+  const natsAuthSubjects = custom
+    ? custom.authSubjects
+    : config.natsAuthSubjects;
+
   let natsResponse: NatsResponse;
-  for (const subject of config.natsAuthSubjects) {
+
+  for (const authSubject of natsAuthSubjects) {
     const natsRequest: NatsRequest<string> = {
       headers: natsResponse ? natsResponse.headers : headers,
     };
+
     logger.log(
-      `----- [${headers['nats-subject']}][${subject}] Sending -----`,
+      `----- [${headers['nats-subject']}][${authSubject}] Sending -----`,
       natsRequest
     );
+
     const message = await NatsService.request({
-      subject,
+      subject: authSubject,
       data: requestCodec.encode(natsRequest),
     });
+
     natsResponse = responseCodec.decode(message.data);
+
     logger.log(
-      `----- [${headers['nats-subject']}][${subject}] Ending -----`,
+      `----- [${headers['nats-subject']}][${authSubject}] Ending -----`,
       natsResponse
     );
+
     if (natsResponse.code !== 200) {
       break;
     }

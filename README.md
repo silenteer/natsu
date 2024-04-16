@@ -2,6 +2,12 @@
 To install all packages for root & examples & libs. The workspace will takecare the rest
 ```
 yarn install
+
+(cd packages/natsu && yarn build)
+
+(cd packages/natsu-port-server && yarn build)
+
+yarn dev:examples
 ```
 
 ### To release a library
