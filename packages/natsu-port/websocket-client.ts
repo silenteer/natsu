@@ -24,11 +24,16 @@ class WebsocketClient {
     const { url, withCredentials, headers, onMessage, onConnect, onReConnect } =
       _params;
 
-    this._webSocket = socket(url, {
+    const socketUrl = new URL(url);
+
+    this._webSocket = socket(socketUrl.origin, {
       extraHeaders: headers,
       withCredentials,
       transports: ['websocket'],
       autoConnect: true,
+      path: socketUrl.pathname
+        ? `${socketUrl.pathname}/socket.io`
+        : `/socket.io`,
     });
     this._webSocket.on('message', onMessage);
     this._webSocket.on('connect', onConnect);
