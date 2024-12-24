@@ -53,6 +53,11 @@ async function getConnection(): Promise<NatsConnection> {
       servers: config.natsURI,
       user: config.natsUser,
       pass: config.natsPass,
+      pingInterval: 30 * 1000,
+      maxPingOut: 10,
+      reconnect: true,
+      maxReconnectAttempts: -1,
+      reconnectTimeWait: 3000,
     });
     natsConnection.closed().then((error) => {
       console.log(
