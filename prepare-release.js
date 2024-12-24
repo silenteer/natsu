@@ -13,7 +13,7 @@ if (!packageJson) {
 }
 
 const { publishConfig, files, scripts } = packageJson;
-const shouldBuild = !!scripts?.build;
+
 if (!publishConfig?.registry) {
   throw new Error(
     `Missing 'publishConfig.registry' in package.json at ${project}`
@@ -31,8 +31,37 @@ if (!process.env.NPM_CONFIG_TOKEN) {
   throw new Error(`'process.env.NPM_CONFIG_TOKEN' is required`);
 }
 
-const npmrcPath = path.join(__dirname, project, '.npmrc');
-execSync(`cd ${project} && rm -rf .npmrc`);
+const shouldUnitTest = !!scripts?.test;
+if (shouldUnitTest) {
+  execSync(`(cd ${project} && yarn test)`);
+}
+
+const shouldIntegrationTest = !!scripts?.['test:integration'];
+if (shouldIntegrationTest) {
+  execSync(`(cd ${project} && yarn test:integration)`);
+}
+
+const shouldBuild = !!scripts?.build;
+if (shouldBuild) {
+  execSync(
+    `(cd ${project} && rm -rf node_modules yarn.lock && yarn && yarn build)`
+  );
+} else {
+  execSync(`(cd ${project} && rm -rf node_modules yarn.lock && yarn)`);
+}
+
+execSync(
+  `cd ${project} && rm -rf release && mkdir release && cp -r dist release && cp package.json release`
+);
+
+files
+  .filter((file) => !file.includes('dist') && file.includes('.js'))
+  .forEach((file) => {
+    execSync(`(cd ${project} && cp ${file} release)`);
+  });
+
+const npmrcPath = path.join(__dirname, project, 'release/.npmrc');
+execSync(`cd ${project} && rm -rf release/.npmrc`);
 fs.appendFileSync(npmrcPath, `strict-ssl=false\n`);
 fs.appendFileSync(
   npmrcPath,
@@ -42,11 +71,3 @@ fs.appendFileSync(
   npmrcPath,
   `//registry.npmjs.org/:_authToken=${process.env.NPM_CONFIG_TOKEN}\n`
 );
-
-if (shouldBuild) {
-  execSync(
-    `(cd ${project} && rm -rf node_modules yarn.lock && yarn && yarn build)`
-  );
-} else {
-  execSync(`(cd ${project} && rm -rf node_modules yarn.lock && yarn)`);
-}

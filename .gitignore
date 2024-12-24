@@ -37,6 +37,8 @@ typings
 /.env
 **/.npmrc
 !/.npmrc
+**/artifact
+**/release
 
 # System Files
 .DS_Store
